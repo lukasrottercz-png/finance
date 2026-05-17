@@ -147,6 +147,50 @@ let view = 'dashboard';
 let selIdx = Math.max(0, periods.length - 1);
 let wiz = null;
 
+// ── GITHUB STORAGE ────────────────────────────────────────────────────
+const GH_USER = 'lukasrottercz-png';
+const GH_REPO = 'finance';
+const GH_FILE = 'finance_data.json';
+
+function ghToken() { return localStorage.getItem('gh_token') || ''; }
+
+async function ghLoad() {
+  const token = ghToken();
+  if (!token) return false;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (res.status === 404) return true;
+    if (!res.ok) throw new Error('GitHub error ' + res.status);
+    const data = await res.json();
+    const content = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    periods = content;
+    selIdx = Math.max(0, periods.length - 1);
+    localStorage.setItem('lk_finance', JSON.stringify(periods));
+    localStorage.setItem('gh_sha', data.sha);
+    return true;
+  } catch(e) { console.error('ghLoad:', e); return false; }
+}
+
+async function ghSave() {
+  const token = ghToken();
+  if (!token) { save(); return; }
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(periods, null, 2))));
+    const sha = localStorage.getItem('gh_sha') || '';
+    const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Aktualizace ${new Date().toISOString().slice(0,10)}`, content, ...(sha ? { sha } : {}) })
+    });
+    if (!res.ok) throw new Error('GitHub save error ' + res.status);
+    const data = await res.json();
+    localStorage.setItem('gh_sha', data.content.sha);
+    localStorage.setItem('lk_finance', JSON.stringify(periods));
+  } catch(e) { console.error('ghSave:', e); save(); toast('GitHub nedostupný — uloženo lokálně'); }
+}
+
 function fmt(n) {
   if (n == null) return '—';
   return Math.round(n).toLocaleString('cs-CZ') + ' Kč';
@@ -291,6 +335,15 @@ Zaměř se na: vývoj dostupných prostředků (Celkem finance), tempo splácen�
   }
 }
 
+function saveGhToken() {
+  const inp = document.getElementById('gh-token-input');
+  if (!inp || !inp.value.trim()) return;
+  localStorage.setItem('gh_token', inp.value.trim());
+  localStorage.removeItem('gh_sha');
+  toast('Token uložen — načítám data z GitHubu…');
+  ghLoad().then(() => { selIdx = Math.max(0, periods.length-1); rc(); });
+}
+
 function saveApiKey() {
   const inp = document.getElementById('api-key-input');
   if (!inp || !inp.value.trim()) return;
@@ -402,14 +455,27 @@ function renderDashboard() {
            <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
          </div>`;
 
+  const ghTok = ghToken();
+  const ghSection = !ghTok ? `
+    <div class="sec" style="border-color:var(--border2)">
+      <h3>GitHub synchronizace</h3>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Zadej GitHub token pro ukládání dat napříč zařízeními.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="gh-token-input" placeholder="ghp_..."
+          style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <button onclick="saveGhToken()" class="btn btn-primary" style="white-space:nowrap">Uložit token</button>
+      </div>
+    </div>` : ``;
+
   return `
-    <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK${ghTok ? ' &nbsp;·&nbsp; <span style="color:var(--green)">● GitHub sync</span>' : ''}</div>
     <div class="cards">
       <div class="card"><div class="card-lbl">Celkem finance</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
       <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div>${diff(bez,pBez,false,true)}</div>
       <div class="card"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
       <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
     </div>
+    ${ghSection}
     <div class="sec" id="ai-comment-sec">
       <h3>AI analýza</h3>
       <div id="ai-comment" style="font-size:14px;line-height:1.7;color:var(--text2)">${aiContent}</div>
@@ -556,9 +622,11 @@ function wizSave() {
     toast('Přidáno ✓');
   }
   save();
-  _aiCommentCache = ''; // Vymaž cache při novém období
+  _aiCommentCache = '';
   view = 'dashboard'; wiz = null;
-  renderTabs(); rc();
+  renderTabs();
+  await ghSave();
+  rc();
 }
 
 function wizDel() {
@@ -772,8 +840,18 @@ function rc() {
 document.getElementById('hdate').textContent =
   new Date().toLocaleDateString('cs-CZ', {day:'numeric', month:'long', year:'numeric'});
 
-renderTabs();
-rc();
+// Přidej záložku Nastavení
+const _origRenderTabs = renderTabs;
+
+// Načti data z GitHubu při startu pokud máme token
+(async () => {
+  if (ghToken()) {
+    const ok = await ghLoad();
+    if (ok) { selIdx = Math.max(0, periods.length - 1); }
+  }
+  renderTabs();
+  rc();
+})();
 </script>
 </body>
 </html>
