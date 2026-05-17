@@ -278,12 +278,14 @@ Zaměř se na: vývoj dostupných prostředků (Celkem finance), tempo splácen�
 
     const data = await res.json();
     const text = data.content?.[0]?.text || '';
-    el.innerHTML = `<div style="font-size:14px;line-height:1.7;color:var(--text)">${text}</div>
+    const html = `<div style="font-size:14px;line-height:1.7;color:var(--text)">${text}</div>
       <div style="margin-top:12px;font-size:12px;color:var(--text3);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <span>Analýza: ${new Date().toLocaleString('cs-CZ')}</span>
-        <button onclick="loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);text-decoration:underline">🔄 Aktualizovat</button>
-        <button onclick="localStorage.removeItem('anthropic_api_key');loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);text-decoration:underline">Změnit API klíč</button>
+        <button onclick="_aiCommentCache='';loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);text-decoration:underline">🔄 Aktualizovat</button>
+        <button onclick="localStorage.removeItem('anthropic_api_key');_aiCommentCache='';loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);text-decoration:underline">Změnit API klíč</button>
       </div>`;
+    _aiCommentCache = html;
+    el.innerHTML = html;
   } catch(e) {
     el.innerHTML = `<span style="color:var(--red);font-size:13px">Chyba: ${e.message}</span>`;
   }
@@ -348,6 +350,8 @@ function drawLineChart(id, labels, datasets) {
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────
+let _aiCommentCache = ''; // Cache obsahu AI analýzy
+
 function renderDashboard() {
   if (!periods.length) return `<div class="empty">
     <div class="icon">📊</div>
@@ -387,14 +391,16 @@ function renderDashboard() {
   }, 50);
 
   const apiKey = localStorage.getItem('anthropic_api_key') || '';
-  const aiContent = apiKey
-    ? `<button onclick="loadAiComment()" class="btn btn-primary" style="font-size:14px;padding:8px 18px">🤖 Spustit AI analýzu</button>`
-    : `<div style="font-size:14px;color:var(--text2);margin-bottom:12px">Pro AI analýzu zadej svůj Anthropic API klíč.</div>
-       <div style="display:flex;gap:8px;flex-wrap:wrap">
-         <input type="password" id="api-key-input" placeholder="sk-ant-..."
-           style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
-         <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
-       </div>`;
+  const aiContent = _aiCommentCache
+    ? _aiCommentCache
+    : apiKey
+      ? `<button onclick="loadAiComment()" class="btn btn-primary" style="font-size:14px;padding:8px 18px">🤖 Spustit AI analýzu</button>`
+      : `<div style="font-size:14px;color:var(--text2);margin-bottom:12px">Pro AI analýzu zadej svůj Anthropic API klíč.</div>
+         <div style="display:flex;gap:8px;flex-wrap:wrap">
+           <input type="password" id="api-key-input" placeholder="sk-ant-..."
+             style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+           <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
+         </div>`;
 
   return `
     <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK</div>
@@ -550,6 +556,7 @@ function wizSave() {
     toast('Přidáno ✓');
   }
   save();
+  _aiCommentCache = ''; // Vymaž cache při novém období
   view = 'dashboard'; wiz = null;
   renderTabs(); rc();
 }
