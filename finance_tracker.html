@@ -471,7 +471,6 @@ function renderDashboard() {
            <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
          </div>`;
 
-  const ghTok = localStorage.getItem('gh_token');
   const ghSection = (!ghTok || ghTok === 'null' || ghTok === '') ? `
     <div class="sec" style="border:1px solid var(--border2)">
       <h3>GitHub synchronizace</h3>
