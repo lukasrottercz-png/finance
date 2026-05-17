@@ -455,9 +455,9 @@ function renderDashboard() {
            <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
          </div>`;
 
-  const ghTok = ghToken();
-  const ghSection = !ghTok ? `
-    <div class="sec" style="border-color:var(--border2)">
+  const ghTok = localStorage.getItem('gh_token');
+  const ghSection = (!ghTok || ghTok === 'null' || ghTok === '') ? `
+    <div class="sec" style="border:1px solid var(--border2)">
       <h3>GitHub synchronizace</h3>
       <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Zadej GitHub token pro ukládání dat napříč zařízeními.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -465,7 +465,7 @@ function renderDashboard() {
           style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
         <button onclick="saveGhToken()" class="btn btn-primary" style="white-space:nowrap">Uložit token</button>
       </div>
-    </div>` : ``;
+    </div>` : `<div style="font-size:12px;color:var(--text3);margin-bottom:8px">● GitHub sync aktivní</div>`;
 
   return `
     <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK${ghTok ? ' &nbsp;·&nbsp; <span style="color:var(--green)">● GitHub sync</span>' : ''}</div>
