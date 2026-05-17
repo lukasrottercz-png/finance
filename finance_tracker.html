@@ -648,9 +648,13 @@ function wizDel() {
   if (!confirm('Opravdu smazat toto období?')) return;
   periods.splice(wiz.editIdx, 1);
   selIdx = Math.max(0, periods.length - 1);
-  save(); toast('Smazáno');
-  view = 'prehled'; wiz = null;
-  renderTabs(); rc();
+  save();
+  _aiCommentCache = '';
+  toast('Smazáno');
+  view = 'dashboard'; wiz = null;
+  renderTabs();
+  ghSave();
+  rc();
 }
 
 function fetchKurz(date) {
