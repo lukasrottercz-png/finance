@@ -610,7 +610,7 @@ function saveWizStep() {
   });
 }
 
-function wizSave() {
+async function wizSave() {
   saveEventsStep();
   if (wiz.isEdit) {
     periods[wiz.editIdx] = wiz.p;
@@ -625,7 +625,7 @@ function wizSave() {
   _aiCommentCache = '';
   view = 'dashboard'; wiz = null;
   renderTabs();
-  await ghSave();
+  ghSave(); // bez await — běží na pozadí
   rc();
 }
 
