@@ -8,18 +8,10 @@
     "date": "2026-05-16"
   },
   {
-    "id": "17790547355662",
-    "amount": 300,
-    "catKey": "ostatni",
-    "subcat": "RÃÂÃÂ¯znÃÂÃÂ©",
-    "note": "",
-    "date": "2026-05-17"
-  },
-  {
     "id": "1779054944063",
     "amount": 10000,
     "catKey": "doprava",
-    "subcat": "Pohonné hmoty",
+    "subcat": "PohonnÃ© hmoty",
     "note": "",
     "date": "2026-05-17"
   }
