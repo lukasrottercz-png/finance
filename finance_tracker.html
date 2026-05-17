@@ -460,6 +460,99 @@ function drawLineChart(id, labels, datasets) {
   });
 }
 
+// ── TRVALÉ PLATBY ─────────────────────────────────────────────────────
+const TRVALE = [
+  // Doplníš dle svých trvalých příkazů
+  // { label: 'Záloha byt', amount: 4422, cat: 'Bydlení' },
+];
+
+// ── VÝDAJE Z GITHUB ───────────────────────────────────────────────────
+async function loadVydaje() {
+  const token = ghToken();
+  const vydajeEl = document.getElementById('vydaje-content');
+  const vydajeTotalEl = document.getElementById('vydaje-total');
+  const trvalEl = document.getElementById('trvale-content');
+  const trvalTotalEl = document.getElementById('trvale-total');
+
+  // Trvalé platby
+  if (trvalEl) {
+    if (TRVALE.length === 0) {
+      trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Zatím žádné trvalé platby — doplníš v kódu</div>`;
+    } else {
+      const total = TRVALE.reduce((s,t) => s + t.amount, 0);
+      if (trvalTotalEl) trvalTotalEl.textContent = fmt(total) + ' / měsíc';
+      trvalEl.innerHTML = TRVALE.map(t => `
+        <div class="row">
+          <div class="row-lbl">${t.label}<div class="row-sub">${t.cat}</div></div>
+          <div class="row-val danger">${fmt(t.amount)}</div>
+        </div>`).join('');
+    }
+  }
+
+  // Výdaje z GitHubu
+  if (!token) {
+    if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Pro zobrazení výdajů zadej GitHub token</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch('https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/vydaje_data.json', {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (res.status === 404) {
+      if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné výdaje — přidej je v appce Výdaje</div>`;
+      return;
+    }
+    const data = await res.json();
+    const base64 = data.content.replace(/\n/g, '');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+    const exps = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+
+    // Filtruj tento měsíc
+    const now = new Date();
+    const thisMonth = exps.filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+
+    if (!thisMonth.length) {
+      if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné výdaje tento měsíc</div>`;
+      return;
+    }
+
+    // Seskup po kategoriích
+    const byCat = {};
+    thisMonth.forEach(e => {
+      if (!byCat[e.catKey]) byCat[e.catKey] = 0;
+      byCat[e.catKey] += e.amount || 0;
+    });
+    const total = Object.values(byCat).reduce((s,v) => s+v, 0);
+    if (vydajeTotalEl) vydajeTotalEl.textContent = fmt(total);
+
+    const CAT_ICONS = { bydleni:'🏠', doprava:'🚗', potraviny:'🛒', stravovani:'🍽', deti:'👶', zdravi:'🏥', obleceni:'👕', cestovani:'✈️', predplatne:'📱', pojisteni:'🛡', sporeni:'💰', ostatni:'❓' };
+    const CAT_LABELS = { bydleni:'Bydlení', doprava:'Doprava', potraviny:'Potraviny', stravovani:'Stravování', deti:'Děti', zdravi:'Zdraví', obleceni:'Oblečení', cestovani:'Cestování', predplatne:'Předplatné', pojisteni:'Pojištění', sporeni:'Spoření', ostatni:'Ostatní' };
+
+    const sorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+    if (vydajeEl) vydajeEl.innerHTML = sorted.map(([k,v]) => {
+      const pct = Math.round(v/total*100);
+      return `<div class="row">
+        <div class="row-lbl">${CAT_ICONS[k]||'❓'} ${CAT_LABELS[k]||k}</div>
+        <div style="flex:1;margin:0 12px">
+          <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:var(--blue);border-radius:2px"></div>
+          </div>
+        </div>
+        <div class="row-val danger" style="min-width:90px">${fmt(v)}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Chyba při načítání výdajů</div>`;
+    console.error('loadVydaje:', e);
+  }
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────────────
 let _aiCommentCache = ''; // Cache obsahu AI analýzy
 
@@ -513,6 +606,7 @@ function renderDashboard() {
         { label: 'Hypotéka',       data: rows.map(r => Math.round(r.hyp)), color: '#a32d2d' },
       ]
     );
+    loadVydaje();
   }, 50);
 
   const apiKey = localStorage.getItem('anthropic_api_key') || '';
@@ -547,6 +641,14 @@ function renderDashboard() {
       <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
     </div>
     ${ghSection}
+    <div class="sec" id="vydaje-sec">
+      <h3>Výdaje tento měsíc <span id="vydaje-total" style="float:right;font-weight:400;color:var(--text2)"></span></h3>
+      <div id="vydaje-content" style="font-size:13px;color:var(--text3)">⏳ Načítám výdaje…</div>
+    </div>
+    <div class="sec">
+      <h3>Trvalé platby <span id="trvale-total" style="float:right;font-weight:400;color:var(--text2)"></span></h3>
+      <div id="trvale-content"></div>
+    </div>
     <div class="sec" id="ai-comment-sec">
       <h3>AI analýza</h3>
       <div id="ai-comment" style="font-size:14px;line-height:1.7;color:var(--text2)">${aiContent}</div>
