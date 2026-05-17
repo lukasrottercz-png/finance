@@ -244,6 +244,7 @@ async function loadAiComment() {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-calls': 'true',
+        'anthropic-beta': 'direct-browser-calls-2025-02-06',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
