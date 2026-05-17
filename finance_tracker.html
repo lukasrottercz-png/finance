@@ -234,7 +234,17 @@ async function loadAiComment() {
     return `${p.date}: celkem ${cel.toLocaleString('cs-CZ')} Kč | bez hypotéky ${bez.toLocaleString('cs-CZ')} Kč | hypotéka ${hyp.toLocaleString('cs-CZ')} Kč${difBez !== null ? ` | změna ${difBez >= 0 ? '+' : ''}${difBez.toLocaleString('cs-CZ')} Kč` : ''}${evStr}${noteStr}`;
   }).join('\n');
 
-  const prompt = `Jsi osobní finanční poradce. Analyzuj tato data osobních financí Lukáše a napiš konkrétní komentář (4–6 vět) v češtině.\n\nData (chronologicky):\n${history}\n\nZaměř se na: celkový trend majetku, vývoj hypotéky, finanční zdraví, zaznamenané události a konkrétní doporučení. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
+  const prompt = `Jsi osobní finanční poradce. Analyzuj tato data osobních financí Lukáše a napiš konkrétní komentář (4–6 vět) v češtině.
+
+Důležité vysvětlení struktury dat:
+- "Celkem finance" = součet všech peněz na bankovních účtech, spořících účtech, penzijním spoření a stavebním spoření. Jsou to reálně dostupné prostředky.
+- "Bez hypotéky" = hypotetický čistý majetek v případě okamžitého splacení hypotéky (Celkem finance mínus hypotéka). Jde o informativní číslo, ne reálný stav.
+- Hypotéka je dlouhodobý závazek — nesouvisí přímo s každodenní likviditou.
+
+Data (chronologicky):
+${history}
+
+Zaměř se na: vývoj dostupných prostředků (Celkem finance), tempo splácení hypotéky, finanční zdraví a konkrétní doporučení. Zohledni zaznamenané události. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
