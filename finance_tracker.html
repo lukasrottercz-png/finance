@@ -158,8 +158,8 @@ async function ghLoad() {
   const token = ghToken();
   if (!token) return false;
   try {
-    const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
-      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    const res = await fetch('https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/' + GH_FILE, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
     });
     if (res.status === 404) return true;
     if (!res.ok) throw new Error('GitHub error ' + res.status);
@@ -179,10 +179,12 @@ async function ghSave() {
   try {
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(periods, null, 2))));
     const sha = localStorage.getItem('gh_sha') || '';
-    const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+    const bodyObj = { message: 'Aktualizace ' + new Date().toISOString().slice(0,10), content: content };
+    if (sha) bodyObj.sha = sha;
+    const res = await fetch('https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/' + GH_FILE, {
       method: 'PUT',
-      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `Aktualizace ${new Date().toISOString().slice(0,10)}`, content, ...(sha ? { sha } : {}) })
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyObj)
     });
     if (!res.ok) throw new Error('GitHub save error ' + res.status);
     const data = await res.json();
