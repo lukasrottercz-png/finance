@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Osobní finance — Lukáš</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+  --text: #1a1a18; --text2: #6b6b66; --text3: #9a9a94;
+  --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.2);
+  --green: #2d7a4f; --green-bg: #eaf3de;
+  --red: #a32d2d; --red-bg: #fcebeb;
+  --blue: #185fa5; --blue-bg: #e6f1fb;
+  --r: 8px; --rl: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+    --text: #f0f0ec; --text2: #a0a09a; --text3: #6a6a64;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+    --green: #5dc485; --green-bg: #173404;
+    --red: #f09595; --red-bg: #501313;
+    --blue: #85b7eb; --blue-bg: #042c53;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+.shell { max-width: 800px; margin: 0 auto; padding: 0 16px 60px; }
+header { padding: 20px 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 500; }
+header .hdate { font-size: 13px; color: var(--text3); }
+.tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab { padding: 6px 16px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); cursor: pointer; font-size: 14px; color: var(--text2); }
+.tab:hover { background: var(--bg2); }
+.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.card { background: var(--bg2); border-radius: var(--r); padding: 14px 16px; }
+.card-lbl { font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.card-val { font-size: 18px; font-weight: 500; }
+.card-diff { font-size: 12px; margin-top: 4px; }
+.pos { color: var(--green); } .neg { color: var(--red); }
+.sec { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 16px 18px; margin-bottom: 12px; }
+.sec h3 { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+.row { display: flex; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--border); gap: 8px; }
+.row:last-child { border-bottom: none; }
+.row-lbl { flex: 1; font-size: 14px; }
+.row-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.row-val { font-size: 14px; font-weight: 500; min-width: 140px; text-align: right; }
+.row-diff { font-size: 12px; min-width: 72px; text-align: right; }
+.danger { color: var(--red) !important; }
+.pbar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.pbar select { font-size: 14px; padding: 6px 10px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); }
+.pbar .kurz { font-size: 13px; color: var(--text3); }
+.chart-wrap { display: flex; flex-direction: column; gap: 8px; }
+.chart-row { display: flex; align-items: center; gap: 8px; }
+.chart-lbl { font-size: 12px; color: var(--text2); min-width: 110px; text-align: right; white-space: nowrap; }
+.bar-track { flex: 1; background: var(--bg2); border-radius: 3px; height: 20px; }
+.bar-fill { height: 100%; border-radius: 3px; min-width: 2px; }
+.bar-val { font-size: 11px; font-weight: 500; white-space: nowrap; min-width: 36px; text-align: right; }
+.wizard { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--rl); overflow: hidden; }
+.wiz-head { padding: 16px 20px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.wiz-title { font-size: 16px; font-weight: 500; flex: 1; }
+.wiz-step { font-size: 20px; font-weight: 500; color: var(--text); white-space: nowrap; }
+.wiz-prog { height: 3px; background: var(--bg2); }
+.wiz-prog-bar { height: 100%; background: var(--blue); transition: width 0.25s; }
+.wiz-body { padding: 20px; }
+.wiz-date-row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
+.wiz-fields { display: flex; flex-direction: column; gap: 14px; }
+.fg { display: flex; flex-direction: column; gap: 5px; }
+.fg label { font-size: 13px; color: var(--text2); }
+.fg input { font-size: 16px; padding: 10px 12px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); width: 100%; }
+.fg input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+.fg input.eur { border-color: rgba(24,95,165,0.5); background: var(--blue-bg); }
+.fg input.hyp { border-color: rgba(163,45,45,0.4); }
+.fg .hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.wiz-nav { display: flex; gap: 8px; padding: 16px 20px; border-top: 0.5px solid var(--border); justify-content: space-between; align-items: center; }
+.wiz-nav-l { display: flex; gap: 8px; align-items: center; }
+.btn { padding: 8px 18px; border-radius: var(--r); border: 0.5px solid var(--border2); background: transparent; cursor: pointer; font-size: 14px; color: var(--text); }
+.btn:hover { background: var(--bg2); }
+.btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+.btn-primary:hover { opacity: 0.85; background: var(--text); }
+.btn-danger { border-color: rgba(163,45,45,0.4); color: var(--red); font-size: 13px; padding: 6px 12px; }
+.btn-danger:hover { background: var(--red-bg); }
+.empty { text-align: center; padding: 52px 20px; color: var(--text2); }
+.empty .icon { font-size: 44px; margin-bottom: 12px; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 22px; border-radius: var(--r); font-size: 14px; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 999; }
+.toast.show { opacity: 1; }
+.chart-canvas-wrap { position: relative; height: 220px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <h1>💰 Osobní finance — Lukáš</h1>
+    <span class="hdate" id="hdate"></span>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <div id="content"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const BANKS = [
+  { key:'rb',     label:'Raiffeisenbank', short:'RB' },
+  { key:'moneta', label:'Moneta',         short:'MONETA' },
+  { key:'cs',     label:'ČS',             short:'CS' },
+  { key:'kb',     label:'KB',             short:'KB' },
+  { key:'air',    label:'AirBank',        short:'Air' },
+  { key:'mbank',  label:'mBank',          short:'mBank' },
+  { key:'roger',  label:'Roger aukce',    short:'Roger' },
+  { key:'ronda',  label:'Ronda invest',   short:'Ronda' },
+];
+const PRODUCTS = [
+  { key:'bezny',       label:'Běžný účet (CZK)',   eur:false, cat:'bezne' },
+  { key:'sporici1',    label:'Spořící 1 (CZK)',     eur:false, cat:'sporici' },
+  { key:'sporici2',    label:'Spořící 2 (CZK)',     eur:false, cat:'sporici' },
+  { key:'terminovany', label:'Termínovaný (CZK)',   eur:false, cat:'sporici' },
+  { key:'eur',         label:'EUR účet',            eur:true,  cat:'bezne' },
+  { key:'penzijni',    label:'Penzijní spoření',    eur:false, cat:'investice' },
+  { key:'stavebko',    label:'Stavebko Daník',      eur:false, cat:'investice' },
+  { key:'hypoteka',    label:'Hypotéka',            eur:false, cat:'zavazky' },
+];
+
+const CK = (b,p) => b + '_' + p;
+
+function makeEmpty(date) {
+  const d = { date, eur_kurz: 25.0, data: {}, events: [], note: '' };
+  BANKS.forEach(b => PRODUCTS.forEach(p => { d.data[CK(b.key,p.key)] = 0; }));
+  return d;
+}
+
+function calcCelkem(p) {
+  let t = 0;
+  BANKS.forEach(b => PRODUCTS.filter(pr => pr.cat !== 'zavazky').forEach(pr => {
+    const v = p.data[CK(b.key,pr.key)] || 0;
+    t += pr.eur ? v * (p.eur_kurz || 25) : v;
+  }));
+  return t;
+}
+function calcHyp(p) { return BANKS.reduce((s,b) => s + (p.data[CK(b.key,'hypoteka')]||0), 0); }
+function calcBez(p) { return calcCelkem(p) - calcHyp(p); }
+
+let periods = [];
+try { periods = JSON.parse(localStorage.getItem('lk_finance') || '[]'); } catch(e) {}
+let view = 'dashboard';
+let selIdx = Math.max(0, periods.length - 1);
+let wiz = null;
+
+function fmt(n) {
+  if (n == null) return '—';
+  return Math.round(n).toLocaleString('cs-CZ') + ' Kč';
+}
+function fmtEur(n) { return Math.round(n).toLocaleString('cs-CZ') + ' EUR'; }
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d + 'T12:00:00').toLocaleDateString('cs-CZ', { day:'numeric', month:'long', year:'numeric' });
+}
+function fmtShort(d) {
+  if (!d) return '';
+  return new Date(d + 'T12:00:00').toLocaleDateString('cs-CZ', { month:'short', year:'numeric' });
+}
+function save() { try { localStorage.setItem('lk_finance', JSON.stringify(periods)); } catch(e) {} }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function diff(cur, prv, inv, asCard) {
+  if (prv == null) return '';
+  const d = Math.round(cur - prv);
+  if (d === 0) return '';
+  const good = inv ? d < 0 : d >= 0;
+  const cls = good ? 'pos' : 'neg';
+  const s = (d >= 0 ? '+' : '') + d.toLocaleString('cs-CZ');
+  if (asCard) return `<div class="card-diff ${cls}">${s} Kč</div>`;
+  return `<span class="row-diff ${cls}">${s}</span>`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+function renderTabs() {
+  const ts = [
+    { k:'dashboard', l:'Dashboard' },
+    { k:'prehled', l:'Přehled' },
+    { k:'vyvoj',   l:'Vývoj' },
+    { k:'zadat',   l:'+ Přidat' },
+  ];
+  if (periods.length > 0) ts.push({ k:'edit', l:'Upravit' });
+  ts.push({ k:'export', l:'⬇ CSV' });
+  ts.push({ k:'import', l:'⬆ Import CSV' });
+  document.getElementById('tabs').innerHTML = ts.map(t =>
+    `<button class="tab ${view===t.k?'active':''}" onclick="sw('${t.k}')">${t.l}</button>`
+  ).join('');
+}
+
+function sw(v) {
+  if (v === 'export') { exportCSV(); return; }
+  if (v === 'import') { importCSV(); return; }
+  if (v === 'zadat') { startWiz(false); return; }
+  if (v === 'edit' && periods.length > 0) { startWiz(true); return; }
+  view = v; wiz = null;
+  renderTabs(); rc();
+}
+
+// ── AI KOMENTÁŘ (Claude API) ──────────────────────────────────────────
+async function loadAiComment() {
+  const el = document.getElementById('ai-comment');
+  if (!el || periods.length === 0) return;
+
+  let apiKey = localStorage.getItem('anthropic_api_key') || '';
+  if (!apiKey) {
+    el.innerHTML = `
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Pro AI analýzu zadej svůj Anthropic API klíč. Uloží se pouze v tomto prohlížeči.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..."
+          style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `<span style="color:var(--text3);font-size:13px">⏳ Claude analyzuje vaše finance…</span>`;
+
+  const history = periods.map((p, i) => {
+    const prev = i > 0 ? periods[i-1] : null;
+    const cel = Math.round(calcCelkem(p));
+    const bez = Math.round(calcBez(p));
+    const hyp = Math.round(calcHyp(p));
+    const difBez = prev ? Math.round(calcBez(p) - calcBez(prev)) : null;
+    const evStr = (p.events||[]).length
+      ? ' | Události: ' + p.events.map(e => `${e.cat}${e.amount?' '+Math.round(e.amount).toLocaleString('cs-CZ')+' Kč':''} — ${e.desc}`).join('; ')
+      : '';
+    const noteStr = p.note ? ` | Poznámka: ${p.note}` : '';
+    return `${p.date}: celkem ${cel.toLocaleString('cs-CZ')} Kč | bez hypotéky ${bez.toLocaleString('cs-CZ')} Kč | hypotéka ${hyp.toLocaleString('cs-CZ')} Kč${difBez !== null ? ` | změna ${difBez >= 0 ? '+' : ''}${difBez.toLocaleString('cs-CZ')} Kč` : ''}${evStr}${noteStr}`;
+  }).join('\n');
+
+  const prompt = `Jsi osobní finanční poradce. Analyzuj tato data osobních financí Lukáše a napiš konkrétní komentář (4–6 vět) v češtině.\n\nData (chronologicky):\n${history}\n\nZaměř se na: celkový trend majetku, vývoj hypotéky, finanční zdraví, zaznamenané události a konkrétní doporučení. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('anthropic_api_key');
+        el.innerHTML = `<span style="color:var(--red);font-size:13px">Neplatný API klíč — zadej ho znovu.</span>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <input type="password" id="api-key-input" placeholder="sk-ant-..."
+              style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+            <button onclick="saveApiKey()" class="btn btn-primary">Uložit</button>
+          </div>`;
+        return;
+      }
+      throw new Error('API error ' + res.status);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    el.innerHTML = `<div style="font-size:14px;line-height:1.7;color:var(--text)">${text}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text3);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span>Analýza: ${new Date().toLocaleString('cs-CZ')}</span>
+        <button onclick="loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);text-decoration:underline">🔄 Aktualizovat</button>
+        <button onclick="localStorage.removeItem('anthropic_api_key');loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);text-decoration:underline">Změnit API klíč</button>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:13px">Chyba: ${e.message}</span>`;
+  }
+}
+
+function saveApiKey() {
+  const inp = document.getElementById('api-key-input');
+  if (!inp || !inp.value.trim()) return;
+  localStorage.setItem('anthropic_api_key', inp.value.trim());
+  loadAiComment();
+}
+// ── CHART HELPER ──────────────────────────────────────────────────────
+const _charts = {};
+function drawLineChart(id, labels, datasets) {
+  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#a0a09a' : '#6b6b66';
+
+  _charts[id] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: datasets.map(ds => ({
+        label: ds.label,
+        data: ds.data,
+        borderColor: ds.color,
+        backgroundColor: ds.color + '18',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.3,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: textColor, font: { size: 12 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('cs-CZ')} Kč`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } },
+        y: {
+          ticks: {
+            color: textColor, font: { size: 11 },
+            callback: v => Math.round(v/1000) + 'k'
+          },
+          grid: { color: gridColor }
+        }
+      }
+    }
+  });
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+function renderDashboard() {
+  if (!periods.length) return `<div class="empty">
+    <div class="icon">📊</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:8px">Zatím žádná data</div>
+    <div style="font-size:14px;color:var(--text3)">Přidej první období tlačítkem + Přidat</div>
+  </div>`;
+
+  const p = periods[periods.length - 1];
+  const prev = periods.length > 1 ? periods[periods.length - 2] : null;
+  const cel = calcCelkem(p), bez = calcBez(p), hyp = calcHyp(p);
+  const pCel = prev ? calcCelkem(prev) : null;
+  const pBez = prev ? calcBez(prev) : null;
+  const pHyp = prev ? calcHyp(prev) : null;
+  const dif = prev ? bez - pBez : null;
+
+  // Graf vývoje
+  const rows = periods.map((pd, i) => ({
+    date: pd.date,
+    cel: calcCelkem(pd),
+    bez: calcBez(pd),
+    hyp: calcHyp(pd),
+    difCel: i > 0 ? calcCelkem(pd) - calcCelkem(periods[i-1]) : null,
+    difBez: i > 0 ? calcBez(pd) - calcBez(periods[i-1]) : null,
+    difHyp: i > 0 ? calcHyp(pd) - calcHyp(periods[i-1]) : null,
+  }));
+
+  const labels = rows.map(r => fmtShort(r.date));
+
+  setTimeout(() => {
+    drawLineChart('chart-dash', labels,
+      [
+        { label: 'Celkem finance', data: rows.map(r => Math.round(r.cel)), color: '#185fa5' },
+        { label: 'Bez hypotéky',   data: rows.map(r => Math.round(r.bez)), color: '#2d7a4f' },
+        { label: 'Hypotéka',       data: rows.map(r => Math.round(r.hyp)), color: '#a32d2d' },
+      ]
+    );
+    loadAiComment();
+  }, 50);
+
+  return `
+    <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK</div>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Celkem finance</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
+      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div>${diff(bez,pBez,false,true)}</div>
+      <div class="card"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
+      <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
+    </div>
+    <div class="sec" id="ai-comment-sec">
+      <h3>AI analýza</h3>
+      <div id="ai-comment" style="font-size:14px;line-height:1.7;color:var(--text2)">
+        <span style="color:var(--text3)">⏳ Načítám analýzu…</span>
+      </div>
+    </div>
+    <div class="sec"><h3>Vývoj v čase</h3><div class="chart-canvas-wrap"><canvas id="chart-dash"></canvas></div></div>`;
+}
+
+// ── PŘEHLED ───────────────────────────────────────────────────────────
+function renderPrehled() {
+  if (!periods.length) return `<div class="empty">
+    <div class="icon">📊</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:8px">Zatím žádná data</div>
+    <div style="font-size:14px;color:var(--text3)">Přidej první období tlačítkem + Přidat</div>
+  </div>`;
+
+  const p = periods[selIdx];
+  const prev = selIdx > 0 ? periods[selIdx-1] : null;
+  const cel = calcCelkem(p), bez = calcBez(p), hyp = calcHyp(p);
+  const pCel = prev ? calcCelkem(prev) : null;
+  const pBez = prev ? calcBez(prev) : null;
+  const pHyp = prev ? calcHyp(prev) : null;
+  const dif = prev ? bez - pBez : null;
+
+  function secRows(cat) {
+    const out = [];
+    PRODUCTS.filter(pr => pr.cat === cat).forEach(pr => {
+      BANKS.forEach(b => {
+        const v = p.data[CK(b.key,pr.key)] || 0;
+        const pv = prev ? (prev.data[CK(b.key,pr.key)] || 0) : null;
+        if (!v && !pv) return;
+        const isZ = cat === 'zavazky';
+        const czk = pr.eur ? v * (p.eur_kurz||25) : v;
+        const pCzk = pr.eur && prev ? pv * (prev.eur_kurz||25) : pv;
+        const disp = pr.eur && v ? `${fmtEur(v)} ≈ ${fmt(czk)}` : fmt(v);
+        out.push(`<div class="row">
+          <div class="row-lbl">${pr.label}<div class="row-sub">${b.label}</div></div>
+          <div class="row-val ${isZ?'danger':''}">${disp}</div>
+          ${diff(czk, pCzk, isZ, false)}
+        </div>`);
+      });
+    });
+    return out.length ? out.join('') : `<div style="font-size:13px;color:var(--text3);padding:6px 0">Žádné záznamy</div>`;
+  }
+
+  function sec(title, cat) { return `<div class="sec"><h3>${title}</h3>${secRows(cat)}</div>`; }
+
+  return `
+    <div class="pbar">
+      <label style="font-size:14px;color:var(--text2)">Období:</label>
+      <select onchange="selIdx=+this.value;rc()">
+        ${periods.map((pd,i) => `<option value="${i}" ${i===selIdx?'selected':''}>${fmtDate(pd.date)}</option>`).join('')}
+      </select>
+      <span class="kurz">kurz EUR: ${p.eur_kurz} CZK</span>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Celkem finance</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
+      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div>${diff(bez,pBez,false,true)}</div>
+      <div class="card"><div class="card-lbl">Rozdíl oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
+      <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
+    </div>
+    ${sec('Běžné účty & EUR','bezne')}
+    ${sec('Spořící & termínované','sporici')}
+    ${sec('Investice','investice')}
+    ${sec('Závazky','zavazky')}`;
+}
+
+// ── VÝVOJ ────────────────────────────────────────────────────────────
+function renderVyvoj() {
+  if (!periods.length) return renderPrehled();
+  const rows = periods.map((p,i) => ({
+    date: p.date,
+    cel: calcCelkem(p),
+    bez: calcBez(p),
+    hyp: calcHyp(p),
+  }));
+  const labels = rows.map(r => fmtShort(r.date));
+
+  setTimeout(() => {
+    drawLineChart('chart-vyvoj-cel', labels, [
+      { label: 'Celkem finance', data: rows.map(r => Math.round(r.cel)), color: '#185fa5' },
+    ]);
+    drawLineChart('chart-vyvoj-bez', labels, [
+      { label: 'Bez hypotéky', data: rows.map(r => Math.round(r.bez)), color: '#2d7a4f' },
+    ]);
+    drawLineChart('chart-vyvoj-hyp', labels, [
+      { label: 'Hypotéka', data: rows.map(r => Math.round(r.hyp)), color: '#a32d2d' },
+    ]);
+  }, 50);
+
+  return `
+    <div class="sec"><h3>Celkem finance</h3><div class="chart-canvas-wrap"><canvas id="chart-vyvoj-cel"></canvas></div></div>
+    <div class="sec"><h3>Bez hypotéky</h3><div class="chart-canvas-wrap"><canvas id="chart-vyvoj-bez"></canvas></div></div>
+    <div class="sec"><h3>Hypotéka — zůstatek</h3><div class="chart-canvas-wrap"><canvas id="chart-vyvoj-hyp"></canvas></div></div>`;
+}
+
+// ── WIZARD ────────────────────────────────────────────────────────────
+function startWiz(isEdit) {
+  const base = isEdit ? JSON.parse(JSON.stringify(periods[selIdx])) : makeEmpty(new Date().toISOString().slice(0,10));
+  wiz = { p: base, step: -1, isEdit, editIdx: isEdit ? selIdx : -1 };
+  view = isEdit ? 'edit' : 'zadat';
+  renderTabs(); rc();
+}
+
+function wizNext() {
+  if (wiz.step === -1) {
+    const d = document.getElementById('w_date').value;
+    if (!d) { toast('Zadej datum'); return; }
+    wiz.p.date = d;
+    wiz.p.eur_kurz = parseFloat(document.getElementById('w_kurz').value) || 25;
+  } else if (wiz.step === BANKS.length) {
+    saveEventsStep();
+  } else {
+    saveWizStep();
+  }
+  wiz.step++;
+  rc();
+}
+
+function wizPrev() {
+  if (wiz.step === -1) { view = 'dashboard'; wiz = null; renderTabs(); rc(); return; }
+  if (wiz.step === BANKS.length) saveEventsStep(); else saveWizStep();
+  wiz.step--;
+  rc();
+}
+
+function saveWizStep() {
+  if (wiz.step < 0 || wiz.step >= BANKS.length) return;
+  const b = BANKS[wiz.step];
+  PRODUCTS.forEach(pr => {
+    const el = document.getElementById('w_' + CK(b.key, pr.key));
+    if (el) wiz.p.data[CK(b.key, pr.key)] = parseFloat(el.value) || 0;
+  });
+}
+
+function wizSave() {
+  saveEventsStep();
+  if (wiz.isEdit) {
+    periods[wiz.editIdx] = wiz.p;
+    toast('Aktualizováno ✓');
+  } else {
+    periods.push(wiz.p);
+    periods.sort((a,b) => a.date.localeCompare(b.date));
+    selIdx = periods.findIndex(p => p.date === wiz.p.date);
+    toast('Přidáno ✓');
+  }
+  save();
+  view = 'dashboard'; wiz = null;
+  renderTabs(); rc();
+}
+
+function wizDel() {
+  if (!confirm('Opravdu smazat toto období?')) return;
+  periods.splice(wiz.editIdx, 1);
+  selIdx = Math.max(0, periods.length - 1);
+  save(); toast('Smazáno');
+  view = 'prehled'; wiz = null;
+  renderTabs(); rc();
+}
+
+function fetchKurz(date) {
+  window.open('https://www.kurzy.cz/kurzy-men/aktualni/czk-eur/', '_blank');
+}
+
+function addEvent() {
+  if (!wiz.p.events) wiz.p.events = [];
+  saveEventsStep();
+  wiz.p.events.push({ cat: 'Jiné', amount: '', desc: '' });
+  rc();
+}
+function removeEvent(i) {
+  saveEventsStep();
+  wiz.p.events.splice(i, 1);
+  rc();
+}
+function saveEventsStep() {
+  if (wiz.step !== BANKS.length) return;
+  const evs = wiz.p.events || [];
+  evs.forEach((ev, i) => {
+    const cat = document.getElementById('ev_cat_' + i);
+    const amt = document.getElementById('ev_amt_' + i);
+    const desc = document.getElementById('ev_desc_' + i);
+    if (cat) ev.cat = cat.value;
+    if (amt) ev.amount = parseFloat(amt.value) || 0;
+    if (desc) ev.desc = desc.value;
+  });
+  const note = document.getElementById('w_note');
+  if (note) wiz.p.note = note.value;
+}
+
+function renderWizard() {
+  const total = BANKS.length + 1;
+  const isLast = wiz.step === BANKS.length;
+  const isFirst = wiz.step === -1;
+  const isBankStep = wiz.step >= 0 && wiz.step < BANKS.length;
+  const pct = isFirst ? 0 : Math.round((wiz.step + 1) / total * 100);
+  const stepLbl = isFirst ? 'Datum a kurz' : isBankStep ? `${BANKS[wiz.step].label} — ${wiz.step+1} / ${BANKS.length}` : 'Události & poznámka';
+  const title = wiz.isEdit ? `Upravit: ${fmtDate(wiz.p.date)}` : 'Nové období';
+  const EVENT_CATS = ['Nákup vozidla','Investice','Mimořádná splátka','Větší výdaj','Příjem','Jiné'];
+
+  let body = '';
+  if (isFirst) {
+    body = `<div class="wiz-date-row">
+      <div class="fg"><label>Datum</label><input type="date" id="w_date" value="${wiz.p.date}"></div>
+      <div class="fg">
+        <label>Kurz EUR / CZK</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="w_kurz" value="${wiz.p.eur_kurz}" step="0.01" placeholder="25.0" style="flex:1">
+          <button class="btn" type="button" onclick="fetchKurz(document.getElementById('w_date').value)" style="white-space:nowrap;padding:9px 12px">📈 Zobrazit kurz</button>
+        </div>
+        <div class="hint">Klikni na 📈 Zobrazit kurz → opište aktuální kurz ČNB</div>
+      </div>
+    </div>`;
+  } else if (isBankStep) {
+    const b = BANKS[wiz.step];
+    body = `<div class="wiz-fields">${PRODUCTS.map(pr => {
+      const k = CK(b.key, pr.key);
+      const v = wiz.p.data[k] || 0;
+      const isH = pr.cat === 'zavazky'; const isE = pr.eur;
+      return `<div class="fg">
+        <label>${pr.label}${isE ? ' — zadávej v EUR' : ''}</label>
+        <input type="number" id="w_${k}" value="${v||''}" placeholder="0" step="1" inputmode="numeric" class="${isE?'eur':isH?'hyp':''}">
+        ${isH ? '<div class="hint">Kladné číslo — zůstatek dluhu</div>' : ''}
+      </div>`;
+    }).join('')}</div>`;
+  } else {
+    const evs = wiz.p.events || [];
+    const eRows = evs.map((ev, i) => `
+      <div style="display:grid;grid-template-columns:150px 130px 1fr 32px;gap:8px;align-items:center;margin-bottom:8px">
+        <select id="ev_cat_${i}" style="font-size:13px;padding:8px 8px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+          ${EVENT_CATS.map(c => `<option ${c===ev.cat?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <input type="number" id="ev_amt_${i}" value="${ev.amount||''}" placeholder="Kč" step="1" inputmode="numeric" style="font-size:13px;padding:8px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <input type="text" id="ev_desc_${i}" value="${ev.desc||''}" placeholder="Popis..." style="font-size:13px;padding:8px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <button onclick="removeEvent(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0">✕</button>
+      </div>`).join('');
+    body = `<div class="wiz-fields">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Zaznamenej výrazné výdaje nebo události tohoto období (volitelné)</div>
+      <div id="ev-rows">${eRows}</div>
+      <button class="btn" onclick="addEvent()" style="align-self:flex-start;margin-top:4px">+ Přidat událost</button>
+      <div class="fg" style="margin-top:12px">
+        <label>Volná poznámka</label>
+        <textarea id="w_note" rows="3" placeholder="Např. změna zaměstnání, mimořádný příjem, výrazný výdaj..." style="font-size:14px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);resize:vertical;width:100%">${wiz.p.note||''}</textarea>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="wizard">
+    <div class="wiz-head">
+      <div class="wiz-title">${title}</div>
+      <div class="wiz-step">${stepLbl}</div>
+    </div>
+    <div class="wiz-prog"><div class="wiz-prog-bar" style="width:${pct}%"></div></div>
+    <div class="wiz-body">${body}</div>
+    <div class="wiz-nav">
+      <div class="wiz-nav-l">
+        <button class="btn" onclick="wizPrev()">${isFirst ? 'Zrušit' : '← Zpět'}</button>
+        ${wiz.isEdit ? `<button class="btn btn-danger" onclick="wizDel()">Smazat</button>` : ''}
+      </div>
+      ${isLast
+        ? `<button class="btn btn-primary" onclick="wizSave()">Uložit ✓</button>`
+        : `<button class="btn btn-primary" onclick="wizNext()">Další →</button>`}
+    </div>
+  </div>`;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!periods.length) { toast('Žádná data'); return; }
+  const hdr = ['datum','eur_kurz',
+    ...BANKS.flatMap(b => PRODUCTS.map(p => `${b.short}_${p.key}`)),
+    'celkem_finance','bez_hypoteky','hypoteka'];
+  const rows = [hdr.join(';')];
+  periods.forEach(p => {
+    rows.push([p.date, p.eur_kurz,
+      ...BANKS.flatMap(b => PRODUCTS.map(pr => p.data[CK(b.key,pr.key)]||0)),
+      Math.round(calcCelkem(p)), Math.round(calcBez(p)), Math.round(calcHyp(p))
+    ].join(';'));
+  });
+  const blob = new Blob(['\uFEFF'+rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `finance_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exportováno');
+}
+
+// ── IMPORT CSV ────────────────────────────────────────────────────────
+function importCSV() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const text = ev.target.result.replace(/^\uFEFF/, ''); // strip BOM
+        const lines = text.trim().split('\n');
+        if (lines.length < 2) { toast('CSV je prázdné'); return; }
+        const hdr = lines[0].split(';');
+        const imported = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(';');
+          if (cols.length < 2) continue;
+          const date = cols[0].trim();
+          const eur_kurz = parseFloat(cols[1]) || 25;
+          if (!date) continue;
+          const entry = makeEmpty(date);
+          entry.eur_kurz = eur_kurz;
+          // Mapuj sloupce podle hlavičky
+          hdr.forEach((h, idx) => {
+            const parts = h.trim().split('_');
+            if (parts.length < 2) return;
+            // Najdi banku a produkt
+            const bank = BANKS.find(b => b.short === parts[0]);
+            if (!bank) return;
+            const prodKey = parts.slice(1).join('_');
+            const prod = PRODUCTS.find(p => p.key === prodKey);
+            if (!prod) return;
+            const val = parseFloat(cols[idx]) || 0;
+            entry.data[CK(bank.key, prod.key)] = val;
+          });
+          imported.push(entry);
+        }
+        if (!imported.length) { toast('Žádná data k importu'); return; }
+        // Sloučit — nová data přepíší existující stejné datum
+        imported.forEach(imp => {
+          const idx = periods.findIndex(p => p.date === imp.date);
+          if (idx >= 0) periods[idx] = imp;
+          else periods.push(imp);
+        });
+        periods.sort((a,b) => a.date.localeCompare(b.date));
+        selIdx = Math.max(0, periods.length - 1);
+        save();
+        toast(`Importováno ${imported.length} období ✓`);
+        view = 'prehled';
+        renderTabs(); rc();
+      } catch(err) {
+        toast('Chyba při importu — zkontroluj formát CSV');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+  input.click();
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────
+function rc() {
+  let html = '';
+  if (wiz) html = renderWizard();
+  else if (view === 'dashboard') html = renderDashboard();
+  else if (view === 'prehled') html = renderPrehled();
+  else if (view === 'vyvoj') html = renderVyvoj();
+  document.getElementById('content').innerHTML = html;
+}
+
+document.getElementById('hdate').textContent =
+  new Date().toLocaleDateString('cs-CZ', {day:'numeric', month:'long', year:'numeric'});
+
+renderTabs();
+rc();
+</script>
+</body>
+</html>
