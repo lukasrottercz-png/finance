@@ -1,0 +1,18 @@
+[
+  {
+    "id": "17790547355641",
+    "amount": 731,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-16"
+  },
+  {
+    "id": "17790547355662",
+    "amount": 300,
+    "catKey": "ostatni",
+    "subcat": "Různé",
+    "note": "",
+    "date": "2026-05-17"
+  }
+]
