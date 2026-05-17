@@ -408,11 +408,25 @@ function drawLineChart(id, labels, datasets) {
 let _aiCommentCache = ''; // Cache obsahu AI analýzy
 
 function renderDashboard() {
-  if (!periods.length) return `<div class="empty">
-    <div class="icon">📊</div>
-    <div style="font-size:15px;font-weight:500;margin-bottom:8px">Zatím žádná data</div>
-    <div style="font-size:14px;color:var(--text3)">Přidej první období tlačítkem + Přidat</div>
-  </div>`;
+  const ghTok = localStorage.getItem('gh_token');
+  const ghSetup = (!ghTok || ghTok === 'null' || ghTok === '') ? `
+    <div class="sec" style="border:1px solid var(--border2);margin-bottom:16px">
+      <h3>GitHub synchronizace</h3>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Zadej GitHub token pro načtení a ukládání dat napříč zařízeními.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="gh-token-input" placeholder="ghp_..."
+          style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <button onclick="saveGhToken()" class="btn btn-primary" style="white-space:nowrap">Uložit a načíst</button>
+      </div>
+    </div>` : '';
+
+  if (!periods.length) return `
+    ${ghSetup}
+    <div class="empty">
+      <div class="icon">📊</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">Zatím žádná data</div>
+      <div style="font-size:14px;color:var(--text3)">Přidej první období tlačítkem + Přidat</div>
+    </div>`;
 
   const p = periods[periods.length - 1];
   const prev = periods.length > 1 ? periods[periods.length - 2] : null;
