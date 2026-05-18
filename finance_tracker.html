@@ -681,7 +681,7 @@ function renderDashboard() {
     <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK${ghTok ? ' &nbsp;·&nbsp; <span style="color:var(--green)">● GitHub sync</span>' : ''}</div>
     <div class="cards">
       <div class="card"><div class="card-lbl">Celkem finance</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
-      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div>${diff(bez,pBez,false,true)}</div>
+      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div></div>
       <div class="card"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
       <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
     </div>
