@@ -30,5 +30,13 @@
     "subcat": "Kadeřník",
     "note": "",
     "date": "2026-05-18"
+  },
+  {
+    "id": "1779119752924",
+    "amount": 220,
+    "catKey": "stravovani",
+    "subcat": "Kavárna",
+    "note": "",
+    "date": "2026-05-18"
   }
 ]
