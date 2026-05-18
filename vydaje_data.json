@@ -22,5 +22,13 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-05-17"
+  },
+  {
+    "id": "1779103417225",
+    "amount": 700,
+    "catKey": "pece",
+    "subcat": "Kadeřník",
+    "note": "",
+    "date": "2026-05-18"
   }
 ]
