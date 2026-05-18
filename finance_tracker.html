@@ -576,8 +576,8 @@ async function loadVydaje() {
     const total = Object.values(byCat).reduce((s,v) => s+v, 0);
     if (vydajeTotalEl) vydajeTotalEl.textContent = fmt(total);
 
-    const CAT_ICONS = { bydleni:'🏠', doprava:'🚗', potraviny:'🛒', stravovani:'🍽', deti:'👶', zdravi:'🏥', obleceni:'👕', cestovani:'✈️', predplatne:'📱', pojisteni:'🛡', sporeni:'💰', ostatni:'❓' };
-    const CAT_LABELS = { bydleni:'Bydlení', doprava:'Doprava', potraviny:'Potraviny', stravovani:'Stravování', deti:'Děti', zdravi:'Zdraví', obleceni:'Oblečení', cestovani:'Cestování', predplatne:'Předplatné', pojisteni:'Pojištění', sporeni:'Spoření', ostatni:'Ostatní' };
+    const CAT_ICONS = { bydleni:'🏠', doprava:'🚗', potraviny:'🛒', stravovani:'🍽', deti:'👶', pece:'💇', zdravi:'🏥', obleceni:'👕', cestovani:'✈️', zabava:'🎮', predplatne:'📱', pojisteni:'🛡', sporeni:'💰', domacnost:'🔧', darky:'🎁', ostatni:'❓' };
+    const CAT_LABELS = { bydleni:'Bydlení', doprava:'Doprava', potraviny:'Potraviny', stravovani:'Stravování', deti:'Děti', pece:'Péče o sebe', zdravi:'Zdraví', obleceni:'Oblečení', cestovani:'Cestování', zabava:'Zábava', predplatne:'Předplatné', pojisteni:'Pojištění', sporeni:'Spoření', domacnost:'Domácnost', darky:'Dárky & Charity', ostatni:'Ostatní' };
 
     const sorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
     if (vydajeEl) vydajeEl.innerHTML = sorted.map(([k,v]) => {
