@@ -38,5 +38,13 @@
     "subcat": "Kavárna",
     "note": "",
     "date": "2026-05-18"
+  },
+  {
+    "id": "1779131990646",
+    "amount": 5000,
+    "catKey": "deti",
+    "subcat": "Výlety",
+    "note": "Judo tabor",
+    "date": "2026-05-18"
   }
 ]
