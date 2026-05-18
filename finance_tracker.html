@@ -460,11 +460,6 @@ function drawLineChart(id, labels, datasets) {
   });
 }
 
-// ── TRVALÉ PLATBY ─────────────────────────────────────────────────────
-const TRVALE = [
-  // Doplníš dle svých trvalých příkazů
-  // { label: 'Záloha byt', amount: 4422, cat: 'Bydlení' },
-];
 
 // ── VÝDAJE Z GITHUB ───────────────────────────────────────────────────
 async function loadVydaje() {
@@ -474,18 +469,41 @@ async function loadVydaje() {
   const trvalEl = document.getElementById('trvale-content');
   const trvalTotalEl = document.getElementById('trvale-total');
 
-  // Trvalé platby
+  // Trvalé platby z GitHubu
   if (trvalEl) {
-    if (TRVALE.length === 0) {
-      trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Zatím žádné trvalé platby — doplníš v kódu</div>`;
-    } else {
-      const total = TRVALE.reduce((s,t) => s + t.amount, 0);
-      if (trvalTotalEl) trvalTotalEl.textContent = fmt(total) + ' / měsíc';
-      trvalEl.innerHTML = TRVALE.map(t => `
-        <div class="row">
-          <div class="row-lbl">${t.label}<div class="row-sub">${t.cat}</div></div>
-          <div class="row-val danger">${fmt(t.amount)}</div>
-        </div>`).join('');
+    try {
+      const resT = await fetch('https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/trvale_data.json', {
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (resT.status === 404) {
+        trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné trvalé platby — přidej je v appce Výdaje</div>`;
+      } else if (resT.ok) {
+        const dataT = await resT.json();
+        const base64T = dataT.content.replace(/\n/g, '');
+        const binaryT = atob(base64T);
+        const bytesT = new Uint8Array(binaryT.length);
+        for (let i = 0; i < binaryT.length; i++) { bytesT[i] = binaryT.charCodeAt(i); }
+        const trvale = JSON.parse(new TextDecoder('utf-8').decode(bytesT));
+        const now = new Date().toISOString().slice(0,10);
+        const aktivni = trvale.filter(t => {
+          if (t.od && now < t.od) return false;
+          if (t.do && now > t.do) return false;
+          return true;
+        });
+        const total = aktivni.reduce((s,t) => s + (t.castka||0), 0);
+        if (trvalTotalEl) trvalTotalEl.textContent = fmt(total) + ' / měs.';
+        if (!aktivni.length) {
+          trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné aktivní trvalé platby</div>`;
+        } else {
+          trvalEl.innerHTML = aktivni.map(t => `
+            <div class="row">
+              <div class="row-lbl">${t.nazev}<div class="row-sub">${t.kat}</div></div>
+              <div class="row-val danger">${fmt(t.castka)}</div>
+            </div>`).join('');
+        }
+      }
+    } catch(e) {
+      trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Chyba při načítání</div>`;
     }
   }
 
