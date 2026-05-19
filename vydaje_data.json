@@ -54,13 +54,5 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-19"
-  },
-  {
-    "id": "1779192668648",
-    "amount": 100,
-    "catKey": "doprava",
-    "subcat": "Servis",
-    "note": "",
-    "date": "2026-05-19"
   }
 ]
