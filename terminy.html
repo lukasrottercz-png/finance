@@ -316,6 +316,16 @@
       <input id="uDate" type="date">
     </div>
     <div class="field">
+      <label>Opakování</label>
+      <select id="uRepeat" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+        <option value="">Neopakovat</option>
+        <option value="weekly">Týdně</option>
+        <option value="monthly">Měsíčně</option>
+        <option value="quarterly">Čtvrtletně</option>
+        <option value="yearly">Ročně</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Poznámka</label>
       <textarea id="uNote" placeholder="Volitelně…"></textarea>
     </div>
@@ -342,6 +352,16 @@
     <div class="field">
       <label>Datum *</label>
       <input id="eDate" type="date">
+    </div>
+    <div class="field">
+      <label>Opakování</label>
+      <select id="eRepeat" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+        <option value="">Neopakovat</option>
+        <option value="weekly">Týdně</option>
+        <option value="monthly">Měsíčně</option>
+        <option value="quarterly">Čtvrtletně</option>
+        <option value="yearly">Ročně</option>
+      </select>
     </div>
     <div class="field">
       <label>Poznámka</label>
@@ -514,8 +534,30 @@ function setUkolyFilter(f, el) {
   renderUkoly();
 }
 
+function nextDate(dateStr, repeat) {
+  const d = new Date(dateStr + 'T12:00:00');
+  if (repeat === 'weekly')    d.setDate(d.getDate() + 7);
+  if (repeat === 'monthly')   d.setMonth(d.getMonth() + 1);
+  if (repeat === 'quarterly') d.setMonth(d.getMonth() + 3);
+  if (repeat === 'yearly')    d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0,10);
+}
+
+function repeatLabel(r) {
+  return { weekly:'týdně', monthly:'měsíčně', quarterly:'čtvrtletně', yearly:'ročně' }[r] || '';
+}
+
 function toggleUkol(id) {
-  ukoly = ukoly.map(u => u.id===id ? {...u, done:!u.done} : u);
+  const u = ukoly.find(x => x.id === id);
+  if (!u) return;
+  if (!u.done && u.repeat) {
+    // Splněno + opakující — vytvoř nový, označ starý jako splněný
+    ukoly = ukoly.map(x => x.id === id ? {...x, done: true} : x);
+    ukoly.push({ id: uid(), name: u.name, date: nextDate(u.date, u.repeat), note: u.note||'', done: false, repeat: u.repeat });
+    showToast('🔄 Nový termín vytvořen');
+  } else {
+    ukoly = ukoly.map(x => x.id === id ? {...x, done: !x.done} : x);
+  }
   save('tw_ukoly2', ukoly); ghSave();
   renderUkoly();
 }
@@ -527,6 +569,7 @@ function openUkolModal(id) {
   document.getElementById('uName').value = u ? u.name : '';
   document.getElementById('uDate').value = u ? u.date : '';
   document.getElementById('uNote').value = u ? (u.note||'') : '';
+  document.getElementById('uRepeat').value = u ? (u.repeat||'') : '';
   document.getElementById('uDelBtn').style.display = u ? 'inline-block' : 'none';
   document.getElementById('ukolOverlay').classList.add('open');
   setTimeout(() => document.getElementById('uName').focus(), 50);
@@ -537,11 +580,12 @@ function saveUkol() {
   const name = document.getElementById('uName').value.trim();
   const date = document.getElementById('uDate').value;
   const note = document.getElementById('uNote').value.trim();
+  const repeat = document.getElementById('uRepeat').value;
   if (!name || !date) return alert('Vyplň název a termín.');
   if (editUkolId) {
-    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note} : u);
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat} : u);
   } else {
-    ukoly.push({ id: uid(), name, date, note, done: false });
+    ukoly.push({ id: uid(), name, date, note, done: false, repeat });
   }
   save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
   closeUkolModal();
@@ -611,7 +655,7 @@ function renderEvents() {
         <div class="event-item urg-${u}" onclick="openEventModal('${e.id}')">
           <div class="event-row">
             <div>
-              <div class="event-name">${cat.icon} ${esc(e.name)}</div>
+              <div class="event-name">${cat.icon} ${esc(e.name)}${e.repeat ? ' <span style="font-size:11px;opacity:0.6">🔄 '+repeatLabel(e.repeat)+'</span>' : ''}</div>
               <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${urgLabel(e.days)}</div>
               ${e.note ? `<div class="event-note">${esc(e.note)}</div>` : ''}
             </div>
@@ -637,6 +681,7 @@ function openEventModal(id) {
   document.getElementById('eName').value = e ? e.name : '';
   document.getElementById('eDate').value = e ? e.date : '';
   document.getElementById('eNote').value = e ? (e.note||'') : '';
+  document.getElementById('eRepeat').value = e ? (e.repeat||'') : '';
   document.getElementById('eDelBtn').style.display = e ? 'inline-block' : 'none';
   selCat = e ? e.cat : 'other';
   buildCatPills();
@@ -649,11 +694,12 @@ function saveEvent() {
   const name = document.getElementById('eName').value.trim();
   const date = document.getElementById('eDate').value;
   const note = document.getElementById('eNote').value.trim();
+  const repeat = document.getElementById('eRepeat').value;
   if (!name || !date) return alert('Vyplň název a datum.');
   if (editEventId) {
-    events = events.map(e => e.id===editEventId ? {...e, name, date, note, cat:selCat} : e);
+    events = events.map(e => e.id===editEventId ? {...e, name, date, note, cat:selCat, repeat} : e);
   } else {
-    events.push({ id: uid(), name, date, note, cat: selCat });
+    events.push({ id: uid(), name, date, note, cat: selCat, repeat });
   }
   save('tw_events2', events); ghSave(); showToast('Uloženo ✓');
   closeEventModal();
@@ -665,6 +711,20 @@ function deleteEvent() {
   save('tw_events2', events); ghSave(); showToast('Smazáno');
   closeEventModal();
   renderEvents();
+}
+
+// Auto-posun opakujících se událostí které prošly
+function autoAdvanceEvents() {
+  let changed = false;
+  const today = new Date().toISOString().slice(0,10);
+  events = events.map(e => {
+    if (!e.repeat || e.date >= today) return e;
+    let d = e.date;
+    while (d < today) { d = nextDate(d, e.repeat); }
+    if (d !== e.date) { changed = true; return {...e, date: d}; }
+    return e;
+  });
+  if (changed) { save('tw_events2', events); ghSave(); }
 }
 
 // close on overlay bg click + ESC
@@ -703,11 +763,12 @@ function saveGhTokenTerm() {
 }
 
 // INIT
+autoAdvanceEvents();
 renderUkoly();
 renderEvents();
 renderGhSection();
 if (ghToken()) {
-  ghLoad().then(() => { renderUkoly(); renderEvents(); });
+  ghLoad().then(() => { autoAdvanceEvents(); renderUkoly(); renderEvents(); });
 }
 </script>
 <div class="toast" id="toast"></div>
