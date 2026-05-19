@@ -4,412 +4,294 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TaskWatch</title>
-
 <style>
   :root {
-    --bg: #0A0E17;
-    --surface: #111827;
-    --surface2: #1C2333;
-    --border: #1E2D40;
-    --text: #E2EAF4;
-    --muted: #5B6B82;
-    --accent: #3B82F6;
-    --green: #10B981;
-    --yellow: #F59E0B;
-    --red: #EF4444;
-    --gray: #6B7280;
-    --purple: #8B5CF6;
+    --bg: #F4F6FA;
+    --surface: #FFFFFF;
+    --surface2: #EEF1F7;
+    --border: #DDE2ED;
+    --text: #1A202C;
+    --muted: #7A8899;
+    --accent: #2563EB;
+    --green: #059669;
+    --yellow: #D97706;
+    --red: #DC2626;
+    --gray: #9CA3AF;
   }
-  @media (prefers-color-scheme: light) {
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #F4F6FA;
-      --surface: #FFFFFF;
-      --surface2: #EEF1F7;
-      --border: #D8DEE9;
-      --text: #1A202C;
-      --muted: #7A8899;
-      --accent: #2563EB;
-      --green: #059669;
-      --yellow: #D97706;
-      --red: #DC2626;
+      --bg: #0A0E17;
+      --surface: #111827;
+      --surface2: #1C2333;
+      --border: #1E2D40;
+      --text: #E2EAF4;
+      --muted: #5B6B82;
+      --accent: #3B82F6;
+      --green: #10B981;
+      --yellow: #F59E0B;
+      --red: #EF4444;
       --gray: #6B7280;
-      --purple: #7C3AED;
     }
-    header { background: var(--bg); }
-    .card:hover { background: var(--surface2); }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    overflow-x: hidden;
-    width: 100%;
-  }
+  html, body { overflow-x: hidden; width: 100%; }
   body {
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    min-height: 100vh;
     font-size: 14px;
+    min-height: 100vh;
   }
 
   /* HEADER */
   header {
-    background: var(--bg);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 20px;
+    padding: 14px 20px;
     position: sticky;
     top: 0;
     z-index: 100;
-  }
-  .header-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 0 10px;
   }
-  .logo {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    font-weight: 800;
-    font-size: 18px;
-    letter-spacing: -0.3px;
+  .logo { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+  .logo span { color: var(--accent); }
+
+  /* MAIN */
+  main { max-width: 700px; margin: 0 auto; padding: 28px 16px 60px; width: 100%; }
+
+  /* SECTION HEADERS */
+  .section-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text);
   }
-  .logo span { color: var(--accent); }
-  .header-badges { display: flex; gap: 6px; }
-  .badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 20px;
-    display: none;
-  }
-  .badge.red { background: #EF444420; color: var(--red); border: 1px solid #EF444440; display: inline-block; }
-  .badge.gray { background: #6B728020; color: var(--gray); border: 1px solid #6B728040; display: inline-block; }
+  .section-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-  /* TABS */
-  .tabs { display: flex; gap: 2px; }
-  .tab {
-    padding: 8px 18px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s;
-  }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
 
-  /* CONTENT */
-  main { max-width: 720px; margin: 0 auto; padding: 24px 16px; width: 100%; }
-
-  /* SECTION */
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .section-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; }
-  .section-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
-
-  /* BUTTONS */
+  /* BUTTON */
   .btn {
-    padding: 8px 16px;
+    padding: 7px 14px;
     border-radius: 8px;
     border: none;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.15s;
   }
-  .btn:hover { opacity: 0.85; }
+  .btn:hover { opacity: 0.82; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-ghost { background: var(--surface2); color: var(--muted); }
-  .btn-danger { background: transparent; color: var(--red); border: 1px solid #EF444430; }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
 
-  /* STATS */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 24px;
-    width: 100%;
-  }
-  .stat {
+  /* TASK CARDS */
+  .task-item {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 12px;
-    text-align: center;
-  }
-  .stat-num { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 26px; font-weight: 800; line-height: 1; }
-  .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-  /* FILTER */
-  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-  .filter-btn {
-    padding: 5px 12px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted);
-    font-size: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .filter-btn.active { background: #3B82F620; color: var(--accent); border-color: #3B82F640; font-weight: 600; }
-
-  /* CARDS */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
-    position: relative;
-  }
-  .card:hover { background: var(--surface2); }
-  .card.urgent-red { border-left: 3px solid var(--red); }
-  .card.urgent-yellow { border-left: 3px solid var(--yellow); }
-  .card.urgent-blue { border-left: 3px solid var(--accent); }
-  .card.urgent-green { border-left: 3px solid var(--green); }
-  .card.urgent-gray { border-left: 3px solid var(--gray); }
-
-  .card-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; min-width: 0; }
-  .card-row > div:first-child { flex: 1; min-width: 0; overflow: hidden; }
-  .card-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card-meta { color: var(--muted); font-size: 12px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card-note { color: #8B949E; font-size: 12px; margin-top: 5px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .urg-tag {
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .urg-red { background: #EF444420; color: var(--red); border: 1px solid #EF444440; }
-  .urg-yellow { background: #F59E0B20; color: var(--yellow); border: 1px solid #F59E0B40; }
-  .urg-blue { background: #3B82F620; color: var(--accent); border: 1px solid #3B82F640; }
-  .urg-green { background: #10B98120; color: var(--green); border: 1px solid #10B98140; }
-  .urg-gray { background: #6B728020; color: var(--gray); border: 1px solid #6B728040; }
-
-  /* TASK ITEMS */
-  .task-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 16px;
+    border-left: 3px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 12px;
-    cursor: pointer;
     transition: background 0.15s;
   }
-  .task-card:hover { background: var(--surface2); }
-  .task-card.done { opacity: 0.5; }
-  .task-check {
-    width: 18px; height: 18px;
-    border-radius: 5px;
+  .task-item.done { opacity: 0.45; }
+  .task-item.urg-red   { border-left-color: var(--red); }
+  .task-item.urg-yellow { border-left-color: var(--yellow); }
+  .task-item.urg-green { border-left-color: var(--green); }
+  .task-item.urg-gray  { border-left-color: var(--gray); }
+
+  .check {
+    width: 19px; height: 19px;
+    border-radius: 50%;
     border: 2px solid var(--border);
     flex-shrink: 0;
+    cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.15s;
     background: transparent;
   }
-  .task-check.checked { background: var(--accent); border-color: var(--accent); }
-  .task-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
-  .task-title { flex: 1; font-size: 14px; }
-  .task-card.done .task-title { text-decoration: line-through; color: var(--muted); }
-  .task-link { font-size: 11px; color: var(--muted); background: var(--surface2); padding: 2px 8px; border-radius: 10px; }
-  .task-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px; }
-  .task-del:hover { color: var(--red); }
+  .check:hover { border-color: var(--accent); }
+  .check.checked { background: var(--accent); border-color: var(--accent); }
+  .check.checked::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-item.done .task-name { text-decoration: line-through; color: var(--muted); }
+  .task-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .urg-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 2px 9px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .urg-red .urg-badge   { background: #DC262615; color: var(--red); }
+  .urg-yellow .urg-badge { background: #D9770615; color: var(--yellow); }
+  .urg-green .urg-badge { background: #05966915; color: var(--green); }
+  .urg-gray .urg-badge  { background: #9CA3AF15; color: var(--gray); }
+
+  .task-edit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0 2px; flex-shrink: 0; }
+  .task-edit:hover { color: var(--text); }
+
+  /* FILTER ROW */
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .f-btn {
+    padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    font-size: 12px; font-family: inherit; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .f-btn.active { background: #2563EB18; color: var(--accent); border-color: #2563EB40; font-weight: 600; }
+
+  /* COUNTDOWN */
+  .countdown {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .countdown-num {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .countdown-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .countdown-event { font-size: 15px; font-weight: 600; }
+
+  /* EVENT CARDS */
+  .event-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .event-item:hover { background: var(--surface2); }
+  .event-item.urg-red    { border-left-color: var(--red); }
+  .event-item.urg-yellow { border-left-color: var(--yellow); }
+  .event-item.urg-green  { border-left-color: var(--green); }
+  .event-item.urg-gray   { border-left-color: var(--gray); }
+
+  .event-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .event-row > div:first-child { flex: 1; min-width: 0; }
+  .event-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .event-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* GROUP LABEL */
+  .group-label {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--muted); margin: 18px 0 8px 2px;
+  }
+
+  /* EMPTY */
+  .empty { text-align: center; color: var(--muted); padding: 36px 0; }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-text { font-size: 14px; }
 
   /* MODAL */
   .overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
-    z-index: 200;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 200;
+    align-items: center; justify-content: center; padding: 20px;
   }
   .overlay.open { display: flex; }
   .modal {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    width: 100%;
-    max-width: 480px;
-    max-height: 90vh;
-    overflow-y: auto;
+    border-radius: 14px;
+    padding: 22px; width: 100%; max-width: 460px;
+    max-height: 90vh; overflow-y: auto;
   }
-  .modal-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 20px; }
-
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
   .field input, .field select, .field textarea {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 12px;
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.15s;
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 11px; color: var(--text);
+    font-family: inherit; font-size: 14px; outline: none;
   }
-  .field input:focus, .field select, .field textarea:focus { border-color: var(--accent); }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); }
   .field select option { background: var(--surface); }
-  .field textarea { min-height: 70px; resize: vertical; }
-
+  .field textarea { min-height: 65px; resize: vertical; }
   .cat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
   .cat-pill {
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted);
-    font-size: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding: 5px 11px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-size: 12px; font-family: inherit; cursor: pointer;
   }
-  .cat-pill.selected { font-weight: 700; }
+  .cat-pill.sel { font-weight: 700; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
 
-  .modal-actions { display: flex; gap: 8px; margin-top: 20px; }
-
-  /* EMPTY STATE */
-  .empty { text-align: center; color: var(--muted); padding: 48px 0; }
-  .empty-icon { font-size: 42px; margin-bottom: 12px; }
-  .empty-text { font-size: 15px; }
-  .empty-sub { font-size: 13px; margin-top: 6px; color: #3D4F65; }
-
-  /* DIVIDER LABELS */
-  .group-label {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin: 20px 0 8px;
-    padding-left: 2px;
-  }
-
-  @media (max-width: 600px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .stat-num { font-size: 22px; }
-    .header-badges { display: none; }
+  @media (max-width: 500px) {
+    .countdown-num { font-size: 32px; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-top">
-    <div class="logo">Task<span>Watch</span></div>
-    <div class="header-badges">
-      <span class="badge red" id="badgeRed"></span>
-      <span class="badge gray" id="badgeGray"></span>
-    </div>
-  </div>
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('terminy')">📅 Termíny</button>
-    <button class="tab" onclick="switchTab('ukoly')">✅ Úkoly</button>
-  </div>
+  <div class="logo">Task<span>Watch</span></div>
 </header>
 
 <main>
-  <!-- TERMÍNY TAB -->
-  <div id="tab-terminy">
-    <div class="section-header">
-      <div>
-        <div class="section-title">Termíny</div>
-        <div class="section-sub" id="terminySub">Načítání…</div>
-      </div>
-      <button class="btn btn-primary" onclick="openTerminModal()">+ Přidat</button>
-    </div>
 
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-num" id="stOverdue" style="color:var(--gray)">0</div>
-        <div class="stat-label">Prošlé</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stCritical" style="color:var(--red)">0</div>
-        <div class="stat-label">Kritické do 7d</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stSoon" style="color:var(--yellow)">0</div>
-        <div class="stat-label">Do 30 dní</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stOk" style="color:var(--green)">0</div>
-        <div class="stat-label">V pořádku</div>
-      </div>
+  <!-- ÚKOLY -->
+  <div class="section-hd">
+    <div>
+      <div class="section-title">Úkoly</div>
+      <div class="section-sub" id="ukolySub">0 úkolů</div>
     </div>
-
-    <div class="filter-row" id="catFilter"></div>
-    <div id="terminList"></div>
+    <button class="btn btn-primary" onclick="openUkolModal()">+ Přidat</button>
   </div>
 
-  <!-- ÚKOLY TAB -->
-  <div id="tab-ukoly" style="display:none">
-    <div class="section-header">
-      <div>
-        <div class="section-title">Úkoly</div>
-        <div class="section-sub" id="ukolySub">Načítání…</div>
-      </div>
-      <button class="btn btn-primary" onclick="openUkolModal()">+ Přidat</button>
-    </div>
-    <div class="filter-row">
-      <button class="filter-btn active" onclick="filterUkoly('all', this)">Vše</button>
-      <button class="filter-btn" onclick="filterUkoly('open', this)">Nesplněné</button>
-      <button class="filter-btn" onclick="filterUkoly('done', this)">Splněné</button>
-    </div>
-    <div id="ukolList"></div>
+  <div class="filter-row">
+    <button class="f-btn active" onclick="setUkolyFilter('all',this)">Vše</button>
+    <button class="f-btn" onclick="setUkolyFilter('open',this)">Nesplněné</button>
+    <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné</button>
   </div>
+
+  <div id="ukolList"></div>
+
+  <hr class="divider">
+
+  <!-- SLEDOVANÉ UDÁLOSTI -->
+  <div class="section-hd">
+    <div>
+      <div class="section-title">Sledované události</div>
+      <div class="section-sub" id="eventSub">0 událostí</div>
+    </div>
+    <button class="btn btn-primary" onclick="openEventModal()">+ Přidat</button>
+  </div>
+
+  <div id="countdown"></div>
+  <div id="eventList"></div>
+
 </main>
-
-<!-- TERMÍN MODAL -->
-<div class="overlay" id="terminOverlay">
-  <div class="modal">
-    <div class="modal-title" id="terminModalTitle">Nový termín</div>
-    <div class="field">
-      <label>Název *</label>
-      <input id="tName" type="text" placeholder="např. Pojistka auta, Nájemní smlouva…">
-    </div>
-    <div class="field">
-      <label>Kategorie</label>
-      <div class="cat-pills" id="catPills"></div>
-    </div>
-    <div class="field">
-      <label>Datum *</label>
-      <input id="tDate" type="date">
-    </div>
-    <div class="field">
-      <label>Poznámka</label>
-      <textarea id="tNote" placeholder="Číslo smlouvy, kontakt, podmínky výpovědi…"></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-primary" onclick="saveTermin()">Uložit</button>
-      <button class="btn btn-ghost" onclick="closeTerminModal()">Zrušit</button>
-      <button class="btn btn-danger btn-sm" id="tDeleteBtn" onclick="deleteTermin()" style="margin-left:auto;display:none">Smazat</button>
-    </div>
-  </div>
-</div>
 
 <!-- ÚKOL MODAL -->
 <div class="overlay" id="ukolOverlay">
@@ -420,145 +302,225 @@
       <input id="uName" type="text" placeholder="Co je potřeba udělat…">
     </div>
     <div class="field">
-      <label>Přiřadit k termínu (volitelné)</label>
-      <select id="uLink">
-        <option value="">— bez vazby —</option>
-      </select>
+      <label>Termín splnění *</label>
+      <input id="uDate" type="date">
+    </div>
+    <div class="field">
+      <label>Poznámka</label>
+      <textarea id="uNote" placeholder="Volitelně…"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="saveUkol()">Uložit</button>
       <button class="btn btn-ghost" onclick="closeUkolModal()">Zrušit</button>
-      <button class="btn btn-danger btn-sm" id="uDeleteBtn" onclick="deleteUkol()" style="margin-left:auto;display:none">Smazat</button>
+      <button class="btn btn-danger" id="uDelBtn" onclick="deleteUkol()" style="margin-left:auto;display:none">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- UDÁLOST MODAL -->
+<div class="overlay" id="eventOverlay">
+  <div class="modal">
+    <div class="modal-title" id="eventModalTitle">Nová událost</div>
+    <div class="field">
+      <label>Název *</label>
+      <input id="eName" type="text" placeholder="např. Pojistka auta, Nájemní smlouva…">
+    </div>
+    <div class="field">
+      <label>Kategorie</label>
+      <div class="cat-pills" id="catPills"></div>
+    </div>
+    <div class="field">
+      <label>Datum *</label>
+      <input id="eDate" type="date">
+    </div>
+    <div class="field">
+      <label>Poznámka</label>
+      <textarea id="eNote" placeholder="Číslo smlouvy, kontakt…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEvent()">Uložit</button>
+      <button class="btn btn-ghost" onclick="closeEventModal()">Zrušit</button>
+      <button class="btn btn-danger" id="eDelBtn" onclick="deleteEvent()" style="margin-left:auto;display:none">Smazat</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── DATA ──────────────────────────────────────────────────────────────────────
 const CATS = [
-  { id: 'insurance', label: 'Pojištění', icon: '🛡️', color: '#10B981' },
-  { id: 'work',      label: 'Pracovní',  icon: '💼', color: '#3B82F6' },
-  { id: 'lease',     label: 'Nájem',     icon: '🏠', color: '#F59E0B' },
-  { id: 'finance',   label: 'Finance',   icon: '💳', color: '#8B5CF6' },
-  { id: 'anniv',     label: 'Výročí',    icon: '📅', color: '#EC4899' },
-  { id: 'other',     label: 'Ostatní',   icon: '📄', color: '#6B7280' },
+  { id: 'insurance', label: 'Pojištění',  icon: '🛡️', color: '#10B981' },
+  { id: 'work',      label: 'Pracovní',   icon: '💼', color: '#3B82F6' },
+  { id: 'lease',     label: 'Nájem',      icon: '🏠', color: '#F59E0B' },
+  { id: 'finance',   label: 'Finance',    icon: '💳', color: '#8B5CF6' },
+  { id: 'anniv',     label: 'Výročí',     icon: '📅', color: '#EC4899' },
+  { id: 'other',     label: 'Ostatní',    icon: '📄', color: '#6B7280' },
 ];
 
-function load(key, def) {
-  try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
-}
-function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-let terminy = load('tw_terminy', []);
-let ukoly   = load('tw_ukoly', []);
-let activeTab = 'terminy';
-let filterCat = 'all';
-let filterUkolyStatus = 'all';
-let editTerminId = null;
-let editUkolId = null;
-let selectedCat = 'other';
-
-// ── UTILS ─────────────────────────────────────────────────────────────────────
 function daysUntil(d) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  return Math.ceil((new Date(d) - today) / 86400000);
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.ceil((new Date(d) - t) / 86400000);
 }
-function urgClass(days) {
+function urg(days) {
   if (days < 0)   return 'gray';
   if (days <= 7)  return 'red';
   if (days <= 30) return 'yellow';
-  if (days <= 90) return 'blue';
   return 'green';
 }
 function urgLabel(days) {
   if (days < 0)   return `prošlo ${-days}d`;
   if (days === 0) return 'Dnes!';
-  if (days <= 7)  return `za ${days}d`;
-  if (days <= 30) return `za ${days}d`;
   return `za ${days}d`;
 }
 function fmtDate(d) {
   return new Date(d).toLocaleDateString('cs-CZ', { day:'numeric', month:'long', year:'numeric' });
 }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
-// ── TAB ───────────────────────────────────────────────────────────────────────
-function switchTab(t) {
-  activeTab = t;
-  document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', (i===0&&t==='terminy')||(i===1&&t==='ukoly')));
-  document.getElementById('tab-terminy').style.display = t==='terminy' ? '' : 'none';
-  document.getElementById('tab-ukoly').style.display   = t==='ukoly'   ? '' : 'none';
-  renderAll();
+// ── ÚKOLY ────────────────────────────────────────────────────────────────────
+let ukoly = load('tw_ukoly2', []);
+let uFilter = 'all';
+let editUkolId = null;
+
+function renderUkoly() {
+  const pending = ukoly.filter(u => !u.done).length;
+  document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
+
+  let list = ukoly.slice().sort((a,b) => daysUntil(a.date) - daysUntil(b.date));
+  if (uFilter === 'open') list = list.filter(u => !u.done);
+  if (uFilter === 'done') list = list.filter(u => u.done);
+
+  const el = document.getElementById('ukolList');
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly.</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(u => {
+    const days = daysUntil(u.date);
+    const u2 = u.done ? 'gray' : urg(days);
+    return `
+    <div class="task-item urg-${u2} ${u.done?'done':''}">
+      <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
+      <div class="task-body">
+        <div class="task-name">${esc(u.name)}</div>
+        <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}</div>
+      </div>
+      ${!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
+      <button class="task-edit" onclick="openUkolModal('${u.id}')">⋯</button>
+    </div>`;
+  }).join('');
 }
 
-// ── RENDER TERMÍNY ────────────────────────────────────────────────────────────
-function renderTerminy() {
-  const all = terminy.map(t => ({ ...t, days: daysUntil(t.date) }));
-  const overdue  = all.filter(t => t.days < 0).length;
-  const critical = all.filter(t => t.days >= 0 && t.days <= 7).length;
-  const soon     = all.filter(t => t.days > 7 && t.days <= 30).length;
-  const ok       = all.filter(t => t.days > 30).length;
+function setUkolyFilter(f, el) {
+  uFilter = f;
+  document.querySelectorAll('.filter-row .f-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderUkoly();
+}
 
-  document.getElementById('stOverdue').textContent  = overdue;
-  document.getElementById('stCritical').textContent = critical;
-  document.getElementById('stSoon').textContent     = soon;
-  document.getElementById('stOk').textContent       = ok;
-  document.getElementById('terminySub').textContent = `${terminy.length} záznamů sledováno`;
+function toggleUkol(id) {
+  ukoly = ukoly.map(u => u.id===id ? {...u, done:!u.done} : u);
+  save('tw_ukoly2', ukoly);
+  renderUkoly();
+}
 
-  // badges
-  const bRed  = document.getElementById('badgeRed');
-  const bGray = document.getElementById('badgeGray');
-  bRed.textContent  = critical + ' kritické';
-  bGray.textContent = overdue + ' prošlé';
-  bRed.style.display  = critical > 0 ? 'inline-block' : 'none';
-  bGray.style.display = overdue > 0  ? 'inline-block' : 'none';
+function openUkolModal(id) {
+  editUkolId = id || null;
+  const u = id ? ukoly.find(x => x.id===id) : null;
+  document.getElementById('ukolModalTitle').textContent = u ? 'Upravit úkol' : 'Nový úkol';
+  document.getElementById('uName').value = u ? u.name : '';
+  document.getElementById('uDate').value = u ? u.date : '';
+  document.getElementById('uNote').value = u ? (u.note||'') : '';
+  document.getElementById('uDelBtn').style.display = u ? 'inline-block' : 'none';
+  document.getElementById('ukolOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('uName').focus(), 50);
+}
+function closeUkolModal() { document.getElementById('ukolOverlay').classList.remove('open'); }
 
-  // category filter
-  const usedCats = [...new Set(terminy.map(t => t.cat))];
-  const filterEl = document.getElementById('catFilter');
-  filterEl.innerHTML = `<button class="filter-btn ${filterCat==='all'?'active':''}" onclick="setCatFilter('all',this)">🗂️ Vše</button>`;
-  CATS.filter(c => usedCats.includes(c.id)).forEach(c => {
-    filterEl.innerHTML += `<button class="filter-btn ${filterCat===c.id?'active':''}" onclick="setCatFilter('${c.id}',this)">${c.icon} ${c.label}</button>`;
-  });
+function saveUkol() {
+  const name = document.getElementById('uName').value.trim();
+  const date = document.getElementById('uDate').value;
+  const note = document.getElementById('uNote').value.trim();
+  if (!name || !date) return alert('Vyplň název a termín.');
+  if (editUkolId) {
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note} : u);
+  } else {
+    ukoly.push({ id: uid(), name, date, note, done: false });
+  }
+  save('tw_ukoly2', ukoly);
+  closeUkolModal();
+  renderUkoly();
+}
+function deleteUkol() {
+  if (!confirm('Smazat úkol?')) return;
+  ukoly = ukoly.filter(u => u.id !== editUkolId);
+  save('tw_ukoly2', ukoly);
+  closeUkolModal();
+  renderUkoly();
+}
 
-  // list
-  const sorted = all
-    .filter(t => filterCat === 'all' || t.cat === filterCat)
+// ── UDÁLOSTI ──────────────────────────────────────────────────────────────────
+let events = load('tw_events2', []);
+let selCat = 'other';
+let editEventId = null;
+
+function renderEvents() {
+  document.getElementById('eventSub').textContent = `${events.length} událostí`;
+
+  // Countdown — nejbližší budoucí
+  const cdEl = document.getElementById('countdown');
+  const future = events.map(e => ({...e, days: daysUntil(e.date)}))
+    .filter(e => e.days >= 0).sort((a,b) => a.days - b.days);
+
+  if (future.length > 0) {
+    const n = future[0];
+    const cat = CATS.find(c => c.id===n.cat) || CATS[5];
+    cdEl.innerHTML = `
+      <div class="countdown">
+        <div class="countdown-num">${n.days === 0 ? '0' : n.days}</div>
+        <div>
+          <div class="countdown-event">${cat.icon} ${esc(n.name)}</div>
+          <div class="countdown-label">${n.days === 0 ? 'Dnes!' : `dní do nejbližší události`} · ${fmtDate(n.date)}</div>
+        </div>
+      </div>`;
+  } else {
+    cdEl.innerHTML = '';
+  }
+
+  // Seznam
+  const sorted = events.map(e => ({...e, days: daysUntil(e.date)}))
     .sort((a,b) => a.days - b.days);
 
-  const listEl = document.getElementById('terminList');
+  const listEl = document.getElementById('eventList');
   if (sorted.length === 0) {
-    listEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Žádné záznamy</div><div class="empty-sub">Přidej pojistku, smlouvu nebo důležitý termín.</div></div>`;
+    listEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Žádné sledované události.</div></div>`;
     return;
   }
 
-  // group by section
   const groups = [
-    { label: 'Prošlé',          items: sorted.filter(t => t.days < 0) },
-    { label: 'Kritické — do 7 dní', items: sorted.filter(t => t.days >= 0 && t.days <= 7) },
-    { label: 'Blíží se — do 30 dní', items: sorted.filter(t => t.days > 7 && t.days <= 30) },
-    { label: 'V dohledu — do 90 dní', items: sorted.filter(t => t.days > 30 && t.days <= 90) },
-    { label: 'V pořádku',       items: sorted.filter(t => t.days > 90) },
+    { label: 'Prošlé',           items: sorted.filter(e => e.days < 0) },
+    { label: 'Kritické — do 7 dní', items: sorted.filter(e => e.days >= 0 && e.days <= 7) },
+    { label: 'Blíží se — do 30 dní', items: sorted.filter(e => e.days > 7 && e.days <= 30) },
+    { label: 'Vzdálenější',      items: sorted.filter(e => e.days > 30) },
   ];
 
   let html = '';
   groups.forEach(g => {
     if (!g.items.length) return;
     html += `<div class="group-label">${g.label}</div>`;
-    g.items.forEach(t => {
-      const cat = CATS.find(c => c.id === t.cat) || CATS[5];
-      const uc  = urgClass(t.days);
-      const linkedTasks = ukoly.filter(u => u.link === t.id);
-      const doneTasks   = linkedTasks.filter(u => u.done).length;
+    g.items.forEach(e => {
+      const cat = CATS.find(c => c.id===e.cat) || CATS[5];
+      const u = urg(e.days);
       html += `
-        <div class="card urgent-${uc}" onclick="openTerminModal('${t.id}')">
-          <div class="card-row">
+        <div class="event-item urg-${u}" onclick="openEventModal('${e.id}')">
+          <div class="event-row">
             <div>
-              <div class="card-title">${cat.icon} ${esc(t.name)}</div>
-              <div class="card-meta">${fmtDate(t.date)} · ${cat.label}${linkedTasks.length ? ` · ✅ ${doneTasks}/${linkedTasks.length} úkolů` : ''}</div>
-              ${t.note ? `<div class="card-note">${esc(t.note)}</div>` : ''}
+              <div class="event-name">${cat.icon} ${esc(e.name)}</div>
+              <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${urgLabel(e.days)}</div>
+              ${e.note ? `<div class="event-note">${esc(e.note)}</div>` : ''}
             </div>
-            <span class="urg-tag urg-${uc}">${urgLabel(t.days)}</span>
           </div>
         </div>`;
     });
@@ -566,184 +528,62 @@ function renderTerminy() {
   listEl.innerHTML = html;
 }
 
-function setCatFilter(cat, el) {
-  filterCat = cat;
-  document.querySelectorAll('#catFilter .filter-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  renderTerminy();
-}
-
-// ── RENDER ÚKOLY ──────────────────────────────────────────────────────────────
-function renderUkoly() {
-  let list = ukoly;
-  if (filterUkolyStatus === 'open') list = list.filter(u => !u.done);
-  if (filterUkolyStatus === 'done') list = list.filter(u => u.done);
-
-  const pending = ukoly.filter(u => !u.done).length;
-  document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
-
-  const el = document.getElementById('ukolList');
-  if (list.length === 0) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly</div><div class="empty-sub">Přidej co je potřeba udělat.</div></div>`;
-    return;
-  }
-
-  el.innerHTML = list.map(u => {
-    const linked = u.link ? terminy.find(t => t.id === u.link) : null;
-    return `
-      <div class="task-card ${u.done?'done':''}" onclick="toggleUkol('${u.id}')">
-        <div class="task-check ${u.done?'checked':''}"></div>
-        <div class="task-title">${esc(u.name)}</div>
-        ${linked ? `<span class="task-link">${CATS.find(c=>c.id===linked.cat)?.icon||'📄'} ${esc(linked.name)}</span>` : ''}
-        <button class="task-del" onclick="event.stopPropagation();openUkolModal('${u.id}')">⋯</button>
-      </div>`;
-  }).join('');
-}
-
-function filterUkoly(status, el) {
-  filterUkolyStatus = status;
-  document.querySelectorAll('#tab-ukoly .filter-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  renderUkoly();
-}
-
-function toggleUkol(id) {
-  ukoly = ukoly.map(u => u.id === id ? { ...u, done: !u.done } : u);
-  save('tw_ukoly', ukoly);
-  renderUkoly();
-  renderTerminy(); // update task counters
-}
-
-// ── TERMÍN MODAL ──────────────────────────────────────────────────────────────
 function buildCatPills() {
   document.getElementById('catPills').innerHTML = CATS.map(c => `
-    <button class="cat-pill ${selectedCat===c.id?'selected':''}"
-      style="${selectedCat===c.id?`background:${c.color}22;color:${c.color};border-color:${c.color}`:''}"
-      onclick="selectCat('${c.id}')">${c.icon} ${c.label}</button>
+    <button class="cat-pill ${selCat===c.id?'sel':''}"
+      style="${selCat===c.id ? `background:${c.color}22;color:${c.color};border-color:${c.color}` : ''}"
+      onclick="selCat='${c.id}';buildCatPills()">${c.icon} ${c.label}</button>
   `).join('');
 }
 
-function selectCat(id) {
-  selectedCat = id;
+function openEventModal(id) {
+  editEventId = id || null;
+  const e = id ? events.find(x => x.id===id) : null;
+  document.getElementById('eventModalTitle').textContent = e ? 'Upravit událost' : 'Nová událost';
+  document.getElementById('eName').value = e ? e.name : '';
+  document.getElementById('eDate').value = e ? e.date : '';
+  document.getElementById('eNote').value = e ? (e.note||'') : '';
+  document.getElementById('eDelBtn').style.display = e ? 'inline-block' : 'none';
+  selCat = e ? e.cat : 'other';
   buildCatPills();
+  document.getElementById('eventOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('eName').focus(), 50);
 }
+function closeEventModal() { document.getElementById('eventOverlay').classList.remove('open'); }
 
-function openTerminModal(id) {
-  editTerminId = id || null;
-  const t = id ? terminy.find(x => x.id === id) : null;
-  document.getElementById('terminModalTitle').textContent = t ? 'Upravit termín' : 'Nový termín';
-  document.getElementById('tName').value  = t ? t.name : '';
-  document.getElementById('tDate').value  = t ? t.date : '';
-  document.getElementById('tNote').value  = t ? (t.note||'') : '';
-  document.getElementById('tDeleteBtn').style.display = t ? 'inline-block' : 'none';
-  selectedCat = t ? t.cat : 'other';
-  buildCatPills();
-  document.getElementById('terminOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('tName').focus(), 50);
-}
-
-function closeTerminModal() {
-  document.getElementById('terminOverlay').classList.remove('open');
-  editTerminId = null;
-}
-
-function saveTermin() {
-  const name = document.getElementById('tName').value.trim();
-  const date = document.getElementById('tDate').value;
-  const note = document.getElementById('tNote').value.trim();
+function saveEvent() {
+  const name = document.getElementById('eName').value.trim();
+  const date = document.getElementById('eDate').value;
+  const note = document.getElementById('eNote').value.trim();
   if (!name || !date) return alert('Vyplň název a datum.');
-  if (editTerminId) {
-    terminy = terminy.map(t => t.id === editTerminId ? { ...t, name, date, note, cat: selectedCat } : t);
+  if (editEventId) {
+    events = events.map(e => e.id===editEventId ? {...e, name, date, note, cat:selCat} : e);
   } else {
-    terminy.push({ id: uid(), name, date, note, cat: selectedCat });
+    events.push({ id: uid(), name, date, note, cat: selCat });
   }
-  save('tw_terminy', terminy);
-  closeTerminModal();
-  renderAll();
+  save('tw_events2', events);
+  closeEventModal();
+  renderEvents();
+}
+function deleteEvent() {
+  if (!confirm('Smazat událost?')) return;
+  events = events.filter(e => e.id !== editEventId);
+  save('tw_events2', events);
+  closeEventModal();
+  renderEvents();
 }
 
-function deleteTermin() {
-  if (!confirm('Smazat tento termín?')) return;
-  // also unlink tasks
-  ukoly = ukoly.map(u => u.link === editTerminId ? { ...u, link: '' } : u);
-  save('tw_ukoly', ukoly);
-  terminy = terminy.filter(t => t.id !== editTerminId);
-  save('tw_terminy', terminy);
-  closeTerminModal();
-  renderAll();
-}
-
-// ── ÚKOL MODAL ────────────────────────────────────────────────────────────────
-function openUkolModal(id) {
-  editUkolId = id || null;
-  const u = id ? ukoly.find(x => x.id === id) : null;
-  document.getElementById('ukolModalTitle').textContent = u ? 'Upravit úkol' : 'Nový úkol';
-  document.getElementById('uName').value = u ? u.name : '';
-  document.getElementById('uDeleteBtn').style.display = u ? 'inline-block' : 'none';
-
-  // populate termín select
-  const sel = document.getElementById('uLink');
-  sel.innerHTML = '<option value="">— bez vazby —</option>';
-  terminy.sort((a,b) => daysUntil(a.date)-daysUntil(b.date)).forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t.id;
-    opt.textContent = `${CATS.find(c=>c.id===t.cat)?.icon||'📄'} ${t.name}`;
-    if (u && u.link === t.id) opt.selected = true;
-    sel.appendChild(opt);
-  });
-
-  document.getElementById('ukolOverlay').classList.add('open');
-  setTimeout(() => document.getElementById('uName').focus(), 50);
-}
-
-function closeUkolModal() {
-  document.getElementById('ukolOverlay').classList.remove('open');
-  editUkolId = null;
-}
-
-function saveUkol() {
-  const name = document.getElementById('uName').value.trim();
-  const link = document.getElementById('uLink').value;
-  if (!name) return alert('Vyplň název úkolu.');
-  if (editUkolId) {
-    ukoly = ukoly.map(u => u.id === editUkolId ? { ...u, name, link } : u);
-  } else {
-    ukoly.push({ id: uid(), name, link, done: false });
-  }
-  save('tw_ukoly', ukoly);
-  closeUkolModal();
-  renderAll();
-}
-
-function deleteUkol() {
-  if (!confirm('Smazat tento úkol?')) return;
-  ukoly = ukoly.filter(u => u.id !== editUkolId);
-  save('tw_ukoly', ukoly);
-  closeUkolModal();
-  renderAll();
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function renderAll() {
-  renderTerminy();
-  renderUkoly();
-}
-
-// close on overlay click
-document.getElementById('terminOverlay').addEventListener('click', function(e) { if(e.target===this) closeTerminModal(); });
-document.getElementById('ukolOverlay').addEventListener('click', function(e)   { if(e.target===this) closeUkolModal(); });
-
-// keyboard
+// close on overlay bg click + ESC
+['ukolOverlay','eventOverlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) this.classList.remove('open'); });
+});
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeTerminModal(); closeUkolModal(); }
+  if (e.key==='Escape') { closeUkolModal(); closeEventModal(); }
 });
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-renderAll();
+// INIT
+renderUkoly();
+renderEvents();
 </script>
 </body>
 </html>
