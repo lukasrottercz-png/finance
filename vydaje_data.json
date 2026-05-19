@@ -72,14 +72,6 @@
     "date": "2026-05-14"
   },
   {
-    "id": "1779196972245",
-    "amount": 164,
-    "catKey": "stravovani",
-    "subcat": "Fast food",
-    "note": "",
-    "date": "2026-05-19"
-  },
-  {
     "id": "1779197008695",
     "amount": 3039,
     "catKey": "doprava",
