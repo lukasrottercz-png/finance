@@ -1,4 +1,13 @@
 {
-  "ukoly": [],
+  "ukoly": [
+    {
+      "id": "mpd33x80dcd",
+      "name": "DPH",
+      "date": "2026-05-24",
+      "note": "",
+      "done": false,
+      "repeat": "monthly"
+    }
+  ],
   "events": []
 }
