@@ -8,5 +8,14 @@
       "done": false
     }
   ],
-  "events": []
+  "events": [
+    {
+      "id": "mpd0dw6upgs",
+      "name": "j,h",
+      "date": "2026-05-28",
+      "note": "",
+      "cat": "lease",
+      "repeat": ""
+    }
+  ]
 }
