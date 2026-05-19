@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Termíny — Lukáš</title>
+<title>Úkoly & Události</title>
 <style>
   :root {
     --bg: #f2f2f7;
@@ -44,19 +44,15 @@
     min-height: 100vh;
   }
 
-  /* HEADER */
   header {
     background: var(--surface);
     border-bottom: 0.5px solid var(--border);
-    padding: 14px 20px;
+    padding: 14px 16px;
     position: sticky;
     top: 0;
     z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
   }
-  .logo { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+  .logo { font-size: 17px; font-weight: 700; color: var(--text); }
   .logo span { color: var(--accent); }
 
   /* MAIN */
@@ -262,7 +258,14 @@
 <body>
 
 <header>
-  <div class="logo">📅 Termíny</div>
+  <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between">
+    <div class="logo">📋 Úkoly & Události</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="sync-btn" onclick="syncNow()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px" title="Synchronizovat">↻</button>
+      <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">💰 Finance</a>
+      <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">🧾 Výdaje</a>
+    </div>
+  </div>
 </header>
 
 <main>
@@ -364,6 +367,90 @@ const CATS = [
 
 function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
 function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+// ── GITHUB SYNC ───────────────────────────────────────────────────────
+const GH_USER = 'lukasrottercz-png';
+const GH_REPO = 'finance';
+const GH_FILE = 'terminy_data.json';
+
+function ghToken() { return localStorage.getItem('gh_token') || ''; }
+function showToast(m) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = m; t.className = 'toast on';
+  setTimeout(() => t.className = 'toast', 2200);
+}
+
+async function ghLoad() {
+  const token = ghToken();
+  if (!token) return;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (res.status === 404) return;
+    if (!res.ok) return;
+    const data = await res.json();
+    const base64 = data.content.replace(/\n/g, '');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const content = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+    if (content.ukoly) { ukoly = content.ukoly; save('tw_ukoly2', ukoly); }
+    if (content.events) { events = content.events; save('tw_events2', events); }
+    localStorage.setItem('gh_sha_term', data.sha);
+  } catch(e) { console.error('ghLoad terminy:', e); }
+}
+
+async function ghSave() {
+  const token = ghToken();
+  if (!token) return;
+  try {
+    const json = JSON.stringify({ ukoly, events }, null, 2);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    const content = btoa(binary);
+    let sha = localStorage.getItem('gh_sha_term') || '';
+    if (!sha) {
+      const chk = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (chk.ok) { const cd = await chk.json(); sha = cd.sha; localStorage.setItem('gh_sha_term', sha); }
+    }
+    const bodyObj = { message: 'Termíny ' + new Date().toISOString().slice(0,10), content };
+    if (sha) bodyObj.sha = sha;
+    let res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyObj)
+    });
+    if (res.status === 409) {
+      const chk2 = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (chk2.ok) { const cd2 = await chk2.json(); sha = cd2.sha; localStorage.setItem('gh_sha_term', sha); }
+      bodyObj.sha = sha;
+      res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyObj)
+      });
+    }
+    if (!res.ok) throw new Error('GitHub save error ' + res.status);
+    const data = await res.json();
+    localStorage.setItem('gh_sha_term', data.content.sha);
+  } catch(e) { console.error('ghSave terminy:', e); showToast('GitHub nedostupný — uloženo lokálně'); }
+}
+
+async function syncNow() {
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.style.opacity = '0.3';
+  await ghLoad();
+  renderUkoly(); renderEvents();
+  showToast('Synchronizováno ✓');
+  if (btn) btn.style.opacity = '1';
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -429,7 +516,7 @@ function setUkolyFilter(f, el) {
 
 function toggleUkol(id) {
   ukoly = ukoly.map(u => u.id===id ? {...u, done:!u.done} : u);
-  save('tw_ukoly2', ukoly);
+  save('tw_ukoly2', ukoly); ghSave();
   renderUkoly();
 }
 
@@ -456,14 +543,14 @@ function saveUkol() {
   } else {
     ukoly.push({ id: uid(), name, date, note, done: false });
   }
-  save('tw_ukoly2', ukoly);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
   closeUkolModal();
   renderUkoly();
 }
 function deleteUkol() {
   if (!confirm('Smazat úkol?')) return;
   ukoly = ukoly.filter(u => u.id !== editUkolId);
-  save('tw_ukoly2', ukoly);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Smazáno');
   closeUkolModal();
   renderUkoly();
 }
@@ -568,14 +655,14 @@ function saveEvent() {
   } else {
     events.push({ id: uid(), name, date, note, cat: selCat });
   }
-  save('tw_events2', events);
+  save('tw_events2', events); ghSave(); showToast('Uloženo ✓');
   closeEventModal();
   renderEvents();
 }
 function deleteEvent() {
   if (!confirm('Smazat událost?')) return;
   events = events.filter(e => e.id !== editEventId);
-  save('tw_events2', events);
+  save('tw_events2', events); ghSave(); showToast('Smazáno');
   closeEventModal();
   renderEvents();
 }
@@ -588,9 +675,40 @@ document.addEventListener('keydown', e => {
   if (e.key==='Escape') { closeUkolModal(); closeEventModal(); }
 });
 
+// GitHub token sekce — zobraz pokud nemáme token
+function renderGhSection() {
+  const tok = localStorage.getItem('gh_token');
+  const existing = document.getElementById('gh-section');
+  if (tok) { if (existing) existing.remove(); return; }
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = 'gh-section';
+  div.style.cssText = 'background:var(--surface);border:0.5px solid var(--border);border-radius:13px;padding:16px;margin:16px;';
+  div.innerHTML = '<div style="font-size:14px;font-weight:600;margin-bottom:8px">GitHub synchronizace</div>'
+    + '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Zadej token pro ukládání dat napříč zařízeními.</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<input type="password" id="gh-tok-inp" placeholder="ghp_..." style="flex:1;min-width:180px;font-size:14px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text)">'
+    + '<button onclick="saveGhTokenTerm()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">Uložit</button>'
+    + '</div>';
+  document.querySelector('main').prepend(div);
+}
+
+function saveGhTokenTerm() {
+  const inp = document.getElementById('gh-tok-inp');
+  if (!inp || !inp.value.trim()) return;
+  localStorage.setItem('gh_token', inp.value.trim());
+  localStorage.removeItem('gh_sha_term');
+  showToast('Token uložen — načítám data…');
+  ghLoad().then(() => { renderUkoly(); renderEvents(); renderGhSection(); });
+}
+
 // INIT
 renderUkoly();
 renderEvents();
+renderGhSection();
+if (ghToken()) {
+  ghLoad().then(() => { renderUkoly(); renderEvents(); });
+}
 </script>
 <div class="toast" id="toast"></div>
 </body>
