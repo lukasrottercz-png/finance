@@ -3,34 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TaskWatch</title>
+<title>Termíny — Lukáš</title>
 <style>
   :root {
-    --bg: #F4F6FA;
-    --surface: #FFFFFF;
-    --surface2: #EEF1F7;
-    --border: #DDE2ED;
-    --text: #1A202C;
-    --muted: #7A8899;
-    --accent: #2563EB;
-    --green: #059669;
-    --yellow: #D97706;
-    --red: #DC2626;
-    --gray: #9CA3AF;
+    --bg: #f2f2f7;
+    --surface: #ffffff;
+    --surface2: #e9e9ef;
+    --border: rgba(0,0,0,0.1);
+    --text: #1c1c1e;
+    --muted: #6c6c70;
+    --accent: #7c3aed;
+    --green: #34c759;
+    --yellow: #ff9500;
+    --red: #ff3b30;
+    --gray: #aeaeb2;
+    --r: 13px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0A0E17;
-      --surface: #111827;
-      --surface2: #1C2333;
-      --border: #1E2D40;
-      --text: #E2EAF4;
-      --muted: #5B6B82;
-      --accent: #3B82F6;
-      --green: #10B981;
-      --yellow: #F59E0B;
-      --red: #EF4444;
-      --gray: #6B7280;
+      --bg: #000000;
+      --surface: #1c1c1e;
+      --surface2: #2c2c2e;
+      --border: rgba(255,255,255,0.1);
+      --text: #ffffff;
+      --muted: #aeaeb2;
+      --accent: #a78bfa;
+      --green: #34c759;
+      --yellow: #ff9500;
+      --red: #ff3b30;
+      --gray: #636366;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,7 +39,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
     font-size: 14px;
     min-height: 100vh;
   }
@@ -46,7 +47,7 @@
   /* HEADER */
   header {
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 0.5px solid var(--border);
     padding: 14px 20px;
     position: sticky;
     top: 0;
@@ -55,33 +56,29 @@
     align-items: center;
     justify-content: space-between;
   }
-  .logo { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+  .logo { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
   .logo span { color: var(--accent); }
 
   /* MAIN */
-  main { max-width: 700px; margin: 0 auto; padding: 28px 16px 60px; width: 100%; }
+  main { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; width: 100%; }
 
   /* SECTION HEADERS */
   .section-hd {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
-  .section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text);
-  }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
   .section-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
   /* DIVIDER */
-  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 24px 0; }
 
   /* BUTTON */
   .btn {
     padding: 7px 14px;
-    border-radius: 8px;
+    border-radius: var(--r);
     border: none;
     font-family: inherit;
     font-size: 13px;
@@ -97,9 +94,9 @@
   /* TASK CARDS */
   .task-item {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     border-left: 3px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--r);
     padding: 12px 14px;
     margin-bottom: 8px;
     display: flex;
@@ -114,7 +111,7 @@
   .task-item.urg-gray  { border-left-color: var(--gray); }
 
   .check {
-    width: 19px; height: 19px;
+    width: 22px; height: 22px;
     border-radius: 50%;
     border: 2px solid var(--border);
     flex-shrink: 0;
@@ -125,22 +122,22 @@
   }
   .check:hover { border-color: var(--accent); }
   .check.checked { background: var(--accent); border-color: var(--accent); }
-  .check.checked::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+  .check.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
 
   .task-body { flex: 1; min-width: 0; }
-  .task-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-name { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .task-item.done .task-name { text-decoration: line-through; color: var(--muted); }
-  .task-date { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .task-date { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
   .urg-badge {
-    font-size: 11px; font-weight: 700;
-    padding: 2px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
     white-space: nowrap; flex-shrink: 0;
   }
-  .urg-red .urg-badge   { background: #DC262615; color: var(--red); }
-  .urg-yellow .urg-badge { background: #D9770615; color: var(--yellow); }
-  .urg-green .urg-badge { background: #05966915; color: var(--green); }
-  .urg-gray .urg-badge  { background: #9CA3AF15; color: var(--gray); }
+  .urg-red .urg-badge   { background: rgba(255,59,48,0.1); color: var(--red); }
+  .urg-yellow .urg-badge { background: rgba(255,149,0,0.1); color: var(--yellow); }
+  .urg-green .urg-badge { background: rgba(52,199,89,0.1); color: var(--green); }
+  .urg-gray .urg-badge  { background: rgba(174,174,178,0.1); color: var(--gray); }
 
   .task-edit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0 2px; flex-shrink: 0; }
   .task-edit:hover { color: var(--text); }
@@ -148,19 +145,19 @@
   /* FILTER ROW */
   .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
   .f-btn {
-    padding: 4px 12px; border-radius: 20px;
-    border: 1px solid var(--border);
+    padding: 5px 14px; border-radius: 20px;
+    border: 0.5px solid var(--border);
     background: transparent; color: var(--muted);
     font-size: 12px; font-family: inherit; cursor: pointer;
     transition: all 0.15s;
   }
-  .f-btn.active { background: #2563EB18; color: var(--accent); border-color: #2563EB40; font-weight: 600; }
+  .f-btn.active { background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); font-weight: 600; }
 
   /* COUNTDOWN */
   .countdown {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--r);
     padding: 18px 20px;
     margin-bottom: 16px;
     display: flex;
@@ -169,7 +166,7 @@
   }
   .countdown-num {
     font-size: 42px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--accent);
     line-height: 1;
     flex-shrink: 0;
@@ -180,9 +177,9 @@
   /* EVENT CARDS */
   .event-item {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 0.5px solid var(--border);
     border-left: 3px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--r);
     padding: 12px 14px;
     margin-bottom: 8px;
     cursor: pointer;
@@ -196,56 +193,66 @@
 
   .event-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .event-row > div:first-child { flex: 1; min-width: 0; }
-  .event-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .event-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .event-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* GROUP LABEL */
   .group-label {
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.09em;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
     color: var(--muted); margin: 18px 0 8px 2px;
   }
 
   /* EMPTY */
   .empty { text-align: center; color: var(--muted); padding: 36px 0; }
-  .empty-icon { font-size: 36px; margin-bottom: 10px; }
-  .empty-text { font-size: 14px; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; }
 
   /* MODAL */
   .overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); z-index: 200;
-    align-items: center; justify-content: center; padding: 20px;
+    background: rgba(0,0,0,0.4); z-index: 200;
+    align-items: flex-end; justify-content: center; padding: 0;
   }
   .overlay.open { display: flex; }
   .modal {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 22px; width: 100%; max-width: 460px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--r) var(--r) 0 0;
+    padding: 22px; width: 100%; max-width: 600px;
     max-height: 90vh; overflow-y: auto;
   }
-  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
   .field { margin-bottom: 13px; }
-  .field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
   .field input, .field select, .field textarea {
     width: 100%; background: var(--bg);
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 8px 11px; color: var(--text);
-    font-family: inherit; font-size: 14px; outline: none;
+    border: 0.5px solid var(--border); border-radius: var(--r);
+    padding: 10px 12px; color: var(--text);
+    font-family: inherit; font-size: 15px; outline: none;
   }
-  .field input:focus, .field textarea:focus { border-color: var(--accent); }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,58,237,0.15); }
   .field select option { background: var(--surface); }
   .field textarea { min-height: 65px; resize: vertical; }
   .cat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
   .cat-pill {
-    padding: 5px 11px; border-radius: 20px;
-    border: 1px solid var(--border); background: transparent;
-    color: var(--muted); font-size: 12px; font-family: inherit; cursor: pointer;
+    padding: 5px 12px; border-radius: 20px;
+    border: 0.5px solid var(--border); background: transparent;
+    color: var(--muted); font-size: 13px; font-family: inherit; cursor: pointer;
   }
-  .cat-pill.sel { font-weight: 700; }
+  .cat-pill.sel { font-weight: 600; background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); }
   .modal-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(40,40,40,0.92); color: #fff;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 14px; opacity: 0; transition: opacity 0.2s;
+    pointer-events: none; white-space: nowrap; z-index: 999;
+  }
+  .toast.on { opacity: 1; }
 
   @media (max-width: 500px) {
     .countdown-num { font-size: 32px; }
@@ -255,7 +262,7 @@
 <body>
 
 <header>
-  <div class="logo">Task<span>Watch</span></div>
+  <div class="logo">📅 Termíny</div>
 </header>
 
 <main>
@@ -585,5 +592,6 @@ document.addEventListener('keydown', e => {
 renderUkoly();
 renderEvents();
 </script>
+<div class="toast" id="toast"></div>
 </body>
 </html>
