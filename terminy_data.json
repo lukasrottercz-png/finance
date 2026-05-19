@@ -6,6 +6,14 @@
       "date": "2026-05-19",
       "note": "",
       "done": false
+    },
+    {
+      "id": "mpd0ce54g7y",
+      "name": "rejgfk",
+      "date": "2026-05-19",
+      "note": "",
+      "done": false,
+      "repeat": "monthly"
     }
   ],
   "events": []
