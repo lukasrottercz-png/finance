@@ -9,5 +9,14 @@
       "repeat": "monthly"
     }
   ],
-  "events": []
+  "events": [
+    {
+      "id": "mpd3ve7rebw",
+      "name": "Konec Xiaomi",
+      "date": "2026-06-19",
+      "note": "",
+      "cat": "other",
+      "repeat": ""
+    }
+  ]
 }
