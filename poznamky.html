@@ -23,7 +23,7 @@
 html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text)}
 
 /* HEADER */
-.hdr{background:var(--surface);border-bottom:0.5px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
+.hdr{background:var(--surface);border-bottom:0.5px solid var(--border);padding:14px 0;position:sticky;top:0;z-index:10}
 .hdr-title{font-size:17px;font-weight:700;color:var(--text)}
 .hdr-actions{display:flex;align-items:center;gap:8px}
 .hdr-btn{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px}
@@ -144,13 +144,15 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 <body>
 
 <div class="hdr">
-  <div class="hdr-title">📝 Poznámky</div>
-  <div class="hdr-actions">
-    <button class="hdr-btn" onclick="syncNow()" id="sync-btn" title="Synchronizovat">↻</button>
-    <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
-    <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" class="hdr-link">🧾</a>
-    <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
-    <button class="hdr-new" onclick="openNew()">+ Nová</button>
+  <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+    <div class="hdr-title">📝 Poznámky</div>
+    <div class="hdr-actions">
+      <button class="hdr-btn" onclick="syncNow()" id="sync-btn" title="Synchronizovat">↻</button>
+      <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
+      <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" class="hdr-link">🧾</a>
+      <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
+      <button class="hdr-new" onclick="openNew()">+ Nová</button>
+    </div>
   </div>
 </div>
 
