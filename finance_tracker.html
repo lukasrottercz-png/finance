@@ -300,6 +300,7 @@ function renderTabs() {
     { k:'dashboard', l:'Dashboard' },
     { k:'prehled',   l:'Přehled' },
     { k:'vyvoj',     l:'Vývoj' },
+    { k:'investice', l:'📈 Investice' },
     { k:'zadat',     l:'+ Přidat' },
   ];
   const menuItems = [];
@@ -1197,6 +1198,117 @@ function importCSV() {
   input.click();
 }
 
+// ── INVESTICE ─────────────────────────────────────────────────────────
+const INV_ETF = [
+  { tiker:'VWCE.DE', nazev:'Vanguard FTSE All-World',          typ:'core', alokace:80 },
+  { tiker:'SXRV.DE', nazev:'iShares NASDAQ 100',               typ:'sat',  alokace:7  },
+  { tiker:'2B76.DE', nazev:'iShares Automation & Robotics',    typ:'sat',  alokace:7  },
+  { tiker:'XDWH.DE', nazev:'Xtrackers MSCI World Health Care', typ:'sat',  alokace:6  },
+];
+
+function loadInv(){ try{ return JSON.parse(localStorage.getItem('lk_inv')||'{"transe":[],"aktualni":[]}'); }catch(e){ return {transe:[],aktualni:[]}; } }
+function saveInv(inv){ localStorage.setItem('lk_inv',JSON.stringify(inv)); }
+
+function renderInvestice(){
+  const inv=loadInv();
+  const transe=inv.transe||[];
+  const aktualni=inv.aktualni||[];
+  const celkem=transe.reduce((s,t)=>s+(t.castka||0),0);
+  const posledni=aktualni.length?aktualni[aktualni.length-1]:null;
+  const aktHodnota=posledni?posledni.hodnota:null;
+  const zisk=aktHodnota!=null?aktHodnota-celkem:null;
+  const ziskPct=zisk!=null&&celkem?(zisk/celkem*100):null;
+  const rozlozeni=INV_ETF.map(e=>{
+    const i2=transe.reduce((s,t)=>{ const p=(t.etf||[]).find(x=>x.tiker===e.tiker); return s+(p?p.castka:0); },0);
+    return {...e,investovano:i2};
+  });
+  return `
+  <div class="sec"><h3>Portfolio</h3>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Investováno celkem</div><div class="card-val">${fmt(celkem||0)}</div></div>
+      ${aktHodnota!=null?`
+      <div class="card"><div class="card-lbl">Aktuální hodnota</div><div class="card-val">${fmt(aktHodnota)}</div></div>
+      <div class="card"><div class="card-lbl">Zisk / ztráta</div><div class="card-val ${zisk>=0?'pos':'danger'}">${zisk>=0?'+':''}${fmt(zisk)} (${ziskPct>=0?'+':''}${ziskPct.toFixed(1)} %)</div></div>`:''}
+    </div>
+  </div>
+  <div class="sec"><h3>Rozložení</h3>
+    ${rozlozeni.map(e=>{
+      const pct=celkem?Math.round(e.investovano/celkem*100):e.alokace;
+      const bar=celkem?(e.investovano/celkem*100):e.alokace;
+      return `<div class="row" style="margin-bottom:10px;align-items:center">
+        <div style="min-width:150px"><div style="font-size:14px;font-weight:500">${e.tiker}</div><div style="font-size:12px;color:var(--text2)">${e.nazev}</div></div>
+        <div style="flex:1;margin:0 12px"><div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${bar}%;background:${e.typ==='core'?'#7c3aed':'var(--green)'};border-radius:3px"></div></div></div>
+        <div style="min-width:110px;text-align:right;font-size:13px">${e.investovano?fmt(e.investovano):'—'} <span style="color:var(--text3)">${pct} %</span></div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0">Tranše</h3>
+      <button onclick="openTranseDialog()" style="background:#7c3aed;color:#fff;border:none;border-radius:var(--r);padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">+ Přidat tranši</button>
+    </div>
+    ${!transe.length?`<div style="font-size:13px;color:var(--text3);padding:12px 0">Zatím žádné tranše.</div>`:
+      transe.slice().reverse().map(t=>`
+      <div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;border:0.5px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:500">${t.nazev||'Tranše'}</span><span style="font-weight:600">${fmt(t.castka)}</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">${t.datum}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${(t.etf||[]).map(e=>`<span style="font-size:12px;border:0.5px solid var(--border);border-radius:6px;padding:2px 8px">${e.tiker} <strong>${fmt(e.castka)}</strong></span>`).join('')}</div>
+      </div>`).join('')}
+  </div>
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0">Vývoj hodnoty</h3>
+      <button onclick="openHodnotaDialog()" style="background:var(--bg2);color:var(--text);border:0.5px solid var(--border);border-radius:var(--r);padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">+ Aktualizovat</button>
+    </div>
+    ${!aktualni.length?`<div style="font-size:13px;color:var(--text3);padding:8px 0">Zadej aktuální hodnotu z XTB.</div>`:`
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="color:var(--text2);border-bottom:0.5px solid var(--border)"><td style="padding:6px 0">Datum</td><td style="padding:6px 8px;text-align:right">Hodnota</td><td style="padding:6px 8px;text-align:right">Zisk/ztráta</td><td style="padding:6px 0;text-align:right">%</td></tr>
+      ${aktualni.slice().reverse().map(a=>{ const z=a.hodnota-celkem; const zp=celkem?(z/celkem*100):0;
+        return `<tr style="border-bottom:0.5px solid var(--border)"><td style="padding:8px 0">${a.datum}</td><td style="padding:8px;text-align:right;font-weight:500">${fmt(a.hodnota)}</td><td style="padding:8px;text-align:right;color:${z>=0?'var(--green)':'var(--red)'}">${z>=0?'+':''}${fmt(z)}</td><td style="padding:8px 0;text-align:right;color:${zp>=0?'var(--green)':'var(--red)'}">${zp>=0?'+':''}${zp.toFixed(1)} %</td></tr>`;
+      }).join('')}
+    </table>`}
+  </div>
+  <div id="inv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:flex-end;justify-content:center">
+    <div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:700px;padding:20px;max-height:90vh;overflow-y:auto">
+      <div style="font-size:17px;font-weight:600;margin-bottom:16px">Přidat tranši</div>
+      <div class="fg"><label>Datum</label><input type="date" id="inv-datum" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="fg"><label>Název</label><input type="text" id="inv-nazev" placeholder="Tranše 1 — květen 2026"></div>
+      <div class="fg"><label>Celková částka (Kč)</label><input type="number" id="inv-celkem" placeholder="650000" oninput="updateInvAlokace()"></div>
+      <div style="margin:14px 0 8px;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Rozdělení</div>
+      ${INV_ETF.map(e=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="min-width:80px;font-size:13px;font-family:monospace">${e.tiker}</span><span style="flex:1;font-size:12px;color:var(--text2)">${e.nazev}</span><input type="number" id="inv-etf-${e.tiker.replace('.','_')}" placeholder="0" style="width:110px;text-align:right;padding:6px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px"></div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="saveTranse()" style="flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer">Uložit</button>
+        <button onclick="closeInvDialog()" style="padding:12px 16px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:15px;cursor:pointer">Zrušit</button>
+      </div>
+    </div>
+  </div>
+  <div id="inv-h-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:flex-end;justify-content:center">
+    <div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:700px;padding:20px">
+      <div style="font-size:17px;font-weight:600;margin-bottom:16px">Aktuální hodnota portfolia</div>
+      <div class="fg"><label>Datum</label><input type="date" id="inv-h-datum" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="fg"><label>Hodnota z XTB (Kč)</label><input type="number" id="inv-h-hodnota" placeholder="0"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="saveHodnota()" style="flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer">Uložit</button>
+        <button onclick="closeHodnotaDialog()" style="padding:12px 16px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:15px;cursor:pointer">Zrušit</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function initInvesticeEvents(){
+  ['inv-overlay','inv-h-overlay'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('click',e=>{if(e.target===el) el.style.display='none';});
+  });
+}
+function openTranseDialog(){ const el=document.getElementById('inv-overlay'); if(el) el.style.display='flex'; setTimeout(()=>{ const c=document.getElementById('inv-celkem'); if(c&&!c.value){c.value='650000';updateInvAlokace();} },50); }
+function closeInvDialog(){ const el=document.getElementById('inv-overlay'); if(el) el.style.display='none'; }
+function openHodnotaDialog(){ const el=document.getElementById('inv-h-overlay'); if(el) el.style.display='flex'; }
+function closeHodnotaDialog(){ const el=document.getElementById('inv-h-overlay'); if(el) el.style.display='none'; }
+function updateInvAlokace(){ const c=parseFloat(document.getElementById('inv-celkem')?.value)||0; INV_ETF.forEach(e=>{ const el=document.getElementById('inv-etf-'+e.tiker.replace('.','_')); if(el) el.value=Math.round(c*e.alokace/100); }); }
+function saveTranse(){ const datum=document.getElementById('inv-datum')?.value; const nazev=document.getElementById('inv-nazev')?.value||'Tranše'; const castka=parseFloat(document.getElementById('inv-celkem')?.value)||0; if(!datum||!castka){toast('Vyplň datum a částku');return;} const etf=INV_ETF.map(e=>({tiker:e.tiker,castka:parseFloat(document.getElementById('inv-etf-'+e.tiker.replace('.','_'))?.value)||0})).filter(e=>e.castka>0); const inv=loadInv(); inv.transe.push({id:Date.now().toString(36),datum,nazev,castka,etf}); saveInv(inv); closeInvDialog(); toast('Tranše uložena ✓'); rc(); }
+function saveHodnota(){ const datum=document.getElementById('inv-h-datum')?.value; const hodnota=parseFloat(document.getElementById('inv-h-hodnota')?.value)||0; if(!datum||!hodnota){toast('Vyplň datum a hodnotu');return;} const inv=loadInv(); inv.aktualni=inv.aktualni||[]; inv.aktualni.push({datum,hodnota}); inv.aktualni.sort((a,b)=>a.datum.localeCompare(b.datum)); saveInv(inv); closeHodnotaDialog(); toast('Hodnota uložena ✓'); rc(); }
+
 // ── MAIN ──────────────────────────────────────────────────────────────
 function rc() {
   let html = '';
@@ -1204,7 +1316,9 @@ function rc() {
   else if (view === 'dashboard') html = renderDashboard();
   else if (view === 'prehled') html = renderPrehled();
   else if (view === 'vyvoj') html = renderVyvoj();
+  else if (view === 'investice') html = renderInvestice();
   document.getElementById('content').innerHTML = html;
+  if (view === 'investice') initInvesticeEvents();
 }
 
 document.getElementById('hdate').textContent =
