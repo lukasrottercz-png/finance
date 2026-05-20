@@ -285,16 +285,36 @@ function diff(cur, prv, inv, asCard) {
 function renderTabs() {
   const ts = [
     { k:'dashboard', l:'Dashboard' },
-    { k:'prehled', l:'Přehled' },
-    { k:'vyvoj',   l:'Vývoj' },
-    { k:'zadat',   l:'+ Přidat' },
+    { k:'prehled',   l:'Přehled' },
+    { k:'vyvoj',     l:'Vývoj' },
+    { k:'zadat',     l:'+ Přidat' },
   ];
-  if (periods.length > 0) ts.push({ k:'edit', l:'Upravit' });
-  ts.push({ k:'export', l:'⬇ CSV' });
-  ts.push({ k:'import', l:'⬆ Import CSV' });
-  document.getElementById('tabs').innerHTML = ts.map(t =>
-    `<button class="tab ${view===t.k?'active':''}" onclick="sw('${t.k}')">${t.l}</button>`
-  ).join('');
+  const menuItems = [];
+  if (periods.length > 0) menuItems.push({ k:'edit', l:'✏️ Upravit období' });
+  menuItems.push({ k:'export', l:'⬇ Export CSV' });
+  menuItems.push({ k:'import', l:'⬆ Import CSV' });
+
+  const menuHtml = `
+    <div style="position:relative;display:inline-block">
+      <button class="tab" onclick="toggleTabMenu()" id="tab-menu-btn">⋯</button>
+      <div id="tab-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);min-width:160px;z-index:50;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.12)">
+        ${menuItems.map(m=>`<button onclick="closeTabMenu();sw('${m.k}')" style="display:block;width:100%;padding:11px 16px;background:none;border:none;text-align:left;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)">${m.l}</button>`).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('tabs').innerHTML =
+    ts.map(t => `<button class="tab ${view===t.k?'active':''}" onclick="sw('${t.k}')">${t.l}</button>`).join('') +
+    menuHtml;
+}
+
+function toggleTabMenu() {
+  const m = document.getElementById('tab-menu');
+  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  setTimeout(() => document.addEventListener('click', closeTabMenu, {once:true}), 10);
+}
+function closeTabMenu() {
+  const m = document.getElementById('tab-menu');
+  if (m) m.style.display = 'none';
 }
 
 function sw(v) {
