@@ -578,6 +578,8 @@ function setTagFilter(tag) {
   activeTagFilter = tag;
   renderUkoly();
 }
+
+function setUkolyFilter(f, el) {
   uFilter = f;
   document.querySelectorAll('.filter-row .f-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
