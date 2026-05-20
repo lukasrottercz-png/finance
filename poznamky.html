@@ -179,6 +179,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-foot">
       <button class="btn btn-primary" onclick="saveNote()" style="flex:1">Uložit</button>
+      <button class="btn btn-ghost" onclick="aiPolish()" title="Nechej AI upravit a vyčistit poznámku">✨ AI</button>
       <button class="btn btn-ghost" onclick="closeEdit()">Zrušit</button>
       <button class="btn btn-danger" id="del-btn" onclick="deleteNote()" style="display:none">Smazat</button>
     </div>
@@ -198,6 +199,26 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
     <div class="sheet-foot">
       <button class="btn btn-primary" onclick="runAi()" style="flex:1">🔄 Znovu analyzovat</button>
       <button class="btn btn-ghost" onclick="closeAi()">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: AI POLISH -->
+<div class="overlay" id="polish-overlay" onclick="if(event.target===this)closePolish()">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-title">✨ AI úprava poznámky</span>
+      <button class="sheet-close" onclick="closePolish()">×</button>
+    </div>
+    <div class="sheet-body">
+      <div id="polish-status" style="font-size:14px;color:var(--text2);margin-bottom:12px"></div>
+      <div id="polish-preview" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Náhled upraveného obsahu</div>
+        <div class="md-view" id="polish-md" style="background:var(--bg);border-radius:var(--r);padding:14px;border:0.5px solid var(--border)"></div>
+      </div>
+    </div>
+    <div class="sheet-foot" id="polish-foot">
+      <button class="btn btn-ghost" onclick="closePolish()">Zavřít</button>
     </div>
   </div>
 </div>
@@ -575,6 +596,81 @@ function deleteNote(){
   showToast('Smazáno');
   closeEdit();
   backToList();
+}
+
+// ── AI POLISH ─────────────────────────────────────────────────────────
+let polishedContent = '';
+
+async function aiPolish(){
+  const title=(document.getElementById('edit-title')?.value||'').trim();
+  const content=(document.getElementById('edit-content')?.value||'').trim();
+  if(!content){ showToast('Nejprve napiš obsah'); return; }
+
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey){
+    showToast('Nejprve nastav Anthropic API klíč v AI analýze');
+    return;
+  }
+
+  document.getElementById('polish-overlay').classList.add('on');
+  document.getElementById('polish-status').textContent='⏳ Claude upravuje poznámku…';
+  document.getElementById('polish-preview').style.display='none';
+  document.getElementById('polish-foot').innerHTML='<button class="btn btn-ghost" onclick="closePolish()">Zavřít</button>';
+
+  const typeLabel=TYPES[curType]?.label||'poznámka';
+  const prompt=`Jsi asistent pro pracovní poznámky. Uprav a vyčisti následující ${typeLabel.toLowerCase()} v češtině.
+
+Pravidla:
+- Zachovej Markdown formátování (## nadpisy, - odrážky, - [ ] checkboxy)
+- Oprav gramatiku a překlepy
+- Doplň chybějící sekce šablony pokud jsou prázdné
+- Zkrať příliš dlouhé věty
+- Zachovej všechna fakta a čísla beze změny
+- Neměň strukturu ani obsah — jen vyčisti a zpřehledni
+- Vrať POUZE upravený Markdown text, bez komentářů
+
+Název: ${title}
+Typ: ${typeLabel}
+
+Obsah:
+${content}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error(res.status);
+    const data=await res.json();
+    polishedContent=data.content?.[0]?.text||'';
+
+    document.getElementById('polish-status').textContent='AI upravila poznámku. Zkontroluj a potvrď:';
+    document.getElementById('polish-preview').style.display='block';
+    document.getElementById('polish-md').innerHTML=renderMd(polishedContent,'polish');
+    document.getElementById('polish-foot').innerHTML=`
+      <button class="btn btn-primary" onclick="applyPolish()" style="flex:1">✓ Použít úpravy</button>
+      <button class="btn btn-ghost" onclick="closePolish()">Zahodit</button>`;
+  }catch(e){
+    document.getElementById('polish-status').textContent='Chyba: '+e.message;
+  }
+}
+
+function applyPolish(){
+  const ta=document.getElementById('edit-content');
+  if(ta && polishedContent){ ta.value=polishedContent; }
+  closePolish();
+  showToast('Úpravy aplikovány ✓');
+}
+
+function closePolish(){
+  document.getElementById('polish-overlay').classList.remove('on');
+  polishedContent='';
 }
 
 // ── AI ANALÝZA ────────────────────────────────────────────────────────
