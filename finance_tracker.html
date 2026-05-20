@@ -1221,7 +1221,64 @@ const INV_ETF = [
 ];
 
 function loadInv(){ try{ return JSON.parse(localStorage.getItem('lk_inv')||'{"transe":[],"aktualni":[]}'); }catch(e){ return {transe:[],aktualni:[]}; } }
-function saveInv(inv){ localStorage.setItem('lk_inv',JSON.stringify(inv)); }
+function saveInv(inv){ localStorage.setItem('lk_inv',JSON.stringify(inv)); ghSaveInv(inv); }
+
+async function ghLoadInv(){
+  const token=localStorage.getItem('gh_token');
+  if(!token) return;
+  try{
+    const res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/investice_data.json`,{
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(res.status===404) return;
+    if(!res.ok) return;
+    const data=await res.json();
+    const b=atob(data.content.replace(/\n/g,''));
+    const byt=new Uint8Array(b.length);
+    for(let i=0;i<b.length;i++) byt[i]=b.charCodeAt(i);
+    const inv=JSON.parse(new TextDecoder('utf-8').decode(byt));
+    localStorage.setItem('lk_inv',JSON.stringify(inv));
+    localStorage.setItem('gh_sha_inv',data.sha);
+  }catch(e){ console.error('ghLoadInv:',e); }
+}
+
+async function ghSaveInv(inv){
+  const token=localStorage.getItem('gh_token');
+  if(!token) return;
+  try{
+    const json=JSON.stringify(inv,null,2);
+    const bytes=new TextEncoder().encode(json);
+    let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
+    const content=btoa(binary);
+    let sha=localStorage.getItem('gh_sha_inv')||'';
+    if(!sha){
+      const chk=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/investice_data.json`,{
+        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+      });
+      if(chk.ok){ const cd=await chk.json(); sha=cd.sha; localStorage.setItem('gh_sha_inv',sha); }
+    }
+    const body={message:'Investice '+new Date().toISOString().slice(0,10),content};
+    if(sha) body.sha=sha;
+    let res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/investice_data.json`,{
+      method:'PUT',
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(res.status===409){
+      const chk2=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/investice_data.json`,{
+        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+      });
+      if(chk2.ok){ const cd2=await chk2.json(); sha=cd2.sha; localStorage.setItem('gh_sha_inv',sha); }
+      body.sha=sha;
+      res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/investice_data.json`,{
+        method:'PUT',
+        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+    }
+    if(res.ok){ const d=await res.json(); localStorage.setItem('gh_sha_inv',d.content.sha); }
+  }catch(e){ console.error('ghSaveInv:',e); }
+}
 
 function renderInvestice(){
   const inv=loadInv();
@@ -1276,9 +1333,15 @@ function renderInvestice(){
     </div>
     ${!aktualni.length?`<div style="font-size:13px;color:var(--text3);padding:8px 0">Zadej aktuální hodnotu z XTB.</div>`:`
     <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <tr style="color:var(--text2);border-bottom:0.5px solid var(--border)"><td style="padding:6px 0">Datum</td><td style="padding:6px 8px;text-align:right">Hodnota</td><td style="padding:6px 8px;text-align:right">Zisk/ztráta</td><td style="padding:6px 0;text-align:right">%</td></tr>
-      ${aktualni.slice().reverse().map(a=>{ const z=a.hodnota-celkem; const zp=celkem?(z/celkem*100):0;
-        return `<tr style="border-bottom:0.5px solid var(--border)"><td style="padding:8px 0">${a.datum}</td><td style="padding:8px;text-align:right;font-weight:500">${fmt(a.hodnota)}</td><td style="padding:8px;text-align:right;color:${z>=0?'var(--green)':'var(--red)'}">${z>=0?'+':''}${fmt(z)}</td><td style="padding:8px 0;text-align:right;color:${zp>=0?'var(--green)':'var(--red)'}">${zp>=0?'+':''}${zp.toFixed(1)} %</td></tr>`;
+      <tr style="color:var(--text2);border-bottom:0.5px solid var(--border)"><td style="padding:6px 0">Datum</td><td style="padding:6px 8px;text-align:right">Hodnota</td><td style="padding:6px 8px;text-align:right">Zisk/ztráta</td><td style="padding:6px 0;text-align:right">%</td><td></td></tr>
+      ${aktualni.slice().reverse().map((a,i)=>{ const z=a.hodnota-celkem; const zp=celkem?(z/celkem*100):0; const idx=aktualni.length-1-i;
+        return `<tr style="border-bottom:0.5px solid var(--border)">
+          <td style="padding:8px 0">${a.datum}</td>
+          <td style="padding:8px;text-align:right;font-weight:500">${fmt(a.hodnota)}</td>
+          <td style="padding:8px;text-align:right;color:${z>=0?'var(--green)':'var(--red)'}">${z>=0?'+':''}${fmt(z)}</td>
+          <td style="padding:8px 0;text-align:right;color:${zp>=0?'var(--green)':'var(--red)'}">${zp>=0?'+':''}${zp.toFixed(1)} %</td>
+          <td style="padding:8px 0;text-align:right"><button onclick="showInvHodnotaMenu(${idx},this)" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:0 4px">···</button></td>
+        </tr>`;
       }).join('')}
     </table>`}
   </div>
@@ -1321,7 +1384,58 @@ function openHodnotaDialog(){ const el=document.getElementById('inv-h-overlay');
 function closeHodnotaDialog(){ const el=document.getElementById('inv-h-overlay'); if(el) el.style.display='none'; }
 function updateInvAlokace(){ const c=parseFloat(document.getElementById('inv-celkem')?.value)||0; INV_ETF.forEach(e=>{ const el=document.getElementById('inv-etf-'+e.tiker.replace('.','_')); if(el) el.value=Math.round(c*e.alokace/100); }); }
 function saveTranse(){ const datum=document.getElementById('inv-datum')?.value; const nazev=document.getElementById('inv-nazev')?.value||'Tranše'; const castka=parseFloat(document.getElementById('inv-celkem')?.value)||0; if(!datum||!castka){toast('Vyplň datum a částku');return;} const etf=INV_ETF.map(e=>({tiker:e.tiker,castka:parseFloat(document.getElementById('inv-etf-'+e.tiker.replace('.','_'))?.value)||0})).filter(e=>e.castka>0); const inv=loadInv(); inv.transe.push({id:Date.now().toString(36),datum,nazev,castka,etf}); saveInv(inv); closeInvDialog(); toast('Tranše uložena ✓'); rc(); }
-function saveHodnota(){ const datum=document.getElementById('inv-h-datum')?.value; const hodnota=parseFloat(document.getElementById('inv-h-hodnota')?.value)||0; if(!datum||!hodnota){toast('Vyplň datum a hodnotu');return;} const inv=loadInv(); inv.aktualni=inv.aktualni||[]; inv.aktualni.push({datum,hodnota}); inv.aktualni.sort((a,b)=>a.datum.localeCompare(b.datum)); saveInv(inv); closeHodnotaDialog(); toast('Hodnota uložena ✓'); rc(); }
+function showInvHodnotaMenu(idx, btn){
+  document.getElementById('card-menu')?.remove();
+  const rect=btn.getBoundingClientRect();
+  const menu=document.createElement('div');
+  menu.id='card-menu';
+  menu.style.cssText=`position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth-rect.right}px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:140px;overflow:hidden`;
+  menu.innerHTML=`
+    <button onclick="document.getElementById('card-menu')?.remove();editInvHodnota(${idx})" style="display:block;width:100%;padding:11px 16px;background:none;border:none;border-bottom:0.5px solid var(--border);text-align:left;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer">✏️ Upravit</button>
+    <button onclick="document.getElementById('card-menu')?.remove();deleteInvHodnota(${idx})" style="display:block;width:100%;padding:11px 16px;background:none;border:none;text-align:left;font-size:14px;font-family:inherit;color:var(--red);cursor:pointer">🗑 Smazat</button>`;
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',()=>document.getElementById('card-menu')?.remove(),{once:true}),10);
+}
+
+function editInvHodnota(idx){
+  const inv=loadInv();
+  const a=inv.aktualni[idx];
+  if(!a) return;
+  document.getElementById('inv-h-datum').value=a.datum;
+  document.getElementById('inv-h-hodnota').value=a.hodnota;
+  openHodnotaDialog();
+  // Po uložení přepíšeme existující záznam
+  window._editInvHodnotaIdx=idx;
+}
+
+function deleteInvHodnota(idx){
+  if(!confirm('Smazat záznam?')) return;
+  const inv=loadInv();
+  inv.aktualni.splice(idx,1);
+  saveInv(inv);
+  toast('Smazáno');
+  rc();
+}
+
+function saveHodnota(){
+  const datum=document.getElementById('inv-h-datum')?.value;
+  const hodnota=parseFloat(document.getElementById('inv-h-hodnota')?.value)||0;
+  if(!datum||!hodnota){toast('Vyplň datum a hodnotu');return;}
+  const inv=loadInv();
+  inv.aktualni=inv.aktualni||[];
+  const editIdx=window._editInvHodnotaIdx;
+  if(editIdx!=null){
+    inv.aktualni[editIdx]={datum,hodnota};
+    window._editInvHodnotaIdx=null;
+  } else {
+    inv.aktualni.push({datum,hodnota});
+  }
+  inv.aktualni.sort((a,b)=>a.datum.localeCompare(b.datum));
+  saveInv(inv);
+  closeHodnotaDialog();
+  toast('Hodnota uložena ✓');
+  rc();
+}
 
 // ── MAIN ──────────────────────────────────────────────────────────────
 function rc() {
@@ -1341,11 +1455,23 @@ document.getElementById('hdate').textContent =
 // Přidej záložku Nastavení
 const _origRenderTabs = renderTabs;
 
+async function syncAll() {
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.style.opacity = '0.3';
+  await Promise.all([ghLoad(), ghLoadInv()]);
+  selIdx = Math.max(0, periods.length - 1);
+  _aiCommentCache = '';
+  renderTabs();
+  rc();
+  toast('Synchronizováno ✓');
+  if (btn) btn.style.opacity = '1';
+}
+
 // Načti data z GitHubu při startu pokud máme token
 (async () => {
   if (ghToken()) {
-    const ok = await ghLoad();
-    if (ok) { selIdx = Math.max(0, periods.length - 1); }
+    await Promise.all([ghLoad(), ghLoadInv()]);
+    selIdx = Math.max(0, periods.length - 1);
   }
   renderTabs();
   rc();
