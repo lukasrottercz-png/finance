@@ -125,6 +125,11 @@
   .task-name { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .task-item.done .task-name { text-decoration: line-through; color: var(--muted); }
   .task-date { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .task-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .tag-pill { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; }
+  .tag-filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tag-f-btn { padding: 4px 12px; border-radius: 20px; border: 0.5px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; font-family: inherit; cursor: pointer; }
+  .tag-f-btn.active { font-weight: 600; }
 
   .urg-badge {
     font-size: 11px; font-weight: 600;
@@ -292,6 +297,7 @@
     <button class="f-btn" onclick="setUkolyFilter('open',this)">Nesplněné</button>
     <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné</button>
   </div>
+  <div id="ukoly-tag-filters"></div>
 
   <div id="ukolList"></div>
 
@@ -336,6 +342,10 @@
     <div class="field">
       <label>Poznámka</label>
       <textarea id="uNote" placeholder="Volitelně…"></textarea>
+    </div>
+    <div class="field">
+      <label>Štítky <span style="font-weight:400;color:var(--muted)">(oddělené čárkou)</span></label>
+      <input type="text" id="uTags" placeholder="práce, finance, osobní…" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:inherit;font-size:15px;outline:none">
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="saveUkol()">Uložit</button>
@@ -506,9 +516,14 @@ let ukoly = load('tw_ukoly2', []);
 let uFilter = 'all';
 let editUkolId = null;
 
+let activeTagFilter = '';
+
 function renderUkoly() {
   const pending = ukoly.filter(u => !u.done).length;
   document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
+
+  // Sbírá všechny unikátní štítky
+  const allTags = [...new Set(ukoly.flatMap(u => u.tags||[]))].sort();
 
   let list = ukoly.slice().sort((a,b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
@@ -516,8 +531,24 @@ function renderUkoly() {
   });
   if (uFilter === 'open') list = list.filter(u => !u.done);
   if (uFilter === 'done') list = list.filter(u => u.done);
+  if (activeTagFilter) list = list.filter(u => (u.tags||[]).includes(activeTagFilter));
 
   const el = document.getElementById('ukolList');
+
+  // Tag filter row
+  let tagHtml = '';
+  if (allTags.length) {
+    tagHtml = `<div class="tag-filter-row">` +
+      allTags.map(t => {
+        const [bg, color] = tagColor(t);
+        const isActive = activeTagFilter === t;
+        return `<button class="tag-f-btn${isActive?' active':''}" onclick="setTagFilter('${t}')" style="background:${isActive?bg:'transparent'};color:${isActive?color:'var(--muted)'};border-color:${isActive?color:'var(--border)'}">${t}</button>`;
+      }).join('') +
+      (activeTagFilter ? `<button class="tag-f-btn" onclick="setTagFilter('')" style="color:var(--muted)">× Vše</button>` : '') +
+    `</div>`;
+  }
+  document.getElementById('ukoly-tag-filters').innerHTML = tagHtml;
+
   if (list.length === 0) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly.</div></div>`;
     return;
@@ -525,12 +556,17 @@ function renderUkoly() {
   el.innerHTML = list.map(u => {
     const days = daysUntil(u.date);
     const u2 = u.done ? 'gray' : urg(days);
+    const tagsHtml = (u.tags||[]).length ? `<div class="task-tags">${(u.tags||[]).map(t => {
+      const [bg, color] = tagColor(t);
+      return `<span class="tag-pill" style="background:${bg};color:${color}">${t}</span>`;
+    }).join('')}</div>` : '';
     return `
     <div class="task-item urg-${u2} ${u.done?'done':''}">
       <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
       <div class="task-body">
         <div class="task-name">${esc(u.name)}</div>
-        <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}</div>
+        <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}</div>
+        ${tagsHtml}
       </div>
       ${!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
       <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
@@ -538,7 +574,10 @@ function renderUkoly() {
   }).join('');
 }
 
-function setUkolyFilter(f, el) {
+function setTagFilter(tag) {
+  activeTagFilter = tag;
+  renderUkoly();
+}
   uFilter = f;
   document.querySelectorAll('.filter-row .f-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
@@ -581,22 +620,40 @@ function openUkolModal(id) {
   document.getElementById('uDate').value = u ? u.date : '';
   document.getElementById('uNote').value = u ? (u.note||'') : '';
   document.getElementById('uRepeat').value = u ? (u.repeat||'') : '';
+  document.getElementById('uTags').value = u ? (u.tags||[]).join(', ') : '';
   document.getElementById('uDelBtn').style.display = u ? 'inline-block' : 'none';
   document.getElementById('ukolOverlay').classList.add('open');
   setTimeout(() => document.getElementById('uName').focus(), 50);
 }
 function closeUkolModal() { document.getElementById('ukolOverlay').classList.remove('open'); }
 
+// Barva štítku podle názvu
+function tagColor(tag) {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  const colors = [
+    ['#EDE9FE','#5B21B6'], ['#DCFCE7','#166534'], ['#FEE2E2','#991B1B'],
+    ['#FEF3C7','#92400E'], ['#DBEAFE','#1E40AF'], ['#FCE7F3','#9D174D'],
+    ['#E0F2FE','#0369A1'], ['#F0FDF4','#15803D'], ['#FFF7ED','#9A3412'],
+  ];
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function parseTags(str) {
+  return str.split(',').map(t => t.trim().toLowerCase()).filter(t => t.length > 0);
+}
+
 function saveUkol() {
   const name = document.getElementById('uName').value.trim();
   const date = document.getElementById('uDate').value;
   const note = document.getElementById('uNote').value.trim();
   const repeat = document.getElementById('uRepeat').value;
+  const tags = parseTags(document.getElementById('uTags').value);
   if (!name || !date) return alert('Vyplň název a termín.');
   if (editUkolId) {
-    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat} : u);
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat, tags} : u);
   } else {
-    ukoly.push({ id: uid(), name, date, note, done: false, repeat });
+    ukoly.push({ id: uid(), name, date, note, done: false, repeat, tags });
   }
   save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
   closeUkolModal();
