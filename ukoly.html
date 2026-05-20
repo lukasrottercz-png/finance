@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Úkoly & Události</title>
+<style>
+  :root {
+    --bg: #f2f2f7;
+    --surface: #ffffff;
+    --surface2: #e9e9ef;
+    --border: rgba(0,0,0,0.1);
+    --text: #1c1c1e;
+    --muted: #6c6c70;
+    --accent: #7c3aed;
+    --green: #34c759;
+    --yellow: #ff9500;
+    --red: #ff3b30;
+    --gray: #aeaeb2;
+    --r: 13px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --surface: #1c1c1e;
+      --surface2: #2c2c2e;
+      --border: rgba(255,255,255,0.1);
+      --text: #ffffff;
+      --muted: #aeaeb2;
+      --accent: #a78bfa;
+      --green: #34c759;
+      --yellow: #ff9500;
+      --red: #ff3b30;
+      --gray: #636366;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: hidden; width: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 14px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-size: 17px; font-weight: 700; color: var(--text); }
+  .logo span { color: var(--accent); }
+
+  /* MAIN */
+  main { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; width: 100%; }
+
+  /* SECTION HEADERS */
+  .section-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .section-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 24px 0; }
+
+  /* BUTTON */
+  .btn {
+    padding: 7px 14px;
+    border-radius: var(--r);
+    border: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.82; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { background: var(--surface2); color: var(--muted); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); }
+
+  /* TASK CARDS */
+  .task-item {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.15s;
+  }
+  .task-item.done { opacity: 0.45; }
+  .task-item.urg-red   { border-left-color: var(--red); }
+  .task-item.urg-yellow { border-left-color: var(--yellow); }
+  .task-item.urg-green { border-left-color: var(--green); }
+  .task-item.urg-gray  { border-left-color: var(--gray); }
+
+  .check {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    background: transparent;
+  }
+  .check:hover { border-color: var(--accent); }
+  .check.checked { background: var(--accent); border-color: var(--accent); }
+  .check.checked::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-name { font-weight: 500; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-item.done .task-name { text-decoration: line-through; color: var(--muted); }
+  .task-date { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .urg-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .urg-red .urg-badge   { background: rgba(255,59,48,0.1); color: var(--red); }
+  .urg-yellow .urg-badge { background: rgba(255,149,0,0.1); color: var(--yellow); }
+  .urg-green .urg-badge { background: rgba(52,199,89,0.1); color: var(--green); }
+  .urg-gray .urg-badge  { background: rgba(174,174,178,0.1); color: var(--gray); }
+
+  .task-edit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0 2px; flex-shrink: 0; }
+  .task-edit:hover { color: var(--text); }
+
+  /* FILTER ROW */
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .f-btn {
+    padding: 5px 14px; border-radius: 20px;
+    border: 0.5px solid var(--border);
+    background: transparent; color: var(--muted);
+    font-size: 12px; font-family: inherit; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .f-btn.active { background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); font-weight: 600; }
+
+  /* COUNTDOWN */
+  .countdown {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--r);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .countdown-num {
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .countdown-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .countdown-event { font-size: 15px; font-weight: 600; }
+
+  /* EVENT CARDS */
+  .event-item {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .event-item:hover { background: var(--surface2); }
+  .event-item.urg-red    { border-left-color: var(--red); }
+  .event-item.urg-yellow { border-left-color: var(--yellow); }
+  .event-item.urg-green  { border-left-color: var(--green); }
+  .event-item.urg-gray   { border-left-color: var(--gray); }
+
+  .event-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .event-row > div:first-child { flex: 1; min-width: 0; }
+  .event-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .event-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* GROUP LABEL */
+  .group-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); margin: 18px 0 8px 2px;
+  }
+
+  /* EMPTY */
+  .empty { text-align: center; color: var(--muted); padding: 36px 0; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; }
+
+  /* MODAL */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 200;
+    align-items: flex-end; justify-content: center; padding: 0;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--r) var(--r) 0 0;
+    padding: 22px; width: 100%; max-width: 600px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
+  .field { margin-bottom: 13px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--bg);
+    border: 0.5px solid var(--border); border-radius: var(--r);
+    padding: 10px 12px; color: var(--text);
+    font-family: inherit; font-size: 15px; outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(124,58,237,0.15); }
+  .field select option { background: var(--surface); }
+  .field textarea { min-height: 65px; resize: vertical; }
+  .cat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cat-pill {
+    padding: 5px 12px; border-radius: 20px;
+    border: 0.5px solid var(--border); background: transparent;
+    color: var(--muted); font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+  .cat-pill.sel { font-weight: 600; background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(40,40,40,0.92); color: #fff;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 14px; opacity: 0; transition: opacity 0.2s;
+    pointer-events: none; white-space: nowrap; z-index: 999;
+  }
+  .toast.on { opacity: 1; }
+
+  /* CARD MENU */
+  .card-menu{position:fixed;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:160px;overflow:hidden}
+  .card-menu-item{display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)}
+  .card-menu-item:last-child{border-bottom:none}
+  .card-menu-item:active{background:var(--bg)}
+  .card-menu-item.danger{color:var(--red)}
+
+  @media (max-width: 500px) {
+    .countdown-num { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between">
+    <div class="logo">📋 Úkoly & Události</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="sync-btn" onclick="syncNow()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px" title="Synchronizovat">↻</button>
+      <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">💰 Finance</a>
+      <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">🧾 Výdaje</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ÚKOLY -->
+  <div class="section-hd">
+    <div>
+      <div class="section-title">Úkoly</div>
+      <div class="section-sub" id="ukolySub">0 úkolů</div>
+    </div>
+    <button class="btn btn-primary" onclick="openUkolModal()">+ Přidat</button>
+  </div>
+
+  <div class="filter-row">
+    <button class="f-btn active" onclick="setUkolyFilter('all',this)">Vše</button>
+    <button class="f-btn" onclick="setUkolyFilter('open',this)">Nesplněné</button>
+    <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné</button>
+  </div>
+
+  <div id="ukolList"></div>
+
+  <hr class="divider">
+
+  <!-- SLEDOVANÉ UDÁLOSTI -->
+  <div class="section-hd">
+    <div>
+      <div class="section-title">Sledované události</div>
+      <div class="section-sub" id="eventSub">0 událostí</div>
+    </div>
+    <button class="btn btn-primary" onclick="openEventModal()">+ Přidat</button>
+  </div>
+
+  <div id="countdown"></div>
+  <div id="eventList"></div>
+
+</main>
+
+<!-- ÚKOL MODAL -->
+<div class="overlay" id="ukolOverlay">
+  <div class="modal">
+    <div class="modal-title" id="ukolModalTitle">Nový úkol</div>
+    <div class="field">
+      <label>Název *</label>
+      <input id="uName" type="text" placeholder="Co je potřeba udělat…">
+    </div>
+    <div class="field">
+      <label>Termín splnění *</label>
+      <input id="uDate" type="date">
+    </div>
+    <div class="field">
+      <label>Opakování</label>
+      <select id="uRepeat" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+        <option value="">Neopakovat</option>
+        <option value="weekly">Týdně</option>
+        <option value="monthly">Měsíčně</option>
+        <option value="quarterly">Čtvrtletně</option>
+        <option value="yearly">Ročně</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Poznámka</label>
+      <textarea id="uNote" placeholder="Volitelně…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveUkol()">Uložit</button>
+      <button class="btn btn-ghost" onclick="closeUkolModal()">Zrušit</button>
+      <button class="btn btn-danger" id="uDelBtn" onclick="deleteUkol()" style="margin-left:auto;display:none">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- UDÁLOST MODAL -->
+<div class="overlay" id="eventOverlay">
+  <div class="modal">
+    <div class="modal-title" id="eventModalTitle">Nová událost</div>
+    <div class="field">
+      <label>Název *</label>
+      <input id="eName" type="text" placeholder="např. Pojistka auta, Nájemní smlouva…">
+    </div>
+    <div class="field">
+      <label>Kategorie</label>
+      <div class="cat-pills" id="catPills"></div>
+    </div>
+    <div class="field">
+      <label>Datum *</label>
+      <input id="eDate" type="date">
+    </div>
+    <div class="field">
+      <label>Opakování</label>
+      <select id="eRepeat" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+        <option value="">Neopakovat</option>
+        <option value="weekly">Týdně</option>
+        <option value="monthly">Měsíčně</option>
+        <option value="quarterly">Čtvrtletně</option>
+        <option value="yearly">Ročně</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Poznámka</label>
+      <textarea id="eNote" placeholder="Číslo smlouvy, kontakt…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEvent()">Uložit</button>
+      <button class="btn btn-ghost" onclick="closeEventModal()">Zrušit</button>
+      <button class="btn btn-danger" id="eDelBtn" onclick="deleteEvent()" style="margin-left:auto;display:none">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS = [
+  { id: 'insurance', label: 'Pojištění',  icon: '🛡️', color: '#10B981' },
+  { id: 'work',      label: 'Pracovní',   icon: '💼', color: '#3B82F6' },
+  { id: 'lease',     label: 'Nájem',      icon: '🏠', color: '#F59E0B' },
+  { id: 'finance',   label: 'Finance',    icon: '💳', color: '#8B5CF6' },
+  { id: 'anniv',     label: 'Výročí',     icon: '📅', color: '#EC4899' },
+  { id: 'other',     label: 'Ostatní',    icon: '📄', color: '#6B7280' },
+];
+
+function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } }
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+// ── GITHUB SYNC ───────────────────────────────────────────────────────
+const GH_USER = 'lukasrottercz-png';
+const GH_REPO = 'finance';
+const GH_FILE = 'ukoly_data.json';
+
+function ghToken() { return localStorage.getItem('gh_token') || ''; }
+function showToast(m) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = m; t.className = 'toast on';
+  setTimeout(() => t.className = 'toast', 2200);
+}
+
+async function ghLoad() {
+  const token = ghToken();
+  if (!token) return;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (res.status === 404) return;
+    if (!res.ok) return;
+    const data = await res.json();
+    const base64 = data.content.replace(/\n/g, '');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const content = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+    if (content.ukoly) { ukoly = content.ukoly; save('tw_ukoly2', ukoly); }
+    if (content.events) { events = content.events; save('tw_events2', events); }
+    localStorage.setItem('gh_sha_term', data.sha);
+  } catch(e) { console.error('ghLoad terminy:', e); }
+}
+
+async function ghSave() {
+  const token = ghToken();
+  if (!token) return;
+  try {
+    const json = JSON.stringify({ ukoly, events }, null, 2);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    const content = btoa(binary);
+    let sha = localStorage.getItem('gh_sha_term') || '';
+    if (!sha) {
+      const chk = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (chk.ok) { const cd = await chk.json(); sha = cd.sha; localStorage.setItem('gh_sha_term', sha); }
+    }
+    const bodyObj = { message: 'Termíny ' + new Date().toISOString().slice(0,10), content };
+    if (sha) bodyObj.sha = sha;
+    let res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyObj)
+    });
+    if (res.status === 409) {
+      const chk2 = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (chk2.ok) { const cd2 = await chk2.json(); sha = cd2.sha; localStorage.setItem('gh_sha_term', sha); }
+      bodyObj.sha = sha;
+      res = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyObj)
+      });
+    }
+    if (!res.ok) throw new Error('GitHub save error ' + res.status);
+    const data = await res.json();
+    localStorage.setItem('gh_sha_term', data.content.sha);
+  } catch(e) { console.error('ghSave terminy:', e); showToast('GitHub nedostupný — uloženo lokálně'); }
+}
+
+async function syncNow() {
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.style.opacity = '0.3';
+  await ghLoad();
+  renderUkoly(); renderEvents();
+  showToast('Synchronizováno ✓');
+  if (btn) btn.style.opacity = '1';
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function daysUntil(d) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.ceil((new Date(d) - t) / 86400000);
+}
+function urg(days) {
+  if (days < 0)   return 'gray';
+  if (days <= 7)  return 'red';
+  if (days <= 30) return 'yellow';
+  return 'green';
+}
+function urgLabel(days) {
+  if (days < 0)   return `prošlo ${-days}d`;
+  if (days === 0) return 'Dnes!';
+  return `za ${days}d`;
+}
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('cs-CZ', { day:'numeric', month:'long', year:'numeric' });
+}
+
+// ── ÚKOLY ────────────────────────────────────────────────────────────────────
+let ukoly = load('tw_ukoly2', []);
+let uFilter = 'all';
+let editUkolId = null;
+
+function renderUkoly() {
+  const pending = ukoly.filter(u => !u.done).length;
+  document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
+
+  let list = ukoly.slice().sort((a,b) => daysUntil(a.date) - daysUntil(b.date));
+  if (uFilter === 'open') list = list.filter(u => !u.done);
+  if (uFilter === 'done') list = list.filter(u => u.done);
+
+  const el = document.getElementById('ukolList');
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly.</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(u => {
+    const days = daysUntil(u.date);
+    const u2 = u.done ? 'gray' : urg(days);
+    return `
+    <div class="task-item urg-${u2} ${u.done?'done':''}">
+      <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
+      <div class="task-body">
+        <div class="task-name">${esc(u.name)}</div>
+        <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}</div>
+      </div>
+      ${!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
+      <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
+    </div>`;
+  }).join('');
+}
+
+function setUkolyFilter(f, el) {
+  uFilter = f;
+  document.querySelectorAll('.filter-row .f-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderUkoly();
+}
+
+function nextDate(dateStr, repeat) {
+  const d = new Date(dateStr + 'T12:00:00');
+  if (repeat === 'weekly')    d.setDate(d.getDate() + 7);
+  if (repeat === 'monthly')   d.setMonth(d.getMonth() + 1);
+  if (repeat === 'quarterly') d.setMonth(d.getMonth() + 3);
+  if (repeat === 'yearly')    d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0,10);
+}
+
+function repeatLabel(r) {
+  return { weekly:'týdně', monthly:'měsíčně', quarterly:'čtvrtletně', yearly:'ročně' }[r] || '';
+}
+
+function toggleUkol(id) {
+  const u = ukoly.find(x => x.id === id);
+  if (!u) return;
+  if (!u.done && u.repeat) {
+    // Splněno + opakující — vytvoř nový, označ starý jako splněný
+    ukoly = ukoly.map(x => x.id === id ? {...x, done: true} : x);
+    ukoly.push({ id: uid(), name: u.name, date: nextDate(u.date, u.repeat), note: u.note||'', done: false, repeat: u.repeat });
+    showToast('🔄 Nový termín vytvořen');
+  } else {
+    ukoly = ukoly.map(x => x.id === id ? {...x, done: !x.done} : x);
+  }
+  save('tw_ukoly2', ukoly); ghSave();
+  renderUkoly();
+}
+
+function openUkolModal(id) {
+  editUkolId = id || null;
+  const u = id ? ukoly.find(x => x.id===id) : null;
+  document.getElementById('ukolModalTitle').textContent = u ? 'Upravit úkol' : 'Nový úkol';
+  document.getElementById('uName').value = u ? u.name : '';
+  document.getElementById('uDate').value = u ? u.date : '';
+  document.getElementById('uNote').value = u ? (u.note||'') : '';
+  document.getElementById('uRepeat').value = u ? (u.repeat||'') : '';
+  document.getElementById('uDelBtn').style.display = u ? 'inline-block' : 'none';
+  document.getElementById('ukolOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('uName').focus(), 50);
+}
+function closeUkolModal() { document.getElementById('ukolOverlay').classList.remove('open'); }
+
+function saveUkol() {
+  const name = document.getElementById('uName').value.trim();
+  const date = document.getElementById('uDate').value;
+  const note = document.getElementById('uNote').value.trim();
+  const repeat = document.getElementById('uRepeat').value;
+  if (!name || !date) return alert('Vyplň název a termín.');
+  if (editUkolId) {
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat} : u);
+  } else {
+    ukoly.push({ id: uid(), name, date, note, done: false, repeat });
+  }
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
+  closeUkolModal();
+  renderUkoly();
+}
+function deleteUkol() {
+  if (!confirm('Smazat úkol?')) return;
+  ukoly = ukoly.filter(u => u.id !== editUkolId);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Smazáno');
+  closeUkolModal();
+  renderUkoly();
+}
+
+// ── CARD MENUS ────────────────────────────────────────────────────────
+function showMenu(items, btn) {
+  document.getElementById('card-menu')?.remove();
+  const rect = btn.getBoundingClientRect();
+  const menu = document.createElement('div');
+  menu.className = 'card-menu';
+  menu.id = 'card-menu';
+  menu.innerHTML = items.map(i =>
+    `<button class="card-menu-item${i.danger?' danger':''}" onclick="closeMenu();${i.action}">${i.label}</button>`
+  ).join('');
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeMenu, {once:true}), 10);
+}
+function closeMenu() { document.getElementById('card-menu')?.remove(); }
+
+function showUkolMenu(id, btn) {
+  showMenu([
+    { label: '✏️ Upravit', action: `openUkolModal('${id}')` },
+    { label: '🗑 Smazat', danger: true, action: `confirmDeleteUkol('${id}')` }
+  ], btn);
+}
+function showEventMenu(id, btn) {
+  showMenu([
+    { label: '✏️ Upravit', action: `openEventModal('${id}')` },
+    { label: '🗑 Smazat', danger: true, action: `confirmDeleteEvent('${id}')` }
+  ], btn);
+}
+function confirmDeleteUkol(id) {
+  if (!confirm('Smazat úkol?')) return;
+  ukoly = ukoly.filter(u => u.id !== id);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Smazáno'); renderUkoly();
+}
+function confirmDeleteEvent(id) {
+  if (!confirm('Smazat událost?')) return;
+  events = events.filter(e => e.id !== id);
+  save('tw_events2', events); ghSave(); showToast('Smazáno'); renderEvents();
+}
+
+// ── UDÁLOSTI ──────────────────────────────────────────────────────────────────
+let events = load('tw_events2', []);
+let selCat = 'other';
+let editEventId = null;
+
+function renderEvents() {
+  document.getElementById('eventSub').textContent = `${events.length} událostí`;
+
+  // Countdown — nejbližší budoucí
+  const cdEl = document.getElementById('countdown');
+  const future = events.map(e => ({...e, days: daysUntil(e.date)}))
+    .filter(e => e.days >= 0).sort((a,b) => a.days - b.days);
+
+  if (future.length > 0) {
+    const n = future[0];
+    const cat = CATS.find(c => c.id===n.cat) || CATS[5];
+    cdEl.innerHTML = `
+      <div class="countdown">
+        <div class="countdown-num">${n.days === 0 ? '0' : n.days}</div>
+        <div>
+          <div class="countdown-event">${cat.icon} ${esc(n.name)}</div>
+          <div class="countdown-label">${n.days === 0 ? 'Dnes!' : `dní do nejbližší události`} · ${fmtDate(n.date)}</div>
+        </div>
+      </div>`;
+  } else {
+    cdEl.innerHTML = '';
+  }
+
+  // Seznam
+  const sorted = events.map(e => ({...e, days: daysUntil(e.date)}))
+    .sort((a,b) => a.days - b.days);
+
+  const listEl = document.getElementById('eventList');
+  if (sorted.length === 0) {
+    listEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Žádné sledované události.</div></div>`;
+    return;
+  }
+
+  const groups = [
+    { label: 'Prošlé',           items: sorted.filter(e => e.days < 0) },
+    { label: 'Kritické — do 7 dní', items: sorted.filter(e => e.days >= 0 && e.days <= 7) },
+    { label: 'Blíží se — do 30 dní', items: sorted.filter(e => e.days > 7 && e.days <= 30) },
+    { label: 'Vzdálenější',      items: sorted.filter(e => e.days > 30) },
+  ];
+
+  let html = '';
+  groups.forEach(g => {
+    if (!g.items.length) return;
+    html += `<div class="group-label">${g.label}</div>`;
+    g.items.forEach(e => {
+      const cat = CATS.find(c => c.id===e.cat) || CATS[5];
+      const u = urg(e.days);
+      html += `
+        <div class="event-item urg-${u}">
+          <div class="event-row" onclick="openEventModal('${e.id}')">
+            <div>
+              <div class="event-name">${cat.icon} ${esc(e.name)}${e.repeat ? ' <span style="font-size:11px;opacity:0.6">🔄 '+repeatLabel(e.repeat)+'</span>' : ''}</div>
+              <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${urgLabel(e.days)}</div>
+              ${e.note ? `<div class="event-note">${esc(e.note)}</div>` : ''}
+            </div>
+            <button class="task-edit" onclick="event.stopPropagation();showEventMenu('${e.id}',this)">···</button>
+          </div>
+        </div>`;
+    });
+  });
+  listEl.innerHTML = html;
+}
+
+function buildCatPills() {
+  document.getElementById('catPills').innerHTML = CATS.map(c => `
+    <button class="cat-pill ${selCat===c.id?'sel':''}"
+      style="${selCat===c.id ? `background:${c.color}22;color:${c.color};border-color:${c.color}` : ''}"
+      onclick="selCat='${c.id}';buildCatPills()">${c.icon} ${c.label}</button>
+  `).join('');
+}
+
+function openEventModal(id) {
+  editEventId = id || null;
+  const e = id ? events.find(x => x.id===id) : null;
+  document.getElementById('eventModalTitle').textContent = e ? 'Upravit událost' : 'Nová událost';
+  document.getElementById('eName').value = e ? e.name : '';
+  document.getElementById('eDate').value = e ? e.date : '';
+  document.getElementById('eNote').value = e ? (e.note||'') : '';
+  document.getElementById('eRepeat').value = e ? (e.repeat||'') : '';
+  document.getElementById('eDelBtn').style.display = e ? 'inline-block' : 'none';
+  selCat = e ? e.cat : 'other';
+  buildCatPills();
+  document.getElementById('eventOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('eName').focus(), 50);
+}
+function closeEventModal() { document.getElementById('eventOverlay').classList.remove('open'); }
+
+function saveEvent() {
+  const name = document.getElementById('eName').value.trim();
+  const date = document.getElementById('eDate').value;
+  const note = document.getElementById('eNote').value.trim();
+  const repeat = document.getElementById('eRepeat').value;
+  if (!name || !date) return alert('Vyplň název a datum.');
+  if (editEventId) {
+    events = events.map(e => e.id===editEventId ? {...e, name, date, note, cat:selCat, repeat} : e);
+  } else {
+    events.push({ id: uid(), name, date, note, cat: selCat, repeat });
+  }
+  save('tw_events2', events); ghSave(); showToast('Uloženo ✓');
+  closeEventModal();
+  renderEvents();
+}
+function deleteEvent() {
+  if (!confirm('Smazat událost?')) return;
+  events = events.filter(e => e.id !== editEventId);
+  save('tw_events2', events); ghSave(); showToast('Smazáno');
+  closeEventModal();
+  renderEvents();
+}
+
+// Auto-posun opakujících se událostí které prošly
+function autoAdvanceEvents() {
+  let changed = false;
+  const today = new Date().toISOString().slice(0,10);
+  events = events.map(e => {
+    if (!e.repeat || e.date >= today) return e;
+    let d = e.date;
+    while (d < today) { d = nextDate(d, e.repeat); }
+    if (d !== e.date) { changed = true; return {...e, date: d}; }
+    return e;
+  });
+  if (changed) { save('tw_events2', events); ghSave(); }
+}
+
+// close on overlay bg click + ESC
+['ukolOverlay','eventOverlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) { if(e.target===this) this.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeUkolModal(); closeEventModal(); }
+});
+
+// GitHub token sekce — zobraz pokud nemáme token
+function renderGhSection() {
+  const tok = localStorage.getItem('gh_token');
+  const existing = document.getElementById('gh-section');
+  if (tok) { if (existing) existing.remove(); return; }
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = 'gh-section';
+  div.style.cssText = 'background:var(--surface);border:0.5px solid var(--border);border-radius:13px;padding:16px;margin:16px;';
+  div.innerHTML = '<div style="font-size:14px;font-weight:600;margin-bottom:8px">GitHub synchronizace</div>'
+    + '<div style="font-size:13px;color:var(--muted);margin-bottom:10px">Zadej token pro ukládání dat napříč zařízeními.</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<input type="password" id="gh-tok-inp" placeholder="ghp_..." style="flex:1;min-width:180px;font-size:14px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text)">'
+    + '<button onclick="saveGhTokenTerm()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">Uložit</button>'
+    + '</div>';
+  document.querySelector('main').prepend(div);
+}
+
+function saveGhTokenTerm() {
+  const inp = document.getElementById('gh-tok-inp');
+  if (!inp || !inp.value.trim()) return;
+  localStorage.setItem('gh_token', inp.value.trim());
+  localStorage.removeItem('gh_sha_term');
+  showToast('Token uložen — načítám data…');
+  ghLoad().then(() => { renderUkoly(); renderEvents(); renderGhSection(); });
+}
+
+// INIT
+autoAdvanceEvents();
+renderUkoly();
+renderEvents();
+renderGhSection();
+if (ghToken()) {
+  ghLoad().then(() => { autoAdvanceEvents(); renderUkoly(); renderEvents(); });
+}
+</script>
+<div class="toast" id="toast"></div>
+</body>
+</html>

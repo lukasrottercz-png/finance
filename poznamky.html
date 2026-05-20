@@ -148,7 +148,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
     <button class="hdr-btn" onclick="syncNow()" id="sync-btn" title="Synchronizovat">↻</button>
     <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
     <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" class="hdr-link">🧾</a>
-    <a href="https://lukasrottercz-png.github.io/finance/terminy.html" class="hdr-link">📋</a>
+    <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
     <button class="hdr-new" onclick="openNew()">+ Nová</button>
   </div>
 </div>
@@ -467,7 +467,7 @@ function showDetail(id){
     ${tasks.length?`<div class="tasks-export">
       <div class="tasks-export-title">📋 Nesplněné úkoly (${tasks.length})</div>
       ${tasks.map(t=>`<div class="tasks-export-item">◻ ${t}</div>`).join('')}
-      <button class="tasks-export-btn" onclick="exportToTerminy('${note.id}')">Přidat do Úkolů & Událostí →</button>
+      <button class="tasks-export-btn" onclick="exportToTerminy('${note.id}')">Přidat do Úkolů →</button>
     </div>`:''}
     <div class="detail-actions">
       <button class="btn btn-primary" onclick="openEdit('${note.id}')" style="flex:1">✏️ Upravit</button>
@@ -529,12 +529,12 @@ function exportToTerminy(noteId){
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:300;display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML=`<div style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:700px;padding:20px">
-    <div style="font-size:17px;font-weight:600;margin-bottom:14px">Přidat ${tasks.length} úkol${tasks.length>1?'y':''} do Termínů</div>
+    <div style="font-size:17px;font-weight:600;margin-bottom:14px">Přidat ${tasks.length} úkol${tasks.length>1?'y':''} do Úkolů</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Termín splnění (default +7 dní):</div>
     <input type="date" id="export-date" value="${defaultDate}" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:12px">
     <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${tasks.map(t=>`◻ ${t}`).join('<br>')}</div>
     <div style="display:flex;gap:8px">
-      <button onclick="doExport('${noteId}',document.getElementById('export-date').value);this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer">Přidat do Termínů</button>
+      <button onclick="doExport('${noteId}',document.getElementById('export-date').value);this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer">Přidat do Úkolů</button>
       <button onclick="this.closest('[style*=fixed]').remove()" style="padding:12px 16px;background:var(--bg);border:none;border-radius:var(--r);font-size:15px;cursor:pointer">Zrušit</button>
     </div>
   </div>`;
@@ -547,7 +547,7 @@ function doExport(noteId, date){
   const tasks=extractTasks(note.content);
   const token=ghToken();
 
-  fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/terminy_data.json`,{
+  fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/ukoly_data.json`,{
     headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
   }).then(r=>r.ok?r.json():null).then(data=>{
     let termData={ukoly:[],events:[]};
@@ -566,12 +566,12 @@ function doExport(noteId, date){
     const content=btoa(binary);
     const body={message:'Úkoly z poznámek '+today(),content};
     if(data) body.sha=data.sha;
-    return fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/terminy_data.json`,{
+    return fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/ukoly_data.json`,{
       method:'PUT',
       headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
-  }).then(()=>showToast(`${tasks.length} úkol${tasks.length>1?'y':''} přidán${tasks.length>1?'y':''} do Termínů ✓`))
+  }).then(()=>showToast(`${tasks.length} úkol${tasks.length>1?'y':''} přidáno do Úkolů ✓`))
   .catch(()=>showToast('Chyba při exportu'));
 }
 
