@@ -813,8 +813,22 @@ function renderDashboard() {
       <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div></div>
       <div class="card"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
       <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
-      ${p.mzda ? `<div class="card"><div class="card-lbl">Čistá mzda</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
+      ${p.mzda ? `<div class="card"><div class="card-lbl">Čistá mzda / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
     </div>
+    ${(() => {
+      const inv = loadInv();
+      const transe = inv.transe || [];
+      const aktualni = inv.aktualni || [];
+      const celkem = transe.reduce((s,t) => s+(t.castka||0), 0);
+      const posledni = aktualni.length ? aktualni[aktualni.length-1] : null;
+      if (!celkem) return '';
+      const zisk = posledni ? posledni.hodnota - celkem : null;
+      const ziskPct = zisk != null && celkem ? (zisk/celkem*100) : null;
+      return `<div class="cards" style="margin-top:0">
+        ${posledni ? `<div class="card"><div class="card-lbl">Portfolio — aktuální hodnota</div><div class="card-val">${fmt(posledni.hodnota)}</div>${zisk!=null?`<div class="${zisk>=0?'pos':'danger'}" style="font-size:13px;margin-top:4px">${zisk>=0?'+':''}${fmt(zisk)} (${ziskPct>=0?'+':''}${ziskPct.toFixed(1)} %)</div>`:''}</div>` : ''}
+        <div class="card"><div class="card-lbl">Portfolio — investováno</div><div class="card-val">${fmt(celkem)}</div></div>
+      </div>`;
+    })()}
     ${p.mzda ? (() => {
       // Načti výdaje a trvalé platby pro míru úspor — zobrazí se po načtení
       return `<div class="sec" id="uspory-sec">
