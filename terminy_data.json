@@ -1,14 +1,5 @@
 {
-  "ukoly": [
-    {
-      "id": "mpdptf4z1q59ycbsih3",
-      "name": "Zkontrolovat pojistku",
-      "date": "2026-05-27",
-      "note": "Z poznámky: test ukolu 2",
-      "done": false,
-      "repeat": ""
-    }
-  ],
+  "ukoly": [],
   "events": [
     {
       "id": "mpd3ve7rebw",
