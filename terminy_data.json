@@ -7,6 +7,30 @@
       "note": "",
       "done": false,
       "repeat": "monthly"
+    },
+    {
+      "id": "mpdpiewectuxonkbgg",
+      "name": "Zavolat bance",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test poznamek",
+      "done": false,
+      "repeat": ""
+    },
+    {
+      "id": "mpdpiewek94f3ecmw2",
+      "name": "Zkontrolovat pojistku",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test poznamek",
+      "done": false,
+      "repeat": ""
+    },
+    {
+      "id": "mpdpiewe7otrsagxcoj",
+      "name": "Domluvit schůzku s Jan Haidlem",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test poznamek",
+      "done": false,
+      "repeat": ""
     }
   ],
   "events": [
