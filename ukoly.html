@@ -510,7 +510,10 @@ function renderUkoly() {
   const pending = ukoly.filter(u => !u.done).length;
   document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
 
-  let list = ukoly.slice().sort((a,b) => daysUntil(a.date) - daysUntil(b.date));
+  let list = ukoly.slice().sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return daysUntil(a.date) - daysUntil(b.date);
+  });
   if (uFilter === 'open') list = list.filter(u => !u.done);
   if (uFilter === 'done') list = list.filter(u => u.done);
 
