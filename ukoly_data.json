@@ -1,13 +1,4 @@
 {
-  "ukoly": [
-    {
-      "id": "mpdqkxj0uksta609s8",
-      "name": "Domluvit schůzku s Jan Haidlem",
-      "date": "2026-05-27",
-      "note": "Z poznámky: test ukolu 2",
-      "done": false,
-      "repeat": ""
-    }
-  ],
+  "ukoly": [],
   "events": []
 }
