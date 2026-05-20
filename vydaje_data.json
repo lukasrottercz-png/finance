@@ -94,5 +94,13 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-14"
+  },
+  {
+    "id": "1779292984448",
+    "amount": 218,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-20"
   }
 ]
