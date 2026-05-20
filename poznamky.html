@@ -93,8 +93,8 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .md-view h2{font-size:17px;font-weight:600;margin:14px 0 6px;color:var(--text)}
 .md-view h3{font-size:15px;font-weight:600;margin:12px 0 4px;color:var(--text2)}
 .md-view p{margin-bottom:8px}
-.md-view ul,.md-view ol{margin:6px 0 8px 20px}
-.md-view li{margin-bottom:3px}
+.md-view ul,.md-view ol{margin:4px 0 6px 20px}
+.md-view li{margin-bottom:1px}
 .md-view strong{font-weight:700}
 .md-view em{font-style:italic}
 .md-view code{background:var(--bg);border-radius:4px;padding:1px 5px;font-size:13px;font-family:monospace}
@@ -179,7 +179,6 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-foot">
       <button class="btn btn-primary" onclick="saveNote()" style="flex:1">Uložit</button>
-      <button class="btn btn-ghost" onclick="aiPolish()" title="Nechej AI upravit a vyčistit poznámku">✨ AI</button>
       <button class="btn btn-ghost" onclick="closeEdit()">Zrušit</button>
       <button class="btn btn-danger" id="del-btn" onclick="deleteNote()" style="display:none">Smazat</button>
     </div>
@@ -347,9 +346,22 @@ function renderMd(text, noteId){
     .replace(/^---$/gm,'<hr>')
     .replace(/^- \[x\] (.+)$/gm,'<div class="task-line"><div class="task-cb done" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text done">$1</span></div>')
     .replace(/^- \[ \] (.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
-    .replace(/^- (.+)$/gm,'<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
-    .replace(/\n/g,'<br>');
+    .replace(/^- (.+)$/gm,'<li>$1</li>');
+
+  // Seskup li do ul bez extra mezer
+  html=html.replace(/(<li>.*?<\/li>\n?)+/g, m=>'<ul>'+m.replace(/\n/g,'')+'</ul>');
+
+  // Zpracuj zbývající řádky — nespojuj li a ul s br
+  html=html.split('\n').map(line=>{
+    if(line.startsWith('<h')||line.startsWith('<ul')||line.startsWith('<hr')||line.startsWith('<div class="task')) return line;
+    if(line.trim()==='') return '<br>';
+    return line+'<br>';
+  }).join('');
+
+  // Odstraň br hned za/před blokovými elementy
+  html=html.replace(/<br>(<\/?(?:h[123]|ul|hr|div))/g,'$1');
+  html=html.replace(/(<\/(?:h[123]|ul|hr|div)>)<br>/g,'$1');
+
   return html;
 }
 
@@ -451,7 +463,8 @@ function showDetail(id){
     </div>`:''}
     <div class="detail-actions">
       <button class="btn btn-primary" onclick="openEdit('${note.id}')" style="flex:1">✏️ Upravit</button>
-      <button class="btn btn-ghost" onclick="openAi()">🤖 AI analýza</button>
+      <button class="btn btn-ghost" onclick="aiPolishNote('${note.id}')">✨ Vyčistit AI</button>
+      <button class="btn btn-ghost" onclick="openAi()">🤖 Analýza</button>
     </div>`;
 }
 
@@ -598,8 +611,84 @@ function deleteNote(){
   backToList();
 }
 
-// ── AI POLISH ─────────────────────────────────────────────────────────
-let polishedContent = '';
+async function aiPolishNote(noteId){
+  const note=notes.find(n=>n.id===noteId);
+  if(!note) return;
+  curType=note.type;
+
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey){
+    // Otevři AI analýzu kde si může nastavit klíč
+    openAi(); return;
+  }
+
+  document.getElementById('polish-overlay').classList.add('on');
+  document.getElementById('polish-status').textContent='⏳ Claude vyčišťuje a formátuje poznámku…';
+  document.getElementById('polish-preview').style.display='none';
+  document.getElementById('polish-foot').innerHTML='<button class="btn btn-ghost" onclick="closePolish()">Zavřít</button>';
+
+  const typeLabel=TYPES[note.type]?.label||'poznámka';
+  const prompt=`Jsi asistent pro pracovní poznámky. Uprav a vyčisti následující ${typeLabel.toLowerCase()} v češtině.
+
+Pravidla:
+- Zachovej Markdown formátování (## nadpisy, - odrážky, - [ ] checkboxy)
+- Oprav gramatiku, překlepy a diakritiku
+- Zpřehledni strukturu — použij nadpisy a odrážky tam kde dávají smysl
+- Zkrať příliš dlouhé věty
+- Zachovej všechna fakta, jména a čísla beze změny
+- Neměň obsah — jen vyčisti a naformátuj
+- Vrať POUZE upravený Markdown text, bez komentářů nebo vysvětlení
+
+Název: ${note.title}
+Typ: ${typeLabel}
+
+Obsah:
+${note.content}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok) throw new Error(res.status);
+    const data=await res.json();
+    polishedContent=data.content?.[0]?.text||'';
+    currentPolishNoteId=noteId;
+
+    document.getElementById('polish-status').textContent='Hotovo — zkontroluj a potvrď:';
+    document.getElementById('polish-preview').style.display='block';
+    document.getElementById('polish-md').innerHTML=renderMd(polishedContent,'polish');
+    document.getElementById('polish-foot').innerHTML=`
+      <button class="btn btn-primary" onclick="applyPolishToNote()" style="flex:1">✓ Uložit upravenou verzi</button>
+      <button class="btn btn-ghost" onclick="closePolish()">Zahodit</button>`;
+  }catch(e){
+    document.getElementById('polish-status').textContent='Chyba: '+e.message;
+  }
+}
+
+let currentPolishNoteId=null;
+let polishedContent='';
+
+function applyPolishToNote(){
+  if(!currentPolishNoteId||!polishedContent) return;
+  const now=new Date().toISOString().slice(0,10);
+  notes=notes.map(n=>n.id===currentPolishNoteId?{...n,content:polishedContent,updatedAt:now}:n);
+  ghSave();
+  closePolish();
+  showToast('Poznámka upravena ✓');
+  showDetail(currentPolishNoteId);
+}
+
+async function aiPolish(){
+  // Starý aiPolish pro edit formulář — zachováno pro zpětnou kompatibilitu
+  showToast('Nejprve ulož poznámku, pak použij ✨ Vyčistit AI');
+}
 
 async function aiPolish(){
   const title=(document.getElementById('edit-title')?.value||'').trim();
