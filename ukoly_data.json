@@ -47,6 +47,14 @@
       "note": "",
       "done": false,
       "repeat": ""
+    },
+    {
+      "id": "mpeeoc5nq5sa2ti9x3s",
+      "name": "test",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test",
+      "done": false,
+      "repeat": ""
     }
   ],
   "events": [
