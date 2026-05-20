@@ -22,7 +22,10 @@
       "date": "2026-05-29",
       "note": "Daniel Petrů, Moris",
       "done": false,
-      "repeat": ""
+      "repeat": "",
+      "tags": [
+        "xiaomi"
+      ]
     },
     {
       "id": "mpdyekzwilh",
