@@ -1,4 +1,13 @@
 {
-  "ukoly": [],
+  "ukoly": [
+    {
+      "id": "mpdqvhlh9dy",
+      "name": "Poslat faktury Krakenovi",
+      "date": "2026-05-20",
+      "note": "",
+      "done": false,
+      "repeat": ""
+    }
+  ],
   "events": []
 }
