@@ -1,14 +1,6 @@
 {
   "ukoly": [
     {
-      "id": "mpdpiewe7otrsagxcoj",
-      "name": "Domluvit schůzku s Jan Haidlem",
-      "date": "2026-05-27",
-      "note": "Z poznámky: test poznamek",
-      "done": false,
-      "repeat": ""
-    },
-    {
       "id": "mpdptf4z1q59ycbsih3",
       "name": "Zkontrolovat pojistku",
       "date": "2026-05-27",
