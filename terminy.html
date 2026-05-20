@@ -250,6 +250,13 @@
   }
   .toast.on { opacity: 1; }
 
+  /* CARD MENU */
+  .card-menu{position:fixed;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:160px;overflow:hidden}
+  .card-menu-item{display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)}
+  .card-menu-item:last-child{border-bottom:none}
+  .card-menu-item:active{background:var(--bg)}
+  .card-menu-item.danger{color:var(--red)}
+
   @media (max-width: 500px) {
     .countdown-num { font-size: 32px; }
   }
@@ -522,7 +529,7 @@ function renderUkoly() {
         <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}</div>
       </div>
       ${!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
-      <button class="task-edit" onclick="openUkolModal('${u.id}')">⋯</button>
+      <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
     </div>`;
   }).join('');
 }
@@ -599,6 +606,46 @@ function deleteUkol() {
   renderUkoly();
 }
 
+// ── CARD MENUS ────────────────────────────────────────────────────────
+function showMenu(items, btn) {
+  document.getElementById('card-menu')?.remove();
+  const rect = btn.getBoundingClientRect();
+  const menu = document.createElement('div');
+  menu.className = 'card-menu';
+  menu.id = 'card-menu';
+  menu.innerHTML = items.map(i =>
+    `<button class="card-menu-item${i.danger?' danger':''}" onclick="closeMenu();${i.action}">${i.label}</button>`
+  ).join('');
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeMenu, {once:true}), 10);
+}
+function closeMenu() { document.getElementById('card-menu')?.remove(); }
+
+function showUkolMenu(id, btn) {
+  showMenu([
+    { label: '✏️ Upravit', action: `openUkolModal('${id}')` },
+    { label: '🗑 Smazat', danger: true, action: `confirmDeleteUkol('${id}')` }
+  ], btn);
+}
+function showEventMenu(id, btn) {
+  showMenu([
+    { label: '✏️ Upravit', action: `openEventModal('${id}')` },
+    { label: '🗑 Smazat', danger: true, action: `confirmDeleteEvent('${id}')` }
+  ], btn);
+}
+function confirmDeleteUkol(id) {
+  if (!confirm('Smazat úkol?')) return;
+  ukoly = ukoly.filter(u => u.id !== id);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Smazáno'); renderUkoly();
+}
+function confirmDeleteEvent(id) {
+  if (!confirm('Smazat událost?')) return;
+  events = events.filter(e => e.id !== id);
+  save('tw_events2', events); ghSave(); showToast('Smazáno'); renderEvents();
+}
+
 // ── UDÁLOSTI ──────────────────────────────────────────────────────────────────
 let events = load('tw_events2', []);
 let selCat = 'other';
@@ -652,13 +699,14 @@ function renderEvents() {
       const cat = CATS.find(c => c.id===e.cat) || CATS[5];
       const u = urg(e.days);
       html += `
-        <div class="event-item urg-${u}" onclick="openEventModal('${e.id}')">
-          <div class="event-row">
+        <div class="event-item urg-${u}">
+          <div class="event-row" onclick="openEventModal('${e.id}')">
             <div>
               <div class="event-name">${cat.icon} ${esc(e.name)}${e.repeat ? ' <span style="font-size:11px;opacity:0.6">🔄 '+repeatLabel(e.repeat)+'</span>' : ''}</div>
               <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${urgLabel(e.days)}</div>
               ${e.note ? `<div class="event-note">${esc(e.note)}</div>` : ''}
             </div>
+            <button class="task-edit" onclick="event.stopPropagation();showEventMenu('${e.id}',this)">···</button>
           </div>
         </div>`;
     });
