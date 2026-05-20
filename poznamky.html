@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Poznámky</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f2f2f7;--surface:#fff;--border:rgba(0,0,0,0.1);
+  --text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;
+  --accent:#7c3aed;--accent-bg:rgba(124,58,237,0.08);
+  --green:#34c759;--red:#ff3b30;--r:13px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#000;--surface:#1c1c1e;--border:rgba(255,255,255,0.1);
+  --text:#fff;--text2:#aeaeb2;--text3:#636366;
+  --accent-bg:rgba(124,58,237,0.15);
+}}
+html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text)}
+
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:0.5px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:17px;font-weight:700;color:var(--text)}
+.hdr-actions{display:flex;align-items:center;gap:8px}
+.hdr-btn{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px}
+.hdr-link{font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--text2);text-decoration:none}
+.hdr-new{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+
+/* MAIN */
+.main{max-width:700px;margin:0 auto;padding:16px}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:16px}
+.search-inp{width:100%;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 14px 10px 36px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
+.search-inp::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
+
+/* FILTERS */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.f-btn{padding:5px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer}
+.f-btn.on{background:var(--accent-bg);color:var(--accent);border-color:rgba(124,58,237,0.3);font-weight:600}
+
+/* NOTE CARDS */
+.note-card{background:var(--surface);border-radius:var(--r);border:0.5px solid var(--border);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:opacity 0.15s}
+.note-card:active{opacity:0.7}
+.note-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.note-card-title{font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-type-badge{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-bg);color:var(--accent);white-space:nowrap;flex-shrink:0}
+.note-card-preview{font-size:13px;color:var(--text2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.note-card-meta{font-size:12px;color:var(--text3);margin-top:6px;display:flex;gap:10px;align-items:center}
+.note-task-badge{font-size:11px;color:var(--green);font-weight:500}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:17px;font-weight:500;margin-bottom:8px}
+.empty-sub{font-size:14px;color:var(--text3)}
+
+/* MODAL — NOVÁ/EDIT POZNÁMKA */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:flex-end;justify-content:center}
+.overlay.on{display:flex}
+.sheet{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:700px;max-height:95vh;display:flex;flex-direction:column}
+.sheet-hdr{padding:16px 16px 12px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sheet-title{font-size:17px;font-weight:600}
+.sheet-close{background:none;border:none;cursor:pointer;font-size:24px;color:var(--text2);line-height:1}
+.sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.sheet-foot{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+
+/* ŠABLONA VÝBĚR */
+.tpl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.tpl-btn{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:14px;text-align:left;cursor:pointer;font-family:inherit}
+.tpl-btn:active{opacity:0.7}
+.tpl-btn.on{border-color:var(--accent);background:var(--accent-bg)}
+.tpl-icon{font-size:24px;margin-bottom:6px}
+.tpl-name{font-size:14px;font-weight:600;color:var(--text)}
+.tpl-desc{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* FIELDS */
+.field{margin-bottom:14px}
+.field-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
+.field-inp{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
+.field-inp:focus{border-color:var(--accent)}
+.field-ta{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none;resize:none;min-height:120px;line-height:1.6}
+.field-ta:focus{border-color:var(--accent)}
+.field-ta.big{min-height:200px}
+
+/* RENDER MARKDOWN */
+.md-view{font-size:15px;line-height:1.7;color:var(--text)}
+.md-view h1{font-size:20px;font-weight:700;margin:16px 0 8px}
+.md-view h2{font-size:17px;font-weight:600;margin:14px 0 6px;color:var(--text)}
+.md-view h3{font-size:15px;font-weight:600;margin:12px 0 4px;color:var(--text2)}
+.md-view p{margin-bottom:8px}
+.md-view ul,.md-view ol{margin:6px 0 8px 20px}
+.md-view li{margin-bottom:3px}
+.md-view strong{font-weight:700}
+.md-view em{font-style:italic}
+.md-view code{background:var(--bg);border-radius:4px;padding:1px 5px;font-size:13px;font-family:monospace}
+.md-view hr{border:none;border-top:0.5px solid var(--border);margin:14px 0}
+.md-view .task-line{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.md-view .task-cb{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--text3);flex-shrink:0;cursor:pointer;margin-top:2px;display:flex;align-items:center;justify-content:center;background:transparent}
+.md-view .task-cb.done{background:var(--accent);border-color:var(--accent)}
+.md-view .task-cb.done::after{content:'✓';color:#fff;font-size:11px;font-weight:700}
+.md-view .task-text{flex:1}
+.md-view .task-text.done{text-decoration:line-through;color:var(--text3)}
+
+/* DETAIL VIEW */
+.detail-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.detail-back{background:none;border:none;cursor:pointer;font-size:17px;color:var(--accent);padding:0;font-family:inherit;display:flex;align-items:center;gap:4px}
+.detail-badge{font-size:12px;padding:3px 10px;border-radius:10px;background:var(--accent-bg);color:var(--accent)}
+.detail-date{font-size:13px;color:var(--text3)}
+.detail-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.detail-actions{display:flex;gap:8px;margin-top:16px;padding-top:12px;border-top:0.5px solid var(--border)}
+
+/* BUTTONS */
+.btn{padding:10px 16px;border-radius:var(--r);border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--text2)}
+.btn-danger{background:none;color:var(--red);border:0.5px solid var(--red)}
+.btn:active{opacity:0.8}
+
+/* TASKS EXPORT */
+.tasks-export{background:var(--accent-bg);border-radius:var(--r);padding:12px 14px;margin-top:14px;border:0.5px solid rgba(124,58,237,0.2)}
+.tasks-export-title{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px}
+.tasks-export-item{font-size:13px;color:var(--text);padding:3px 0;display:flex;align-items:center;gap:6px}
+.tasks-export-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;width:100%}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,0.92);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.on{opacity:1}
+
+/* AI MODAL */
+.ai-result{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">📝 Poznámky</div>
+  <div class="hdr-actions">
+    <button class="hdr-btn" onclick="syncNow()" id="sync-btn" title="Synchronizovat">↻</button>
+    <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
+    <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" class="hdr-link">🧾</a>
+    <a href="https://lukasrottercz-png.github.io/finance/terminy.html" class="hdr-link">📋</a>
+    <button class="hdr-new" onclick="openNew()">+ Nová</button>
+  </div>
+</div>
+
+<div class="main" id="main-view">
+  <!-- LIST VIEW -->
+  <div id="list-view">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-inp" id="search-inp" type="text" placeholder="Hledat v poznámkách…" oninput="renderList()">
+    </div>
+    <div class="filters" id="filters">
+      <button class="f-btn on" data-f="" onclick="setFilter(this)">Vše</button>
+      <button class="f-btn" data-f="schuze" onclick="setFilter(this)">📅 Schůzka</button>
+      <button class="f-btn" data-f="napad" onclick="setFilter(this)">💡 Nápad</button>
+      <button class="f-btn" data-f="rozhodnuti" onclick="setFilter(this)">✅ Rozhodnutí</button>
+      <button class="f-btn" data-f="volna" onclick="setFilter(this)">📝 Volná</button>
+    </div>
+    <div id="note-list"></div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detail-view" style="display:none"></div>
+</div>
+
+<!-- SHEET: NOVÁ / EDIT -->
+<div class="overlay" id="edit-overlay" onclick="if(event.target===this)closeEdit()">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-title" id="sheet-title">Nová poznámka</span>
+      <button class="sheet-close" onclick="closeEdit()">×</button>
+    </div>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" onclick="saveNote()" style="flex:1">Uložit</button>
+      <button class="btn btn-ghost" onclick="closeEdit()">Zrušit</button>
+      <button class="btn btn-danger" id="del-btn" onclick="deleteNote()" style="display:none">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: AI ANALÝZA -->
+<div class="overlay" id="ai-overlay" onclick="if(event.target===this)closeAi()">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-title">🤖 AI analýza poznámek</span>
+      <button class="sheet-close" onclick="closeAi()">×</button>
+    </div>
+    <div class="sheet-body">
+      <div id="ai-content" style="font-size:14px;color:var(--text2)">Načítám analýzu…</div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" onclick="runAi()" style="flex:1">🔄 Znovu analyzovat</button>
+      <button class="btn btn-ghost" onclick="closeAi()">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const TYPES = {
+  schuze:     { icon:'📅', label:'Schůzka' },
+  napad:      { icon:'💡', label:'Nápad' },
+  rozhodnuti: { icon:'✅', label:'Rozhodnutí' },
+  volna:      { icon:'📝', label:'Volná poznámka' },
+};
+
+const TEMPLATES = {
+  schuze: `## Schůzka\n**Datum:** ${new Date().toLocaleDateString('cs-CZ')}\n**Místo / forma:** \n**Účastníci:** \n\n---\n\n## Body jednání\n- \n\n## Závěry a rozhodnutí\n- \n\n## Úkoly\n- [ ] \n`,
+  napad: `## Nápad\n\n## Popis\n\n## Proč by to fungovalo\n- \n\n## Další kroky\n- [ ] \n`,
+  rozhodnuti: `## Rozhodnutí\n**Co bylo rozhodnuto:** \n\n## Důvody\n- \n\n## Alternativy které padly\n- \n\n## Follow-up\n- [ ] \n`,
+  volna: '',
+};
+
+// ── GITHUB SYNC ───────────────────────────────────────────────────────
+const GH_USER = 'lukasrottercz-png';
+const GH_REPO = 'finance';
+const GH_FILE = 'poznamky_data.json';
+
+function ghToken(){ return localStorage.getItem('gh_token')||''; }
+
+async function ghLoad(){
+  const token=ghToken(); if(!token) return;
+  try{
+    const res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+    });
+    if(res.status===404) return;
+    if(!res.ok) throw new Error(res.status);
+    const data=await res.json();
+    const base64=data.content.replace(/\n/g,'');
+    const binary=atob(base64);
+    const bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+    notes=JSON.parse(new TextDecoder('utf-8').decode(bytes));
+    localStorage.setItem('gh_sha_poz',data.sha);
+    saveLocal();
+  }catch(e){ console.error('ghLoad poznamky:',e); }
+}
+
+async function ghSave(){
+  const token=ghToken(); if(!token){ saveLocal(); return; }
+  try{
+    const json=JSON.stringify(notes,null,2);
+    const bytes=new TextEncoder().encode(json);
+    let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
+    const content=btoa(binary);
+    let sha=localStorage.getItem('gh_sha_poz')||'';
+    if(!sha){
+      const chk=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+      });
+      if(chk.ok){ const cd=await chk.json(); sha=cd.sha; localStorage.setItem('gh_sha_poz',sha); }
+    }
+    const body={message:'Poznámky '+new Date().toISOString().slice(0,10),content};
+    if(sha) body.sha=sha;
+    let res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+      method:'PUT',
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(res.status===409){
+      const chk2=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+      });
+      if(chk2.ok){ const cd2=await chk2.json(); sha=cd2.sha; localStorage.setItem('gh_sha_poz',sha); }
+      body.sha=sha;
+      res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+        method:'PUT',headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+    }
+    if(!res.ok) throw new Error(res.status);
+    const data=await res.json();
+    localStorage.setItem('gh_sha_poz',data.content.sha);
+    saveLocal();
+  }catch(e){ console.error('ghSave poznamky:',e); saveLocal(); showToast('GitHub nedostupný — uloženo lokálně'); }
+}
+
+async function syncNow(){
+  const btn=document.getElementById('sync-btn');
+  if(btn) btn.style.opacity='0.3';
+  await ghLoad(); renderList();
+  showToast('Synchronizováno ✓');
+  if(btn) btn.style.opacity='1';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let notes=[];
+try{ notes=JSON.parse(localStorage.getItem('lk_poz')||'[]'); }catch(e){}
+let curFilter='';
+let editId=null;
+let curType='volna';
+
+function saveLocal(){ try{ localStorage.setItem('lk_poz',JSON.stringify(notes)); }catch(e){} }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(d){ return new Date(d+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'}); }
+
+function showToast(m){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=m; t.className='toast on';
+  setTimeout(()=>t.className='toast',2200);
+}
+
+// ── MARKDOWN RENDERER ─────────────────────────────────────────────────
+function renderMd(text, noteId){
+  if(!text) return '';
+  let html=text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^---$/gm,'<hr>')
+    .replace(/^- \[x\] (.+)$/gm,'<div class="task-line"><div class="task-cb done" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text done">$1</span></div>')
+    .replace(/^- \[ \] (.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+    .replace(/\n/g,'<br>');
+  return html;
+}
+
+function toggleTask(cb, noteId){
+  const isDone=cb.classList.contains('done');
+  const text=cb.nextElementSibling.textContent;
+  const note=notes.find(n=>n.id===noteId);
+  if(!note) return;
+  if(isDone){
+    note.content=note.content.replace(`- [x] ${text}`,`- [ ] ${text}`);
+  } else {
+    note.content=note.content.replace(`- [ ] ${text}`,`- [x] ${text}`);
+  }
+  ghSave();
+  showDetail(noteId);
+}
+
+// Extrahuj nesplněné tasky z poznámky
+function extractTasks(content){
+  const lines=content.split('\n');
+  return lines.filter(l=>l.match(/^- \[ \] .+/)).map(l=>l.replace(/^- \[ \] /,''));
+}
+
+// ── LIST VIEW ─────────────────────────────────────────────────────────
+function setFilter(btn){
+  curFilter=btn.dataset.f;
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderList();
+}
+
+function renderList(){
+  const q=(document.getElementById('search-inp').value||'').toLowerCase();
+  let list=[...notes].sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+  if(curFilter) list=list.filter(n=>n.type===curFilter);
+  if(q) list=list.filter(n=>n.title.toLowerCase().includes(q)||n.content.toLowerCase().includes(q));
+
+  const el=document.getElementById('note-list');
+  if(!list.length){
+    el.innerHTML=`<div class="empty">
+      <div class="empty-icon">${q||curFilter?'🔍':'📝'}</div>
+      <div class="empty-title">${q||curFilter?'Nic nenalezeno':'Žádné poznámky'}</div>
+      <div class="empty-sub">${q||curFilter?'Zkus jiný filtr':'Klikni na + Nová a začni psát'}</div>
+    </div>`;
+
+    // GitHub token sekce pokud nemáme token
+    if(!ghToken() && !q && !curFilter){
+      el.innerHTML+=`<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-top:16px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">GitHub synchronizace</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Zadej token pro ukládání dat napříč zařízeními.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="password" id="gh-tok-inp" placeholder="ghp_..." style="flex:1;min-width:180px;font-size:14px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text)">
+          <button onclick="saveGhTok()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">Uložit</button>
+        </div>
+      </div>`;
+    }
+    return;
+  }
+
+  el.innerHTML=list.map(n=>{
+    const t=TYPES[n.type]||TYPES.volna;
+    const tasks=extractTasks(n.content);
+    const preview=n.content.replace(/^#{1,3} .+$/gm,'').replace(/- \[.\] /g,'').replace(/\*\*/g,'').replace(/\n+/g,' ').trim().slice(0,120);
+    return `<div class="note-card" onclick="showDetail('${n.id}')">
+      <div class="note-card-top">
+        <div class="note-card-title">${n.title||'(bez názvu)'}</div>
+        <span class="note-type-badge">${t.icon} ${t.label}</span>
+      </div>
+      ${preview?`<div class="note-card-preview">${preview}</div>`:''}
+      <div class="note-card-meta">
+        <span>${fmtDate(n.updatedAt)}</span>
+        ${tasks.length?`<span class="note-task-badge">✓ ${tasks.length} úkol${tasks.length>1?'y':''}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DETAIL VIEW ───────────────────────────────────────────────────────
+function showDetail(id){
+  const note=notes.find(n=>n.id===id);
+  if(!note) return;
+  const t=TYPES[note.type]||TYPES.volna;
+  document.getElementById('list-view').style.display='none';
+  const tasks=extractTasks(note.content);
+  const dv=document.getElementById('detail-view');
+  dv.style.display='block';
+  dv.innerHTML=`
+    <div class="detail-hdr">
+      <button class="detail-back" onclick="backToList()">‹ Zpět</button>
+      <span class="detail-badge">${t.icon} ${t.label}</span>
+      <span class="detail-date">${fmtDate(note.updatedAt)}</span>
+    </div>
+    <div class="detail-title">${note.title||'(bez názvu)'}</div>
+    <div class="md-view" style="margin-top:12px">${renderMd(note.content,note.id)}</div>
+    ${tasks.length?`<div class="tasks-export">
+      <div class="tasks-export-title">📋 Nesplněné úkoly (${tasks.length})</div>
+      ${tasks.map(t=>`<div class="tasks-export-item">◻ ${t}</div>`).join('')}
+      <button class="tasks-export-btn" onclick="exportToTerminy('${note.id}')">Přidat do Úkolů & Událostí →</button>
+    </div>`:''}
+    <div class="detail-actions">
+      <button class="btn btn-primary" onclick="openEdit('${note.id}')" style="flex:1">✏️ Upravit</button>
+      <button class="btn btn-ghost" onclick="openAi()">🤖 AI analýza</button>
+    </div>`;
+}
+
+function backToList(){
+  document.getElementById('detail-view').style.display='none';
+  document.getElementById('list-view').style.display='block';
+  renderList();
+}
+
+function exportToTerminy(noteId){
+  const note=notes.find(n=>n.id===noteId);
+  if(!note) return;
+  const tasks=extractTasks(note.content);
+  if(!tasks.length){ showToast('Žádné nesplněné úkoly'); return; }
+  const token=ghToken();
+  if(!token){ showToast('Nejprve nastav GitHub token'); return; }
+
+  const defaultDate=new Date(Date.now()+7*24*3600*1000).toISOString().slice(0,10);
+
+  fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/terminy_data.json`,{
+    headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+  }).then(r=>r.ok?r.json():null).then(data=>{
+    let termData={ukoly:[],events:[]};
+    if(data){
+      const b=atob(data.content.replace(/\n/g,''));
+      const byt=new Uint8Array(b.length);
+      for(let i=0;i<b.length;i++) byt[i]=b.charCodeAt(i);
+      termData=JSON.parse(new TextDecoder('utf-8').decode(byt));
+    }
+    tasks.forEach(t=>{
+      termData.ukoly.push({
+        id:uid(),name:t,date:defaultDate,
+        note:`Z poznámky: ${note.title}`,done:false,repeat:''
+      });
+    });
+    const json=JSON.stringify(termData,null,2);
+    const bytes=new TextEncoder().encode(json);
+    let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
+    const content=btoa(binary);
+    const body={message:'Úkoly z poznámek '+today(),content};
+    if(data) body.sha=data.sha;
+    return fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/terminy_data.json`,{
+      method:'PUT',
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+  }).then(()=>{
+    showToast(`${tasks.length} úkol${tasks.length>1?'y':''} přidán${tasks.length>1?'y':''} do Termínů ✓`);
+  }).catch(()=>showToast('Chyba při exportu'));
+}
+
+// ── EDIT SHEET ────────────────────────────────────────────────────────
+function openNew(){
+  editId=null;
+  curType='volna';
+  document.getElementById('sheet-title').textContent='Nová poznámka';
+  document.getElementById('del-btn').style.display='none';
+  buildEditSheet(null);
+  document.getElementById('edit-overlay').classList.add('on');
+}
+
+function openEdit(id){
+  editId=id;
+  const note=notes.find(n=>n.id===id);
+  if(!note) return;
+  curType=note.type;
+  document.getElementById('sheet-title').textContent='Upravit poznámku';
+  document.getElementById('del-btn').style.display='inline-block';
+  buildEditSheet(note);
+  document.getElementById('edit-overlay').classList.add('on');
+}
+
+function closeEdit(){
+  document.getElementById('edit-overlay').classList.remove('on');
+}
+
+function buildEditSheet(note){
+  const isEdit=!!note;
+  const sb=document.getElementById('sheet-body');
+
+  if(!isEdit){
+    // Výběr šablony
+    sb.innerHTML=`
+      <div style="font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Typ poznámky</div>
+      <div class="tpl-grid">
+        ${Object.entries(TYPES).map(([k,v])=>`
+          <button class="tpl-btn${curType===k?' on':''}" onclick="selectType('${k}')">
+            <div class="tpl-icon">${v.icon}</div>
+            <div class="tpl-name">${v.label}</div>
+          </button>`).join('')}
+      </div>
+      <div class="field">
+        <div class="field-label">Název</div>
+        <input class="field-inp" id="edit-title" type="text" placeholder="Název poznámky…">
+      </div>
+      <div class="field">
+        <div class="field-label">Obsah <span style="font-weight:400;text-transform:none;color:var(--text3)">(Markdown)</span></div>
+        <textarea class="field-ta big" id="edit-content" placeholder="Začni psát…">${TEMPLATES[curType]||''}</textarea>
+      </div>`;
+  } else {
+    sb.innerHTML=`
+      <div class="field">
+        <div class="field-label">Název</div>
+        <input class="field-inp" id="edit-title" type="text" value="${(note.title||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="field">
+        <div class="field-label">Obsah <span style="font-weight:400;text-transform:none;color:var(--text3)">(Markdown)</span></div>
+        <textarea class="field-ta big" id="edit-content">${note.content||''}</textarea>
+      </div>`;
+  }
+}
+
+function selectType(type){
+  curType=type;
+  document.querySelectorAll('.tpl-btn').forEach(b=>b.classList.remove('on'));
+  event.currentTarget.classList.add('on');
+  const ta=document.getElementById('edit-content');
+  if(ta && !ta.value.trim()) ta.value=TEMPLATES[type]||'';
+}
+
+function saveNote(){
+  const title=(document.getElementById('edit-title').value||'').trim();
+  const content=(document.getElementById('edit-content').value||'').trim();
+  if(!title && !content){ showToast('Zadej název nebo obsah'); return; }
+  const now=new Date().toISOString().slice(0,10);
+  if(editId){
+    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,updatedAt:now}:n);
+  } else {
+    notes.unshift({id:uid(),title,content,type:curType,createdAt:now,updatedAt:now});
+  }
+  ghSave();
+  showToast('Uloženo ✓');
+  closeEdit();
+  if(editId) showDetail(editId);
+  else renderList();
+}
+
+function deleteNote(){
+  if(!confirm('Smazat poznámku?')) return;
+  notes=notes.filter(n=>n.id!==editId);
+  ghSave();
+  showToast('Smazáno');
+  closeEdit();
+  backToList();
+}
+
+// ── AI ANALÝZA ────────────────────────────────────────────────────────
+function openAi(){
+  document.getElementById('ai-overlay').classList.add('on');
+  runAi();
+}
+function closeAi(){
+  document.getElementById('ai-overlay').classList.remove('on');
+}
+
+async function runAi(){
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  const el=document.getElementById('ai-content');
+
+  if(!apiKey){
+    el.innerHTML=`<div style="margin-bottom:12px">Pro AI analýzu zadej Anthropic API klíč:</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="ai-key-inp" placeholder="sk-ant-..." style="flex:1;min-width:180px;font-size:14px;padding:8px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text)">
+        <button onclick="saveAiKey()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">Uložit a analyzovat</button>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML='<span style="color:var(--text3)">⏳ Claude analyzuje tvoje poznámky…</span>';
+
+  const summary=notes.map(n=>{
+    const tasks=extractTasks(n.content);
+    return `[${TYPES[n.type]?.label||n.type}] ${n.title} (${n.updatedAt})\n${n.content.slice(0,500)}${tasks.length?'\nNesplněné úkoly: '+tasks.join(', '):''}`;
+  }).join('\n\n---\n\n');
+
+  const prompt=`Analyzuj tyto pracovní poznámky a poskytni stručnou analýzu v češtině (6-10 vět). Zaměř se na:
+1. Zapomenuté nebo nedokončené nápady
+2. Opakující se témata
+3. Nesplněné úkoly ze schůzek
+4. Doporučení co by si zasloužilo pozornost
+
+Poznámky:
+${summary}
+
+Piš přirozeně, bez Markdownu a odrážek.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){
+      if(res.status===401){ localStorage.removeItem('anthropic_api_key'); el.innerHTML='Neplatný API klíč.'; return; }
+      throw new Error(res.status);
+    }
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'';
+    el.innerHTML=`<div class="ai-result">${text}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text3)">Analýza: ${new Date().toLocaleString('cs-CZ')}
+        <button onclick="localStorage.removeItem('anthropic_api_key');runAi()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);text-decoration:underline;margin-left:8px">Změnit API klíč</button>
+      </div>`;
+  }catch(e){
+    el.innerHTML=`<span style="color:var(--red)">Chyba: ${e.message}</span>`;
+  }
+}
+
+function saveAiKey(){
+  const inp=document.getElementById('ai-key-inp');
+  if(!inp||!inp.value.trim()) return;
+  localStorage.setItem('anthropic_api_key',inp.value.trim());
+  runAi();
+}
+
+function saveGhTok(){
+  const inp=document.getElementById('gh-tok-inp');
+  if(!inp||!inp.value.trim()) return;
+  localStorage.setItem('gh_token',inp.value.trim());
+  localStorage.removeItem('gh_sha_poz');
+  showToast('Token uložen — načítám data…');
+  ghLoad().then(()=>renderList());
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+renderList();
+if(ghToken()){
+  ghLoad().then(()=>renderList());
+}
+</script>
+</body>
+</html>
