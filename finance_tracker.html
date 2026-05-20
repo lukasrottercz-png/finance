@@ -32,7 +32,7 @@
 }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 .shell { max-width: 800px; margin: 0 auto; padding: 0 16px 60px; }
-header { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff; border-bottom: 0.5px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10; margin: 0 -16px; }
+header { padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 header h1 { font-size: 18px; font-weight: 500; }
 header .hdate { font-size: 13px; color: var(--text3); }
 .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -148,17 +148,27 @@ header .hdate { font-size: 13px; color: var(--text3); }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
-<div class="shell">
-  <header>
+<div style="background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.1);position:sticky;top:0;z-index:10">
+  <div style="max-width:800px;margin:0 auto;padding:0 16px">
+  <header style="background:transparent;border:none;position:static;padding:14px 0">
     <h1>💰 Osobní finance</h1>
-    <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="sync-btn" onclick="syncAll()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" target="_blank" 
         style="font-size:13px;padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--border2);color:var(--text2);text-decoration:none;white-space:nowrap">🧾 Výdaje</a>
+      <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" target="_blank"
+        style="font-size:13px;padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--border2);color:var(--text2);text-decoration:none;white-space:nowrap">📋 Úkoly</a>
+      <a href="https://lukasrottercz-png.github.io/finance/poznamky.html" target="_blank"
+        style="font-size:13px;padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--border2);color:var(--text2);text-decoration:none;white-space:nowrap">📝 Poznámky</a>
       <span class="hdate" id="hdate"></span>
     </div>
   </header>
-  <div class="tabs" id="tabs"></div>
-  <div id="content"></div>
+  </div>
+</div>
+<div style="height:8px;background:var(--bg)"></div>
+<div class="shell">
+  <div class="tabs" id="tabs" style="padding:0 16px"></div>
+  <div id="content" style="padding:0 16px"></div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -296,6 +306,8 @@ function renderTabs() {
   if (periods.length > 0) menuItems.push({ k:'edit', l:'✏️ Upravit období' });
   menuItems.push({ k:'export', l:'⬇ Export CSV' });
   menuItems.push({ k:'import', l:'⬆ Import CSV' });
+  menuItems.push({ k:'gh-token', l:'🔑 GitHub token' });
+  menuItems.push({ k:'ai-key', l:'🤖 Anthropic API klíč' });
 
   const menuHtml = `
     <div style="position:relative;display:inline-block">
@@ -325,8 +337,34 @@ function sw(v) {
   if (v === 'import') { importCSV(); return; }
   if (v === 'zadat') { startWiz(false); return; }
   if (v === 'edit' && periods.length > 0) { startWiz(true); return; }
+  if (v === 'gh-token') { promptGhToken(); return; }
+  if (v === 'ai-key') { promptAiKey(); return; }
   view = v; wiz = null;
   renderTabs(); rc();
+}
+
+function promptGhToken() {
+  const cur = ghToken() ? '(uložen)' : '';
+  const val = prompt('GitHub token ' + cur + '\nZadej ghp_... token:', '');
+  if (val === null) return;
+  if (val.trim()) {
+    localStorage.setItem('gh_token', val.trim());
+    localStorage.removeItem('gh_sha');
+    toast('Token uložen — synchronizuji…');
+    syncAll();
+  }
+}
+
+function promptAiKey() {
+  const cur = localStorage.getItem('anthropic_api_key') ? '(uložen)' : '';
+  const val = prompt('Anthropic API klíč ' + cur + '\nZadej sk-ant-... klíč:', '');
+  if (val === null) return;
+  if (val.trim()) {
+    localStorage.setItem('anthropic_api_key', val.trim());
+    _aiCommentCache = '';
+    toast('API klíč uložen ✓');
+    rc();
+  }
 }
 
 // ── AI KOMENTÁŘ (Claude API) ──────────────────────────────────────────
