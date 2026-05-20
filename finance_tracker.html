@@ -670,10 +670,29 @@ async function loadVydaje() {
     const p2 = periods[periods.length - 1];
     if (usporEl && p2 && p2.mzda) {
       const mzda = p2.mzda;
-      const trvaleTotal = document.getElementById('trvale-total')?.textContent?.replace(/[^0-9]/g,'');
-      // Výdaje z appky
+
+      // Načti trvalé platby pro výpočet
+      let trvaleTotal = 0;
+      try {
+        const resT = await fetch('https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/trvale_data.json', {
+          headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+        });
+        if (resT.ok) {
+          const dataT = await resT.json();
+          const base64T = dataT.content.replace(/\n/g,'');
+          const binaryT = atob(base64T);
+          const bytesT = new Uint8Array(binaryT.length);
+          for (let i = 0; i < binaryT.length; i++) bytesT[i] = binaryT.charCodeAt(i);
+          const trvale = JSON.parse(new TextDecoder('utf-8').decode(bytesT));
+          const now2 = new Date().toISOString().slice(0,10);
+          trvaleTotal = trvale
+            .filter(t => (!t.od || now2 >= t.od) && (!t.do || now2 <= t.do))
+            .reduce((s,t) => s + (t.castka||0), 0);
+        }
+      } catch(e) { console.error('trvale load:', e); }
+
       const vydajeTotal = total;
-      const utraceno = vydajeTotal;
+      const utraceno = vydajeTotal + trvaleTotal;
       const uspory = mzda - utraceno;
       const pctUspor = Math.round(uspory / mzda * 100);
       const barPct = Math.min(100, Math.max(0, Math.round(utraceno / mzda * 100)));
@@ -682,16 +701,20 @@ async function loadVydaje() {
           <div class="row-lbl">💼 Čistá mzda</div>
           <div class="row-val pos">${fmt(mzda)}</div>
         </div>
-        <div class="row" style="margin-bottom:8px">
-          <div class="row-lbl">🧾 Výdaje tento měsíc</div>
-          <div class="row-val danger">${fmt(utraceno)}</div>
+        <div class="row" style="margin-bottom:6px">
+          <div class="row-lbl">🧾 Výdaje (appka)</div>
+          <div class="row-val danger">${fmt(vydajeTotal)}</div>
         </div>
-        <div class="row" style="margin-bottom:12px">
-          <div class="row-lbl">💰 Zbývá</div>
-          <div class="row-val ${uspory >= 0 ? 'pos' : 'danger'}">${fmt(uspory)}</div>
+        <div class="row" style="margin-bottom:6px">
+          <div class="row-lbl">📅 Trvalé platby</div>
+          <div class="row-val danger">${fmt(trvaleTotal)}</div>
+        </div>
+        <div class="row" style="margin-bottom:12px;border-top:0.5px solid var(--border);padding-top:8px">
+          <div class="row-lbl"><strong>💰 Zbývá</strong></div>
+          <div class="row-val ${uspory >= 0 ? 'pos' : 'danger'}"><strong>${fmt(uspory)}</strong></div>
         </div>
         <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:6px">
-          <div style="height:100%;width:${barPct}%;background:${barPct > 80 ? 'var(--red)' : barPct > 60 ? 'var(--orange)' : 'var(--green)'};border-radius:4px;transition:width 0.3s"></div>
+          <div style="height:100%;width:${barPct}%;background:${barPct > 90 ? 'var(--red)' : barPct > 75 ? 'var(--orange)' : 'var(--green)'};border-radius:4px;transition:width 0.3s"></div>
         </div>
         <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % mzdy · míra úspor ${pctUspor} %</div>`;
     } else if (usporEl) {
