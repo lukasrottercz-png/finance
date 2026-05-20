@@ -1,5 +1,30 @@
 {
-  "ukoly": [],
+  "ukoly": [
+    {
+      "id": "mpdpwp1rlj29o7lvclg",
+      "name": "Zavolat bance",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test ukolu 2",
+      "done": false,
+      "repeat": ""
+    },
+    {
+      "id": "mpdpwp1rbg60fh7853",
+      "name": "Zkontrolovat pojistku",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test ukolu 2",
+      "done": false,
+      "repeat": ""
+    },
+    {
+      "id": "mpdpwp1r1sgh89wicb",
+      "name": "Domluvit schůzku s Jan Haidlem",
+      "date": "2026-05-27",
+      "note": "Z poznámky: test ukolu 2",
+      "done": false,
+      "repeat": ""
+    }
+  ],
   "events": [
     {
       "id": "mpd3ve7rebw",
