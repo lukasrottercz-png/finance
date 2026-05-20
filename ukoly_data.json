@@ -17,6 +17,14 @@
       "note": "",
       "cat": "other",
       "repeat": ""
+    },
+    {
+      "id": "mpdqwjwgkoo",
+      "name": "Daník narozeniny",
+      "date": "2026-05-28",
+      "note": "",
+      "cat": "anniv",
+      "repeat": "yearly"
     }
   ]
 }
