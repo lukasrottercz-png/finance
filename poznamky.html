@@ -598,7 +598,8 @@ function saveNote(){
   ghSave();
   showToast('Uloženo ✓');
   closeEdit();
-  if(editId) showDetail(editId);
+  const savedId = editId || notes[0]?.id;
+  if(savedId) showDetail(savedId);
   else renderList();
 }
 
