@@ -1,0 +1,29 @@
+{
+  "transe": [
+    {
+      "id": "mpe030n4",
+      "datum": "2026-05-20",
+      "nazev": "Tranše",
+      "castka": 300000,
+      "etf": [
+        {
+          "tiker": "VWCE.DE",
+          "castka": 240000
+        },
+        {
+          "tiker": "SXRV.DE",
+          "castka": 21000
+        },
+        {
+          "tiker": "2B76.DE",
+          "castka": 21000
+        },
+        {
+          "tiker": "XDWH.DE",
+          "castka": 18000
+        }
+      ]
+    }
+  ],
+  "aktualni": []
+}
