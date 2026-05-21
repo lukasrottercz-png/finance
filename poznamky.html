@@ -142,7 +142,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .tag-inp{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
 .tag-inp:focus{border-color:var(--accent)}
 .tag-list{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
-.tag-chip{font-size:12px;padding:3px 9px;border-radius:10px;background:var(--accent-bg);color:var(--accent);font-weight:500}
+.tag-chip{font-size:12px;padding:3px 9px;border-radius:10px;font-weight:500}
 .stitek-filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
 .stitek-filter-chip{font-size:12px;padding:3px 10px;border-radius:12px;border:0.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap}
 .stitek-filter-chip.on{background:var(--accent-bg);color:var(--accent);border-color:rgba(124,58,237,0.3);font-weight:600}
@@ -575,14 +575,15 @@ function renderList(){
     const t=TYPES[n.type]||TYPES.volna;
     const tasks=extractTasks(n.content);
     const preview=n.content.replace(/^#{1,3} .+$/gm,'').replace(/- \[.\] /g,'').replace(/\*\*/g,'').replace(/\n+/g,' ').trim().slice(0,120);
-    const tagsHtml=(n.tags||[]).length?`<div class="tag-list" style="margin-top:5px">${(n.tags||[]).map(tg=>`<span class="tag-chip">${tg}</span>`).join('')}</div>`:'';
+    const tagsHtml=tagHtml(n.tags);
 
     if(curLayout==='grid'){
-      return `<div class="note-card${n.pinned?' pinned':''}" onclick="showDetail('${n.id}')" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;height:160px;padding:12px 12px 10px;">
+      return `<div class="note-card${n.pinned?' pinned':''}" onclick="showDetail('${n.id}')" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;height:180px;padding:12px 12px 10px;">
         <button onclick="event.stopPropagation();showCardMenu('${n.id}',this)" style="position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0 4px;line-height:1;z-index:1">···</button>
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding:0 24px">
           <span class="note-type-badge">${t.icon} ${t.label}</span>
           <div style="font-size:13px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${n.pinned?'📌 ':''}${n.title||'(bez názvu)'}</div>
+          ${preview?`<div style="font-size:11px;color:var(--text2);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;width:100%">${preview}</div>`:''}
         </div>
         <div style="font-size:12px;color:var(--text3)">${fmtDate(n.updatedAt)}</div>
       </div>`;
@@ -626,7 +627,7 @@ function showDetail(id){
   const tasks=extractTasks(note.content);
   const dv=document.getElementById('detail-view');
   dv.style.display='block';
-  const tagsHtml=(note.tags||[]).length?`<div class="tag-list" style="margin-bottom:10px">${(note.tags||[]).map(tg=>`<span class="tag-chip">${tg}</span>`).join('')}</div>`:'';
+  const tagsHtml=tagHtml(note.tags).replace('margin-top:5px','margin-bottom:10px');
   dv.innerHTML=`
     <div class="detail-hdr">
       <button class="detail-back" onclick="backToList()">‹ Zpět</button>
@@ -750,6 +751,27 @@ function doExport(noteId, date){
   .catch(()=>showToast('Chyba při exportu'));
 }
 
+// ── TAG HELPERS ───────────────────────────────────────────────────────
+function tagColor(tag){
+  let hash=0;
+  for(let i=0;i<tag.length;i++) hash=tag.charCodeAt(i)+((hash<<5)-hash);
+  const colors=[
+    ['#EDE9FE','#5B21B6'],['#DCFCE7','#166534'],['#FEE2E2','#991B1B'],
+    ['#FEF3C7','#92400E'],['#DBEAFE','#1E40AF'],['#FCE7F3','#9D174D'],
+    ['#E0F2FE','#0369A1'],['#F0FDF4','#15803D'],['#FFF7ED','#9A3412'],
+  ];
+  return colors[Math.abs(hash)%colors.length];
+}
+function parseTags(str){
+  return str.split(',').map(t=>t.trim().toLowerCase()).filter(t=>t.length>0);
+}
+function tagHtml(tags){
+  if(!(tags||[]).length) return '';
+  return '<div class="tag-list" style="margin-top:5px">'+
+    tags.map(t=>{const[bg,c]=tagColor(t);return`<span class="tag-chip" style="background:${bg};color:${c}">${t}</span>`;}).join('')+
+  '</div>';
+}
+
 // ── AUTOSAVE ──────────────────────────────────────────────────────────
 function initAutosave(){
   const ta=document.getElementById('edit-content');
@@ -830,7 +852,7 @@ function buildEditSheet(note){
       </div>
       <div class="field">
         <div class="field-label">Štítky</div>
-        <input class="tag-inp" id="edit-tags" type="text" placeholder="#práce #projekt #nápad…">
+        <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…">
       </div>
       <div class="field">
         <div class="field-label">Obsah</div>
@@ -858,7 +880,7 @@ function buildEditSheet(note){
       </div>
       <div class="field">
         <div class="field-label">Štítky</div>
-        <input class="tag-inp" id="edit-tags" type="text" placeholder="#práce #projekt #nápad…" value="${(note.tags||[]).join(' ')}">
+        <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…" value="${(note.tags||[]).join(', ')}">
       </div>
       <div class="field">
         <div class="field-label">Obsah</div>
@@ -895,7 +917,7 @@ function saveNote(){
   const title=(document.getElementById('edit-title').value||'').trim();
   const content=(document.getElementById('edit-content').value||'').trim();
   const tagsRaw=(document.getElementById('edit-tags')?.value||'').trim();
-  const tags=tagsRaw.match(/#[\w\u00C0-\u017E]+/g)||[];
+  const tags=parseTags(tagsRaw);
   if(!title && !content){ showToast('Zadej název nebo obsah'); return; }
   const now=new Date().toISOString().slice(0,10);
   if(editId){
