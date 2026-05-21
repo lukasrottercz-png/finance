@@ -110,5 +110,13 @@
     "subcat": "Mytí auta",
     "note": "",
     "date": "2026-05-20"
+  },
+  {
+    "id": "1779345137432",
+    "amount": 452,
+    "catKey": "stravovani",
+    "subcat": "Kavárna",
+    "note": "",
+    "date": "2026-05-21"
   }
 ]
