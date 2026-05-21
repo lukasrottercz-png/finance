@@ -133,6 +133,15 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .tasks-export-item{font-size:13px;color:var(--text);padding:3px 0;display:flex;align-items:center;gap:6px}
 .tasks-export-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;width:100%}
 
+/* FORMATTING TOOLBAR */
+.fmt-toolbar{display:flex;gap:2px;flex-wrap:wrap;background:var(--bg);border:0.5px solid var(--border);border-bottom:none;border-radius:var(--r) var(--r) 0 0;padding:6px 8px;}
+.fmt-toolbar .field-ta,.fmt-toolbar~.field-ta{border-radius:0 0 var(--r) var(--r)!important;}
+.fmt-btn{background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);padding:5px 8px;border-radius:6px;font-family:inherit;line-height:1;transition:background 0.1s,color 0.1s;min-width:28px;text-align:center;}
+.fmt-btn:hover{background:var(--border);color:var(--text);}
+.fmt-btn:active{background:var(--accent-bg);color:var(--accent);}
+.fmt-sep{width:0.5px;background:var(--border);margin:4px 2px;flex-shrink:0;}
+.fmt-ta-wrap .field-ta{border-radius:0 0 var(--r) var(--r)!important;border-top:none!important;}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,0.92);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.on{opacity:1}
@@ -350,6 +359,7 @@ function renderMd(text, noteId){
     .replace(/^# (.+)$/gm,'<h1>$1</h1>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
     .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/<u>(.*?)<\/u>/g,'<u>$1</u>')
     .replace(/`(.+?)`/g,'<code>$1</code>')
     .replace(/^---$/gm,'<hr>')
     .replace(/^- \[x\] (.+)$/gm,'<div class="task-line"><div class="task-cb done" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text done">$1</span></div>')
@@ -623,8 +633,22 @@ function buildEditSheet(note){
         <input class="field-inp" id="edit-title" type="text" placeholder="Název poznámky…">
       </div>
       <div class="field">
-        <div class="field-label">Obsah <span style="font-weight:400;text-transform:none;color:var(--text3)">(Markdown)</span></div>
-        <textarea class="field-ta big" id="edit-content" placeholder="Začni psát…">${TEMPLATES[curType]||''}</textarea>
+        <div class="field-label">Obsah</div>
+        <div class="fmt-ta-wrap">
+          <div class="fmt-toolbar">
+            <button class="fmt-btn" title="Tučně" onmousedown="event.preventDefault();fmtInsert('bold')"><b>B</b></button>
+            <button class="fmt-btn" title="Kurzíva" onmousedown="event.preventDefault();fmtInsert('italic')"><i>I</i></button>
+            <button class="fmt-btn" title="Podtržené" onmousedown="event.preventDefault();fmtInsert('underline')" style="text-decoration:underline">U</button>
+            <div class="fmt-sep"></div>
+            <button class="fmt-btn" title="Nadpis H1" onmousedown="event.preventDefault();fmtInsert('h1')">H1</button>
+            <button class="fmt-btn" title="Nadpis H2" onmousedown="event.preventDefault();fmtInsert('h2')">H2</button>
+            <div class="fmt-sep"></div>
+            <button class="fmt-btn" title="Odrážkový seznam" onmousedown="event.preventDefault();fmtInsert('ul')">• —</button>
+            <button class="fmt-btn" title="Číslovaný seznam" onmousedown="event.preventDefault();fmtInsert('ol')">1. —</button>
+            <button class="fmt-btn" title="Úkol (checkbox)" onmousedown="event.preventDefault();fmtInsert('task')">☐</button>
+          </div>
+          <textarea class="field-ta big" id="edit-content" placeholder="Začni psát…">${TEMPLATES[curType]||''}</textarea>
+        </div>
       </div>`;
   } else {
     sb.innerHTML=`
@@ -633,8 +657,22 @@ function buildEditSheet(note){
         <input class="field-inp" id="edit-title" type="text" value="${(note.title||'').replace(/"/g,'&quot;')}">
       </div>
       <div class="field">
-        <div class="field-label">Obsah <span style="font-weight:400;text-transform:none;color:var(--text3)">(Markdown)</span></div>
-        <textarea class="field-ta big" id="edit-content">${note.content||''}</textarea>
+        <div class="field-label">Obsah</div>
+        <div class="fmt-ta-wrap">
+          <div class="fmt-toolbar">
+            <button class="fmt-btn" title="Tučně" onmousedown="event.preventDefault();fmtInsert('bold')"><b>B</b></button>
+            <button class="fmt-btn" title="Kurzíva" onmousedown="event.preventDefault();fmtInsert('italic')"><i>I</i></button>
+            <button class="fmt-btn" title="Podtržené" onmousedown="event.preventDefault();fmtInsert('underline')" style="text-decoration:underline">U</button>
+            <div class="fmt-sep"></div>
+            <button class="fmt-btn" title="Nadpis H1" onmousedown="event.preventDefault();fmtInsert('h1')">H1</button>
+            <button class="fmt-btn" title="Nadpis H2" onmousedown="event.preventDefault();fmtInsert('h2')">H2</button>
+            <div class="fmt-sep"></div>
+            <button class="fmt-btn" title="Odrážkový seznam" onmousedown="event.preventDefault();fmtInsert('ul')">• —</button>
+            <button class="fmt-btn" title="Číslovaný seznam" onmousedown="event.preventDefault();fmtInsert('ol')">1. —</button>
+            <button class="fmt-btn" title="Úkol (checkbox)" onmousedown="event.preventDefault();fmtInsert('task')">☐</button>
+          </div>
+          <textarea class="field-ta big" id="edit-content">${note.content||''}</textarea>
+        </div>
       </div>`;
   }
 }
@@ -905,6 +943,85 @@ function saveGhTok(){
   localStorage.removeItem('gh_sha_poz');
   showToast('Token uložen — načítám data…');
   ghLoad().then(()=>renderList());
+}
+
+// ── FORMATTING TOOLBAR ────────────────────────────────────────────────
+function fmtInsert(type){
+  const ta=document.getElementById('edit-content');
+  if(!ta) return;
+  const start=ta.selectionStart;
+  const end=ta.selectionEnd;
+  const sel=ta.value.slice(start,end);
+  const before=ta.value.slice(0,start);
+  const after=ta.value.slice(end);
+  const lineStart=before.lastIndexOf('\n')+1;
+  const linePrefix=before.slice(lineStart);
+
+  let newVal, newCursor, newSelEnd;
+
+  if(type==='bold'){
+    if(sel){ newVal=before+'**'+sel+'**'+after; newCursor=start+2; newSelEnd=end+2; }
+    else { newVal=before+'****'+after; newCursor=start+2; newSelEnd=start+2; }
+  } else if(type==='italic'){
+    if(sel){ newVal=before+'*'+sel+'*'+after; newCursor=start+1; newSelEnd=end+1; }
+    else { newVal=before+'**'+after; newCursor=start+1; newSelEnd=start+1; }
+  } else if(type==='underline'){
+    if(sel){ newVal=before+'<u>'+sel+'</u>'+after; newCursor=start+3; newSelEnd=end+3; }
+    else { newVal=before+'<u></u>'+after; newCursor=start+3; newSelEnd=start+3; }
+  } else if(type==='h1'){
+    if(linePrefix.startsWith('## ')){
+      newVal=before.slice(0,lineStart)+'# '+before.slice(lineStart+3)+sel+after;
+      newCursor=start-1; newSelEnd=newCursor;
+    } else if(linePrefix.startsWith('# ')){
+      newVal=before.slice(0,lineStart)+before.slice(lineStart+2)+sel+after;
+      newCursor=start-2; newSelEnd=newCursor;
+    } else {
+      newVal=before.slice(0,lineStart)+'# '+linePrefix+sel+after;
+      newCursor=start+2; newSelEnd=newCursor;
+    }
+  } else if(type==='h2'){
+    if(linePrefix.startsWith('# ')&&!linePrefix.startsWith('## ')){
+      newVal=before.slice(0,lineStart)+'## '+before.slice(lineStart+2)+sel+after;
+      newCursor=start+1; newSelEnd=newCursor;
+    } else if(linePrefix.startsWith('## ')){
+      newVal=before.slice(0,lineStart)+before.slice(lineStart+3)+sel+after;
+      newCursor=start-3; newSelEnd=newCursor;
+    } else {
+      newVal=before.slice(0,lineStart)+'## '+linePrefix+sel+after;
+      newCursor=start+3; newSelEnd=newCursor;
+    }
+  } else if(type==='ul'){
+    if(sel){
+      const lines=sel.split('\n').map(l=>'- '+l).join('\n');
+      newVal=before+lines+after; newCursor=start; newSelEnd=start+lines.length;
+    } else {
+      const nl=(before.length>0&&!before.endsWith('\n'))?'\n':'';
+      newVal=before+nl+'- '+after; newCursor=start+nl.length+2; newSelEnd=newCursor;
+    }
+  } else if(type==='ol'){
+    if(sel){
+      const lines=sel.split('\n').map((l,i)=>(i+1)+'. '+l).join('\n');
+      newVal=before+lines+after; newCursor=start; newSelEnd=start+lines.length;
+    } else {
+      const nl=(before.length>0&&!before.endsWith('\n'))?'\n':'';
+      newVal=before+nl+'1. '+after; newCursor=start+nl.length+3; newSelEnd=newCursor;
+    }
+  } else if(type==='task'){
+    if(sel){
+      const lines=sel.split('\n').map(l=>'- [ ] '+l).join('\n');
+      newVal=before+lines+after; newCursor=start; newSelEnd=start+lines.length;
+    } else {
+      const nl=(before.length>0&&!before.endsWith('\n'))?'\n':'';
+      newVal=before+nl+'- [ ] '+after; newCursor=start+nl.length+6; newSelEnd=newCursor;
+    }
+  }
+
+  if(newVal===undefined) return;
+  ta.value=newVal;
+  ta.focus();
+  const cur=Math.max(0,newCursor);
+  const selE=Math.max(0,newSelEnd!==undefined?newSelEnd:newCursor);
+  ta.setSelectionRange(cur, selE);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
