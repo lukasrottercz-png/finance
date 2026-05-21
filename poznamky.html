@@ -162,6 +162,29 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .fmt-sep{width:0.5px;background:var(--border);margin:4px 2px;flex-shrink:0;}
 .fmt-ta-wrap .field-ta{border-radius:0 0 var(--r) var(--r)!important;border-top:none!important;}
 
+/* LAYOUT & SORT TOOLBAR */
+.list-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.layout-btns{display:flex;gap:2px;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:2px}
+.layout-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:5px 8px;border-radius:6px;color:var(--text2);line-height:1}
+.layout-btn.on{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.sort-select{background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--text2);font-family:inherit;outline:none;cursor:pointer}
+
+/* GRID LAYOUT (dlaždice) */
+#note-list.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+#note-list.grid .note-card{margin-bottom:0}
+#note-list.grid .note-card-preview{-webkit-line-clamp:4}
+
+/* COMPACT LAYOUT */
+#note-list.compact .note-card{padding:9px 14px;margin-bottom:6px}
+#note-list.compact .note-card-preview{display:none}
+#note-list.compact .tag-list{display:none}
+#note-list.compact .note-card-title{font-size:14px}
+
+/* AUTOSAVE INDICATOR */
+.autosave-indicator{font-size:11px;color:var(--text3);padding:0 4px;min-width:70px;text-align:right;transition:color 0.2s}
+.autosave-indicator.saving{color:var(--accent)}
+.autosave-indicator.saved{color:var(--green)}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(40,40,40,0.92);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;z-index:999}
 .toast.on{opacity:1}
@@ -200,6 +223,18 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
       <button class="f-btn" data-f="volna" onclick="setFilter(this)">📝 Volná</button>
     </div>
     <div class="tag-filter-row" id="tag-filter-row" style="display:none"></div>
+    <div class="list-toolbar">
+      <div class="layout-btns">
+        <button class="layout-btn on" id="layout-list" onclick="setLayout('list')" title="Seznam">☰</button>
+        <button class="layout-btn" id="layout-grid" onclick="setLayout('grid')" title="Dlaždice">⊞</button>
+        <button class="layout-btn" id="layout-compact" onclick="setLayout('compact')" title="Kompaktní">≡</button>
+      </div>
+      <select class="sort-select" id="sort-select" onchange="renderList()">
+        <option value="edited">Podle editace</option>
+        <option value="created">Podle vytvoření</option>
+        <option value="alpha">Podle názvu A–Z</option>
+      </select>
+    </div>
     <div id="note-list"></div>
   </div>
 
@@ -220,6 +255,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-foot">
       <button class="btn btn-primary" onclick="saveNote()" style="flex:1">Uložit</button>
+      <span class="autosave-indicator" id="autosave-indicator"></span>
       <button class="btn btn-ghost" onclick="closeEdit()">Zrušit</button>
       <button class="btn btn-danger" id="del-btn" onclick="deleteNote()" style="display:none">Smazat</button>
     </div>
@@ -360,6 +396,8 @@ try{ notes=JSON.parse(localStorage.getItem('lk_poz')||'[]'); }catch(e){}
 let curFilter='';
 let editId=null;
 let curType='volna';
+let curLayout=localStorage.getItem('poz_layout')||'list';
+let autoSaveTimer=null;
 
 function saveLocal(){ try{ localStorage.setItem('lk_poz',JSON.stringify(notes)); }catch(e){} }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
@@ -439,11 +477,18 @@ let curTagFilter='';
 
 function renderList(){
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
-  let list=[...notes].sort((a,b)=>{
+  const sortBy=document.getElementById('sort-select')?.value||'edited';
+  let list=[...notes];
+
+  // Řazení
+  list.sort((a,b)=>{
     if(a.pinned&&!b.pinned) return -1;
     if(!a.pinned&&b.pinned) return 1;
+    if(sortBy==='created') return b.createdAt.localeCompare(a.createdAt);
+    if(sortBy==='alpha') return (a.title||'').localeCompare(b.title||'','cs');
     return b.updatedAt.localeCompare(a.updatedAt);
   });
+
   if(curFilter) list=list.filter(n=>n.type===curFilter);
   if(curTagFilter) list=list.filter(n=>(n.tags||[]).includes(curTagFilter));
   if(q) list=list.filter(n=>n.title.toLowerCase().includes(q)||n.content.toLowerCase().includes(q)||(n.tags||[]).join(' ').toLowerCase().includes(q));
@@ -456,7 +501,15 @@ function renderList(){
     tagRow.style.display=allTags.length?'flex':'none';
   }
 
+  // Layout
   const el=document.getElementById('note-list');
+  el.className=curLayout==='list'?'':curLayout;
+  // Sync layout buttons
+  ['list','grid','compact'].forEach(l=>{
+    const b=document.getElementById('layout-'+l);
+    if(b) b.classList.toggle('on',curLayout===l);
+  });
+
   if(!list.length){
     el.innerHTML=`<div class="empty">
       <div class="empty-icon">${q||curFilter||curTagFilter?'🔍':'📝'}</div>
@@ -497,6 +550,12 @@ function renderList(){
       </div>
     </div>`;
   }).join('');
+}
+
+function setLayout(l){
+  curLayout=l;
+  localStorage.setItem('poz_layout',l);
+  renderList();
 }
 
 function setTagFilter(tag){
@@ -637,6 +696,34 @@ function doExport(noteId, date){
   .catch(()=>showToast('Chyba při exportu'));
 }
 
+// ── AUTOSAVE ──────────────────────────────────────────────────────────
+function initAutosave(){
+  const ta=document.getElementById('edit-content');
+  const ti=document.getElementById('edit-title');
+  const tg=document.getElementById('edit-tags');
+  const ind=document.getElementById('autosave-indicator');
+  const handler=()=>{
+    if(ind){ ind.textContent='Ukládám…'; ind.className='autosave-indicator saving'; }
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer=setTimeout(()=>{
+      // Uložit draft do localStorage
+      const draft={
+        title:ti?.value||'',
+        content:ta?.value||'',
+        tags:tg?.value||'',
+        type:curType,
+        editId:editId
+      };
+      localStorage.setItem('poz_draft',JSON.stringify(draft));
+      if(ind){ ind.textContent='Uloženo'; ind.className='autosave-indicator saved';
+        setTimeout(()=>{ if(ind) ind.textContent=''; },2000); }
+    },2000);
+  };
+  [ta,ti,tg].forEach(el=>el&&el.addEventListener('input',handler));
+}
+
+function clearDraft(){ localStorage.removeItem('poz_draft'); }
+
 // ── EDIT SHEET ────────────────────────────────────────────────────────
 function openNew(){
   editId=null;
@@ -659,7 +746,13 @@ function openEdit(id){
 }
 
 function closeEdit(){
-  document.getElementById('edit-overlay').classList.remove('on');
+  clearTimeout(autoSaveTimer);
+  clearDraft();
+  const sheet=document.querySelector('#edit-overlay .sheet');
+  const overlay=document.getElementById('edit-overlay');
+  overlay.classList.remove('on');
+  if(sheet){ sheet.classList.remove('fullscreen'); overlay.style.alignItems='flex-end'; }
+  editId=null;
 }
 
 function buildEditSheet(note){
@@ -732,6 +825,8 @@ function buildEditSheet(note){
         </div>
       </div>`;
   }
+  // Spustit autosave po sestavení formuláře
+  setTimeout(initAutosave, 50);
 }
 
 function selectType(type){
@@ -755,6 +850,7 @@ function saveNote(){
     notes.unshift({id:uid(),title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
   }
   ghSave();
+  clearDraft();
   showToast('Uloženo ✓');
   closeEdit();
   const savedId = editId || notes[0]?.id;
