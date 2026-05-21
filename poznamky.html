@@ -133,6 +133,26 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .tasks-export-item{font-size:13px;color:var(--text);padding:3px 0;display:flex;align-items:center;gap:6px}
 .tasks-export-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;width:100%}
 
+/* PINNED */
+.note-card.pinned{border-color:rgba(124,58,237,0.35);background:var(--accent-bg)}
+.pin-btn{font-size:13px;cursor:pointer;opacity:0.4;transition:opacity 0.15s;padding:2px 4px;background:none;border:none;line-height:1}
+.pin-btn.on{opacity:1}
+
+/* TAGS */
+.tag-inp{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
+.tag-inp:focus{border-color:var(--accent)}
+.tag-list{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tag-chip{font-size:12px;padding:3px 9px;border-radius:10px;background:var(--accent-bg);color:var(--accent);font-weight:500}
+.tag-filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.tag-filter-chip{font-size:12px;padding:3px 10px;border-radius:12px;border:0.5px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap}
+.tag-filter-chip.on{background:var(--accent-bg);color:var(--accent);border-color:rgba(124,58,237,0.3);font-weight:600}
+
+/* FULLSCREEN EDITOR */
+.sheet.fullscreen{max-height:100vh!important;border-radius:0!important;height:100vh}
+.sheet.fullscreen .field-ta.big{min-height:calc(100vh - 280px)!important}
+.fs-btn{background:none;border:none;cursor:pointer;font-size:15px;color:var(--text2);padding:4px 8px;border-radius:6px;line-height:1}
+.fs-btn:hover{background:var(--bg)}
+
 /* FORMATTING TOOLBAR */
 .fmt-toolbar{display:flex;gap:2px;flex-wrap:wrap;background:var(--bg);border:0.5px solid var(--border);border-bottom:none;border-radius:var(--r) var(--r) 0 0;padding:6px 8px;}
 .fmt-toolbar .field-ta,.fmt-toolbar~.field-ta{border-radius:0 0 var(--r) var(--r)!important;}
@@ -179,6 +199,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
       <button class="f-btn" data-f="rozhodnuti" onclick="setFilter(this)">✅ Rozhodnutí</button>
       <button class="f-btn" data-f="volna" onclick="setFilter(this)">📝 Volná</button>
     </div>
+    <div class="tag-filter-row" id="tag-filter-row" style="display:none"></div>
     <div id="note-list"></div>
   </div>
 
@@ -191,7 +212,10 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
   <div class="sheet">
     <div class="sheet-hdr">
       <span class="sheet-title" id="sheet-title">Nová poznámka</span>
-      <button class="sheet-close" onclick="closeEdit()">×</button>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="fs-btn" id="fs-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+        <button class="sheet-close" onclick="closeEdit()">×</button>
+      </div>
     </div>
     <div class="sheet-body" id="sheet-body"></div>
     <div class="sheet-foot">
@@ -411,22 +435,35 @@ function setFilter(btn){
   renderList();
 }
 
+let curTagFilter='';
+
 function renderList(){
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
-  let list=[...notes].sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+  let list=[...notes].sort((a,b)=>{
+    if(a.pinned&&!b.pinned) return -1;
+    if(!a.pinned&&b.pinned) return 1;
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
   if(curFilter) list=list.filter(n=>n.type===curFilter);
-  if(q) list=list.filter(n=>n.title.toLowerCase().includes(q)||n.content.toLowerCase().includes(q));
+  if(curTagFilter) list=list.filter(n=>(n.tags||[]).includes(curTagFilter));
+  if(q) list=list.filter(n=>n.title.toLowerCase().includes(q)||n.content.toLowerCase().includes(q)||(n.tags||[]).join(' ').toLowerCase().includes(q));
+
+  // Tag filter row
+  const allTags=[...new Set(notes.flatMap(n=>n.tags||[]))].sort();
+  const tagRow=document.getElementById('tag-filter-row');
+  if(tagRow){
+    tagRow.innerHTML=allTags.map(t=>`<button class="tag-filter-chip${curTagFilter===t?' on':''}" onclick="setTagFilter('${t}')">${t}</button>`).join('');
+    tagRow.style.display=allTags.length?'flex':'none';
+  }
 
   const el=document.getElementById('note-list');
   if(!list.length){
     el.innerHTML=`<div class="empty">
-      <div class="empty-icon">${q||curFilter?'🔍':'📝'}</div>
-      <div class="empty-title">${q||curFilter?'Nic nenalezeno':'Žádné poznámky'}</div>
-      <div class="empty-sub">${q||curFilter?'Zkus jiný filtr':'Klikni na + Nová a začni psát'}</div>
+      <div class="empty-icon">${q||curFilter||curTagFilter?'🔍':'📝'}</div>
+      <div class="empty-title">${q||curFilter||curTagFilter?'Nic nenalezeno':'Žádné poznámky'}</div>
+      <div class="empty-sub">${q||curFilter||curTagFilter?'Zkus jiný filtr':'Klikni na + Nová a začni psát'}</div>
     </div>`;
-
-    // GitHub token sekce pokud nemáme token
-    if(!ghToken() && !q && !curFilter){
+    if(!ghToken() && !q && !curFilter && !curTagFilter){
       el.innerHTML+=`<div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-top:16px">
         <div style="font-size:14px;font-weight:600;margin-bottom:8px">GitHub synchronizace</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:10px">Zadej token pro ukládání dat napříč zařízeními.</div>
@@ -443,21 +480,28 @@ function renderList(){
     const t=TYPES[n.type]||TYPES.volna;
     const tasks=extractTasks(n.content);
     const preview=n.content.replace(/^#{1,3} .+$/gm,'').replace(/- \[.\] /g,'').replace(/\*\*/g,'').replace(/\n+/g,' ').trim().slice(0,120);
-    return `<div class="note-card" onclick="showDetail('${n.id}')">
+    const tagsHtml=(n.tags||[]).length?`<div class="tag-list" style="margin-top:5px">${(n.tags||[]).map(tg=>`<span class="tag-chip">${tg}</span>`).join('')}</div>`:'';
+    return `<div class="note-card${n.pinned?' pinned':''}" onclick="showDetail('${n.id}')">
       <div class="note-card-top">
-        <div class="note-card-title">${n.title||'(bez názvu)'}</div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <div class="note-card-title">${n.pinned?'📌 ':''}${n.title||'(bez názvu)'}</div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
           <span class="note-type-badge">${t.icon} ${t.label}</span>
           <button onclick="event.stopPropagation();showCardMenu('${n.id}',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0 4px;line-height:1">···</button>
         </div>
       </div>
       ${preview?`<div class="note-card-preview">${preview}</div>`:''}
+      ${tagsHtml}
       <div class="note-card-meta">
         <span>${fmtDate(n.updatedAt)}</span>
         ${tasks.length?`<span class="note-task-badge">✓ ${tasks.length} úkol${tasks.length>1?'y':''}</span>`:''}
       </div>
     </div>`;
   }).join('');
+}
+
+function setTagFilter(tag){
+  curTagFilter=(curTagFilter===tag)?'':tag;
+  renderList();
 }
 
 // ── DETAIL VIEW ───────────────────────────────────────────────────────
@@ -469,13 +513,16 @@ function showDetail(id){
   const tasks=extractTasks(note.content);
   const dv=document.getElementById('detail-view');
   dv.style.display='block';
+  const tagsHtml=(note.tags||[]).length?`<div class="tag-list" style="margin-bottom:10px">${(note.tags||[]).map(tg=>`<span class="tag-chip">${tg}</span>`).join('')}</div>`:'';
   dv.innerHTML=`
     <div class="detail-hdr">
       <button class="detail-back" onclick="backToList()">‹ Zpět</button>
       <span class="detail-badge">${t.icon} ${t.label}</span>
       <span class="detail-date">${fmtDate(note.updatedAt)}</span>
+      <button onclick="togglePin('${note.id}')" title="${note.pinned?'Odepnout':'Připnout'}" style="background:none;border:none;cursor:pointer;font-size:18px;margin-left:auto;opacity:${note.pinned?1:0.35}">${note.pinned?'📌':'📌'}</button>
     </div>
     <div class="detail-title">${note.title||'(bez názvu)'}</div>
+    ${tagsHtml}
     <div class="md-view" style="margin-top:12px">${renderMd(note.content,note.id)}</div>
     ${tasks.length?`<div class="tasks-export">
       <div class="tasks-export-title">📋 Nesplněné úkoly (${tasks.length})</div>
@@ -484,8 +531,9 @@ function showDetail(id){
     </div>`:''}
     <div class="detail-actions">
       <button class="btn btn-primary" onclick="openEdit('${note.id}')" style="flex:1">✏️ Upravit</button>
-      <button class="btn btn-ghost" onclick="aiPolishNote('${note.id}')">✨ Vyčistit AI</button>
-      <button class="btn btn-ghost" onclick="openAi()">🤖 Analýza</button>
+      <button class="btn btn-ghost" onclick="exportNoteTxt('${note.id}')">⬇ Export</button>
+      <button class="btn btn-ghost" onclick="aiPolishNote('${note.id}')">✨ AI</button>
+      <button class="btn btn-ghost" onclick="openAi()">🤖</button>
     </div>`;
 }
 
@@ -506,6 +554,7 @@ function showCardMenu(id, btn){
   menu.id='card-menu';
   menu.innerHTML=`
     <button class="card-menu-item" onclick="closeCardMenu();openEdit('${id}')">✏️ Upravit</button>
+    <button class="card-menu-item" onclick="closeCardMenu();togglePin('${id}')">📌 ${notes.find(n=>n.id===id)?.pinned?'Odepnout':'Připnout'}</button>
     <button class="card-menu-item danger" onclick="closeCardMenu();confirmDelete('${id}')">🗑 Smazat</button>`;
   menu.style.top=(rect.bottom+6)+'px';
   menu.style.right=(window.innerWidth-rect.right)+'px';
@@ -633,6 +682,10 @@ function buildEditSheet(note){
         <input class="field-inp" id="edit-title" type="text" placeholder="Název poznámky…">
       </div>
       <div class="field">
+        <div class="field-label">Tagy</div>
+        <input class="tag-inp" id="edit-tags" type="text" placeholder="#práce #projekt #nápad…">
+      </div>
+      <div class="field">
         <div class="field-label">Obsah</div>
         <div class="fmt-ta-wrap">
           <div class="fmt-toolbar">
@@ -655,6 +708,10 @@ function buildEditSheet(note){
       <div class="field">
         <div class="field-label">Název</div>
         <input class="field-inp" id="edit-title" type="text" value="${(note.title||'').replace(/"/g,'&quot;')}">
+      </div>
+      <div class="field">
+        <div class="field-label">Tagy</div>
+        <input class="tag-inp" id="edit-tags" type="text" placeholder="#práce #projekt #nápad…" value="${(note.tags||[]).join(' ')}">
       </div>
       <div class="field">
         <div class="field-label">Obsah</div>
@@ -688,12 +745,14 @@ function selectType(type){
 function saveNote(){
   const title=(document.getElementById('edit-title').value||'').trim();
   const content=(document.getElementById('edit-content').value||'').trim();
+  const tagsRaw=(document.getElementById('edit-tags')?.value||'').trim();
+  const tags=tagsRaw.match(/#[\w\u00C0-\u017E]+/g)||[];
   if(!title && !content){ showToast('Zadej název nebo obsah'); return; }
   const now=new Date().toISOString().slice(0,10);
   if(editId){
-    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,updatedAt:now}:n);
+    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
   } else {
-    notes.unshift({id:uid(),title,content,type:curType,createdAt:now,updatedAt:now});
+    notes.unshift({id:uid(),title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
   }
   ghSave();
   showToast('Uloženo ✓');
@@ -943,6 +1002,51 @@ function saveGhTok(){
   localStorage.removeItem('gh_sha_poz');
   showToast('Token uložen — načítám data…');
   ghLoad().then(()=>renderList());
+}
+
+// ── PIN ───────────────────────────────────────────────────────────────
+function togglePin(id){
+  notes=notes.map(n=>n.id===id?{...n,pinned:!n.pinned}:n);
+  ghSave();
+  const note=notes.find(n=>n.id===id);
+  showToast(note.pinned?'Připnuto 📌':'Odepnuto');
+  // Refresh current view
+  const dv=document.getElementById('detail-view');
+  if(dv.style.display!=='none') showDetail(id);
+  else renderList();
+}
+
+// ── EXPORT TXT ────────────────────────────────────────────────────────
+function exportNoteTxt(id){
+  const note=notes.find(n=>n.id===id);
+  if(!note) return;
+  const tags=(note.tags||[]).join(' ');
+  const plain=[
+    note.title||'(bez názvu)',
+    '─'.repeat(40),
+    `Typ: ${TYPES[note.type]?.label||note.type}`,
+    `Datum: ${fmtDate(note.updatedAt)}`,
+    tags?`Tagy: ${tags}`:'',
+    '',
+    note.content||''
+  ].filter(l=>l!==undefined).join('\n');
+  const blob=new Blob([plain],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${(note.title||'poznamka').replace(/[^a-z0-9áčďéěíňóřšťúůýž ]/gi,'_').slice(0,40)}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Exportováno ✓');
+}
+
+// ── FULLSCREEN EDITOR ─────────────────────────────────────────────────
+function toggleFullscreen(){
+  const sheet=document.querySelector('#edit-overlay .sheet');
+  const btn=document.getElementById('fs-btn');
+  if(!sheet) return;
+  const isFs=sheet.classList.toggle('fullscreen');
+  btn.textContent=isFs?'✕⛶':'⛶';
+  btn.title=isFs?'Ukončit fullscreen':'Fullscreen';
 }
 
 // ── FORMATTING TOOLBAR ────────────────────────────────────────────────
