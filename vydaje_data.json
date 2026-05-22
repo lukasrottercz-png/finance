@@ -134,5 +134,13 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-22"
+  },
+  {
+    "id": "1779451625593",
+    "amount": 95,
+    "catKey": "stravovani",
+    "subcat": "Kavárna",
+    "note": "",
+    "date": "2026-05-22"
   }
 ]
