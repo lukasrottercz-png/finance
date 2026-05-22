@@ -106,6 +106,9 @@
   .task-item.urg-yellow { border-left-color: var(--yellow); }
   .task-item.urg-green { border-left-color: var(--green); }
   .task-item.urg-gray  { border-left-color: var(--gray); }
+  .task-item.overdue { background: rgba(255,59,48,0.06); border-left-color: var(--red); }
+  .task-item.overdue .task-name { color: var(--red); }
+  .overdue-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: rgba(255,59,48,0.15); color: var(--red); white-space: nowrap; }
 
   .check {
     width: 22px; height: 22px;
@@ -557,19 +560,20 @@ function renderUkoly() {
   el.innerHTML = list.map(u => {
     const days = daysUntil(u.date);
     const u2 = u.done ? 'gray' : urg(days);
+    const isOverdue = !u.done && days < 0;
     const tagsHtml = (u.tags||[]).length ? `<div class="task-tags">${(u.tags||[]).map(t => {
       const [bg, color] = tagColor(t);
       return `<span class="tag-pill" style="background:${bg};color:${color}">${t}</span>`;
     }).join('')}</div>` : '';
     return `
-    <div class="task-item urg-${u2} ${u.done?'done':''}">
+    <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''}">
       <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
       <div class="task-body">
         <div class="task-name">${esc(u.name)}</div>
         <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}</div>
         ${tagsHtml}
       </div>
-      ${!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
+      ${isOverdue ? `<span class="overdue-badge">prošlo ${Math.abs(days)}d</span>` : (!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : '')}
       <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
     </div>`;
   }).join('');
