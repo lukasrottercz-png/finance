@@ -494,7 +494,8 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 function daysUntil(d) {
   const t = new Date(); t.setHours(0,0,0,0);
-  return Math.ceil((new Date(d) - t) / 86400000);
+  const target = new Date(d + 'T00:00:00');
+  return Math.round((target - t) / 86400000);
 }
 function urg(days) {
   if (days < 0)   return 'gray';
