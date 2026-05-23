@@ -142,5 +142,13 @@
     "subcat": "Kavárna",
     "note": "",
     "date": "2026-05-22"
+  },
+  {
+    "id": "1779515343863",
+    "amount": 572,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-23"
   }
 ]
