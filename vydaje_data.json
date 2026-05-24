@@ -174,5 +174,13 @@
     "subcat": "Zahrada",
     "note": "Redukce hadice kohoutek ",
     "date": "2026-05-24"
+  },
+  {
+    "id": "1779638120642",
+    "amount": 140,
+    "catKey": "stravovani",
+    "subcat": "Restaurace",
+    "note": "",
+    "date": "2026-05-24"
   }
 ]
