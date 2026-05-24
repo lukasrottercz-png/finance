@@ -158,5 +158,13 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-05-24"
+  },
+  {
+    "id": "1779609704094",
+    "amount": 139,
+    "catKey": "bydleni",
+    "subcat": "Zahrada",
+    "note": "",
+    "date": "2026-05-24"
   }
 ]
