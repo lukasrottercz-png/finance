@@ -182,5 +182,13 @@
     "subcat": "Restaurace",
     "note": "",
     "date": "2026-05-24"
+  },
+  {
+    "id": "1779711289111",
+    "amount": 10000,
+    "catKey": "doprava",
+    "subcat": "",
+    "note": "",
+    "date": "2026-04-22"
   }
 ]
