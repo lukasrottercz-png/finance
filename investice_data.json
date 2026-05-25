@@ -25,5 +25,10 @@
       ]
     }
   ],
-  "aktualni": []
+  "aktualni": [
+    {
+      "datum": "2026-05-25",
+      "hodnota": 650300
+    }
+  ]
 }
