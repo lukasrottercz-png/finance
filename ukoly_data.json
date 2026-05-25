@@ -125,7 +125,10 @@
       "date": "2026-06-22",
       "note": "",
       "done": false,
-      "repeat": "monthly"
+      "repeat": "monthly",
+      "tags": [
+        "osobní"
+      ]
     }
   ],
   "events": [
