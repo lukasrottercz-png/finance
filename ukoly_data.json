@@ -95,7 +95,7 @@
       "name": "DPH osobní",
       "date": "2026-05-22",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "monthly",
       "tags": [
         "osobní"
@@ -118,6 +118,14 @@
       "done": false,
       "repeat": "",
       "tags": []
+    },
+    {
+      "id": "mplkw8gr6wj",
+      "name": "DPH osobní",
+      "date": "2026-06-22",
+      "note": "",
+      "done": false,
+      "repeat": "monthly"
     }
   ],
   "events": [
