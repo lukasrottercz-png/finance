@@ -198,5 +198,13 @@
     "subcat": "Vybavení",
     "note": "Podsedáky zahrada",
     "date": "2026-05-25"
+  },
+  {
+    "id": "1779736297727",
+    "amount": 309,
+    "catKey": "bydleni",
+    "subcat": "Zahrada",
+    "note": "Redukce na hadici a kouhoutek 2. pokus",
+    "date": "2026-05-25"
   }
 ]
