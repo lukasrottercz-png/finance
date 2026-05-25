@@ -298,7 +298,7 @@
   <div class="filter-row">
     <button class="f-btn" onclick="setUkolyFilter('all',this)">Vše</button>
     <button class="f-btn active" onclick="setUkolyFilter('open',this)">Nesplněné <span id="open-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
-    <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné</button>
+    <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné <span id="done-count" style="background:#34c759;color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
   </div>
   <div id="ukoly-tag-filters"></div>
 
@@ -524,9 +524,12 @@ let activeTagFilter = '';
 
 function renderUkoly() {
   const pending = ukoly.filter(u => !u.done).length;
+  const done = ukoly.filter(u => u.done).length;
   document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
   const countEl = document.getElementById('open-count');
   if (countEl) countEl.textContent = pending || '';
+  const doneEl = document.getElementById('done-count');
+  if (doneEl) doneEl.textContent = done || '';
 
   // Sbírá všechny unikátní štítky
   const allTags = [...new Set(ukoly.flatMap(u => u.tags||[]))].sort();
@@ -606,16 +609,34 @@ function repeatLabel(r) {
   return { weekly:'týdně', monthly:'měsíčně', quarterly:'čtvrtletně', yearly:'ročně' }[r] || '';
 }
 
+function playDing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1100, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+}
+
 function toggleUkol(id) {
   const u = ukoly.find(x => x.id === id);
   if (!u) return;
   if (!u.done && u.repeat) {
-    // Splněno + opakující — vytvoř nový, označ starý jako splněný
     ukoly = ukoly.map(x => x.id === id ? {...x, done: true} : x);
     ukoly.push({ id: uid(), name: u.name, date: nextDate(u.date, u.repeat), note: u.note||'', done: false, repeat: u.repeat });
     showToast('🔄 Nový termín vytvořen');
+    playDing();
   } else {
+    const wasDone = u.done;
     ukoly = ukoly.map(x => x.id === id ? {...x, done: !x.done} : x);
+    if (!wasDone) playDing();
   }
   save('tw_ukoly2', ukoly); ghSave();
   renderUkoly();
