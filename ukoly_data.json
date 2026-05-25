@@ -89,6 +89,17 @@
       "tags": [
         "xiaomi"
       ]
+    },
+    {
+      "id": "mpkvsqlimj0",
+      "name": "DPH osobní",
+      "date": "2026-05-22",
+      "note": "",
+      "done": false,
+      "repeat": "monthly",
+      "tags": [
+        "osobní"
+      ]
     }
   ],
   "events": [
