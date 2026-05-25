@@ -23,6 +23,30 @@
           "castka": 18000
         }
       ]
+    },
+    {
+      "id": "mpllq0ev",
+      "datum": "2026-05-25",
+      "nazev": "Tranše",
+      "castka": 650000,
+      "etf": [
+        {
+          "tiker": "VWCE.DE",
+          "castka": 520000
+        },
+        {
+          "tiker": "SXRV.DE",
+          "castka": 45500
+        },
+        {
+          "tiker": "2B76.DE",
+          "castka": 45500
+        },
+        {
+          "tiker": "MEUD.FR",
+          "castka": 39000
+        }
+      ]
     }
   ],
   "aktualni": [
