@@ -143,11 +143,12 @@
       "name": "Kontrola plateb Kraken",
       "date": "2026-05-26",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
       "tags": [
         "xiaomi"
-      ]
+      ],
+      "completedAt": "2026-05-26"
     }
   ],
   "events": [
