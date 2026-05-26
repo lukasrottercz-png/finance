@@ -137,6 +137,17 @@
       "note": "Z poznámky: Westfield Metropole 26:5.2026",
       "done": false,
       "repeat": ""
+    },
+    {
+      "id": "mpmklafmvsg",
+      "name": "Kontrola plateb Kraken",
+      "date": "2026-05-26",
+      "note": "",
+      "done": false,
+      "repeat": "",
+      "tags": [
+        "xiaomi"
+      ]
     }
   ],
   "events": [
