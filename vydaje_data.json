@@ -198,5 +198,13 @@
     "subcat": "Zahrada",
     "note": "Redukce na hadici a kouhoutek 2. pokus",
     "date": "2026-05-25"
+  },
+  {
+    "id": "1779791900089",
+    "amount": 258,
+    "catKey": "stravovani",
+    "subcat": "Restaurace",
+    "note": "",
+    "date": "2026-05-26"
   }
 ]
