@@ -206,5 +206,13 @@
     "subcat": "Restaurace",
     "note": "",
     "date": "2026-05-26"
+  },
+  {
+    "id": "1779826467168",
+    "amount": 305,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-26"
   }
 ]
