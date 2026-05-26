@@ -300,6 +300,7 @@
     <button class="f-btn active" onclick="setUkolyFilter('open',this)">Nesplněné <span id="open-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
     <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné <span id="done-count" style="background:#34c759;color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
   </div>
+  <div id="done-stats" style="font-size:12px;margin-bottom:8px"></div>
   <div id="ukoly-tag-filters"></div>
 
   <div id="ukolList"></div>
@@ -525,11 +526,16 @@ let activeTagFilter = '';
 function renderUkoly() {
   const pending = ukoly.filter(u => !u.done).length;
   const done = ukoly.filter(u => u.done).length;
+  const vcas = ukoly.filter(u => u.done && u.completedAt && u.completedAt <= u.date).length;
+  const poTerminu = ukoly.filter(u => u.done && u.completedAt && u.completedAt > u.date).length;
   document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
   const countEl = document.getElementById('open-count');
   if (countEl) countEl.textContent = pending || '';
   const doneEl = document.getElementById('done-count');
   if (doneEl) doneEl.textContent = done || '';
+  const statsEl = document.getElementById('done-stats');
+  if (statsEl && done > 0) statsEl.innerHTML = `<span style="color:#34c759">✅ ${vcas} včas</span>${poTerminu>0?` · <span style="color:#ff9500">⚠️ ${poTerminu} po termínu</span>`:''}`;
+  else if (statsEl) statsEl.innerHTML = '';
 
   // Sbírá všechny unikátní štítky
   const allTags = [...new Set(ukoly.flatMap(u => u.tags||[]))].sort();
@@ -566,6 +572,8 @@ function renderUkoly() {
     const days = daysUntil(u.date);
     const u2 = u.done ? 'gray' : urg(days);
     const isOverdue = !u.done && days < 0;
+    const isLate = u.done && u.completedAt && u.completedAt > u.date;
+    const isOnTime = u.done && u.completedAt && u.completedAt <= u.date;
     const tagsHtml = (u.tags||[]).length ? `<div class="task-tags">${(u.tags||[]).map(t => {
       const [bg, color] = tagColor(t);
       return `<span class="tag-pill" style="background:${bg};color:${color}">${t}</span>`;
@@ -578,7 +586,10 @@ function renderUkoly() {
         <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}</div>
         ${tagsHtml}
       </div>
-      ${isOverdue ? `<span class="overdue-badge">prošlo ${Math.abs(days)}d</span>` : (!u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : '')}
+      ${isOverdue ? `<span class="overdue-badge">prošlo ${Math.abs(days)}d</span>` : 
+        u.done && isLate ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(255,149,0,0.1);color:#ff9500;white-space:nowrap">⚠️ po termínu</span>` :
+        u.done && isOnTime ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(52,199,89,0.1);color:#34c759;white-space:nowrap">✅ včas</span>` :
+        !u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
       <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
     </div>`;
   }).join('');
@@ -628,14 +639,15 @@ function playDing() {
 function toggleUkol(id) {
   const u = ukoly.find(x => x.id === id);
   if (!u) return;
+  const todayStr = new Date().toISOString().slice(0,10);
   if (!u.done && u.repeat) {
-    ukoly = ukoly.map(x => x.id === id ? {...x, done: true} : x);
+    ukoly = ukoly.map(x => x.id === id ? {...x, done: true, completedAt: todayStr} : x);
     ukoly.push({ id: uid(), name: u.name, date: nextDate(u.date, u.repeat), note: u.note||'', done: false, repeat: u.repeat });
     showToast('🔄 Nový termín vytvořen');
     playDing();
   } else {
     const wasDone = u.done;
-    ukoly = ukoly.map(x => x.id === id ? {...x, done: !x.done} : x);
+    ukoly = ukoly.map(x => x.id === id ? {...x, done: !x.done, completedAt: !x.done ? todayStr : null} : x);
     if (!wasDone) playDing();
   }
   save('tw_ukoly2', ukoly); ghSave();
