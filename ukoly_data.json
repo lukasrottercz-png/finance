@@ -106,7 +106,7 @@
       "name": "Poslat tomášovi Balíkovi kontakty na dobre produktaky",
       "date": "2026-05-25",
       "note": "poslat SMSkou",
-      "done": false,
+      "done": true,
       "repeat": "",
       "tags": []
     },
