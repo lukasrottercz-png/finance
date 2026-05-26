@@ -299,8 +299,10 @@
     <button class="f-btn" onclick="setUkolyFilter('all',this)">Vše <span id="all-count" style="background:var(--muted);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
     <button class="f-btn active" onclick="setUkolyFilter('open',this)">Nesplněné <span id="open-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
     <button class="f-btn" onclick="setUkolyFilter('done',this)">Splněné <span id="done-count" style="background:#34c759;color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
+    <span id="vcas-pill" style="display:none;padding:5px 12px;border-radius:20px;background:rgba(52,199,89,0.1);color:#34c759;font-size:12px;font-weight:600">✅ <span id="vcas-count"></span> včas</span>
+    <span id="pozde-pill" style="display:none;padding:5px 12px;border-radius:20px;background:rgba(255,149,0,0.1);color:#ff9500;font-size:12px;font-weight:600">⚠️ <span id="pozde-count"></span> po termínu</span>
   </div>
-  <div id="done-stats" style="font-size:12px;margin-bottom:8px;padding-left:2px"></div>
+  <div id="done-stats" style="display:none"></div>
   <div id="ukoly-tag-filters"></div>
 
   <div id="ukolList"></div>
@@ -533,12 +535,12 @@ function renderUkoly() {
   if (countEl) countEl.textContent = pending || '';
   const doneEl = document.getElementById('done-count');
   if (doneEl) doneEl.textContent = done || '';
-  const statsEl = document.getElementById('done-stats');
-  if (statsEl && done > 0) {
-    statsEl.innerHTML = vcas > 0 ? `<span style="color:#34c759;font-size:11px">✅ ${vcas} včas</span>${poTerminu>0?` · <span style="color:#ff9500;font-size:11px">⚠️ ${poTerminu} po termínu</span>`:''}` : '';
-  } else if (statsEl) statsEl.innerHTML = '';
   const allEl = document.getElementById('all-count');
   if (allEl) allEl.textContent = ukoly.length || '';
+  const vcasPill = document.getElementById('vcas-pill');
+  const pozdePill = document.getElementById('pozde-pill');
+  if (vcasPill) { vcasPill.style.display = vcas > 0 ? 'inline-block' : 'none'; document.getElementById('vcas-count').textContent = vcas; }
+  if (pozdePill) { pozdePill.style.display = poTerminu > 0 ? 'inline-block' : 'none'; document.getElementById('pozde-count').textContent = poTerminu; }
 
   // Sbírá všechny unikátní štítky
   const allTags = [...new Set(ukoly.flatMap(u => u.tags||[]))].sort();
