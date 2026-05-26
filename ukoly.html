@@ -528,7 +528,7 @@ function renderUkoly() {
   const done = ukoly.filter(u => u.done).length;
   const vcas = ukoly.filter(u => u.done && u.completedAt && u.completedAt <= u.date).length;
   const poTerminu = ukoly.filter(u => u.done && u.completedAt && u.completedAt > u.date).length;
-  document.getElementById('ukolySub').textContent = `${ukoly.length} úkolů · ${pending} nesplněných`;
+  document.getElementById('ukolySub').textContent = '';
   const countEl = document.getElementById('open-count');
   if (countEl) countEl.textContent = pending || '';
   const doneEl = document.getElementById('done-count');
