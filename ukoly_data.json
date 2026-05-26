@@ -117,9 +117,10 @@
       "name": "Podivat se na AI Perplexity",
       "date": "2026-05-25",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
-      "tags": []
+      "tags": [],
+      "completedAt": "2026-05-26"
     },
     {
       "id": "mplkw8gr6wj",
