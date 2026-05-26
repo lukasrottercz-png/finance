@@ -32,11 +32,12 @@
       "name": "Zajistit vrácení telefonu od Krakena",
       "date": "2026-05-29",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
       "tags": [
         "xiaomi"
-      ]
+      ],
+      "completedAt": "2026-05-26"
     },
     {
       "id": "mpe0ksq06ju",
