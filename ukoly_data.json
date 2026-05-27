@@ -152,6 +152,15 @@
         "xiaomi"
       ],
       "completedAt": "2026-05-26"
+    },
+    {
+      "id": "mpnnqgyrkhw",
+      "name": "Přidat do hauer materiálu aplikace pro reporting obratu",
+      "date": "2026-05-27",
+      "note": "",
+      "done": false,
+      "repeat": "",
+      "tags": []
     }
   ],
   "events": [
