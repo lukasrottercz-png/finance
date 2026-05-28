@@ -254,5 +254,13 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-28"
+  },
+  {
+    "id": "1779963968448",
+    "amount": 274,
+    "catKey": "stravovani",
+    "subcat": "Fast food",
+    "note": "",
+    "date": "2026-05-28"
   }
 ]
