@@ -270,5 +270,13 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-29"
+  },
+  {
+    "id": "1780079392565",
+    "amount": 499,
+    "catKey": "bydleni",
+    "subcat": "Vybavení",
+    "note": "Lupa na celo",
+    "date": "2026-05-29"
   }
 ]
