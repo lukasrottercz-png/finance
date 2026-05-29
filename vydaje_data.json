@@ -254,5 +254,13 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-28"
+  },
+  {
+    "id": "1780034863487",
+    "amount": 1830,
+    "catKey": "zdravi",
+    "subcat": "Dentální hygiena",
+    "note": "",
+    "date": "2026-05-29"
   }
 ]
