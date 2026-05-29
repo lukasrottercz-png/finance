@@ -262,5 +262,13 @@
     "subcat": "Dentální hygiena",
     "note": "",
     "date": "2026-05-29"
+  },
+  {
+    "id": "1780055891579",
+    "amount": 121,
+    "catKey": "stravovani",
+    "subcat": "Fast food",
+    "note": "",
+    "date": "2026-05-29"
   }
 ]
