@@ -310,5 +310,13 @@
     "subcat": "MHD",
     "note": "",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780144863474",
+    "amount": 163,
+    "catKey": "stravovani",
+    "subcat": "Fast food",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
