@@ -294,5 +294,13 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780132203444",
+    "amount": 255,
+    "catKey": "domacnost",
+    "subcat": "Nářadí",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
