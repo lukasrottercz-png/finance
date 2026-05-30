@@ -318,5 +318,13 @@
     "subcat": "Fast food",
     "note": "",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780145851936",
+    "amount": 2753,
+    "catKey": "predplatne",
+    "subcat": "O2",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
