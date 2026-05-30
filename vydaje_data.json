@@ -286,5 +286,13 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780132139024",
+    "amount": 339,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
