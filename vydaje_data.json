@@ -326,5 +326,13 @@
     "subcat": "O2",
     "note": "",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780145871061",
+    "amount": 114,
+    "catKey": "stravovani",
+    "subcat": "Fast food",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
