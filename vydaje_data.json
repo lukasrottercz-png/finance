@@ -278,5 +278,13 @@
     "subcat": "Vybavení",
     "note": "Lupa na celo",
     "date": "2026-05-29"
+  },
+  {
+    "id": "1780132128537",
+    "amount": 207,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
