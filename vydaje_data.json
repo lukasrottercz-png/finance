@@ -302,5 +302,13 @@
     "subcat": "Nářadí",
     "note": "Obalova folie, krabice",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780138402289",
+    "amount": 46,
+    "catKey": "doprava",
+    "subcat": "MHD",
+    "note": "",
+    "date": "2026-05-30"
   }
 ]
