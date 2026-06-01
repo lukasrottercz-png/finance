@@ -426,5 +426,14 @@
     "note": "",
     "date": "2026-04-12",
     "shared": true
+  },
+  {
+    "id": "1780310730042",
+    "amount": 88,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-04-14",
+    "shared": true
   }
 ]
