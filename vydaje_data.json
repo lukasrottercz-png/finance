@@ -382,5 +382,13 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-05-31"
+  },
+  {
+    "id": "1780298576143",
+    "amount": 308,
+    "catKey": "bydleni",
+    "subcat": "Zahrada",
+    "note": "Hnojivo na travnik",
+    "date": "2026-05-31"
   }
 ]
