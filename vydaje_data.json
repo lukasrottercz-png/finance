@@ -417,7 +417,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-02",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780310406810",
