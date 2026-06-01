@@ -350,5 +350,13 @@
     "subcat": "Benzín — RAV4",
     "note": "",
     "date": "2026-06-01"
+  },
+  {
+    "id": "1780298381204",
+    "amount": 999,
+    "catKey": "zabava",
+    "subcat": "Robuxy",
+    "note": "",
+    "date": "2026-05-31"
   }
 ]
