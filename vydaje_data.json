@@ -390,5 +390,13 @@
     "subcat": "Zahrada",
     "note": "Hnojivo na travnik",
     "date": "2026-05-31"
+  },
+  {
+    "id": "1780306279058",
+    "amount": 498,
+    "catKey": "deti",
+    "subcat": "Hračky",
+    "note": "Stan Adamek",
+    "date": "2026-04-02"
   }
 ]
