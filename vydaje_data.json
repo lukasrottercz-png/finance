@@ -510,5 +510,14 @@
     "note": "",
     "date": "2026-05-01",
     "shared": false
+  },
+  {
+    "id": "1780312188814",
+    "amount": 35,
+    "catKey": "stravovani",
+    "subcat": "Kavárna",
+    "note": "",
+    "date": "2026-05-01",
+    "shared": false
   }
 ]
