@@ -149,7 +149,8 @@
     "catKey": "potraviny",
     "subcat": "Supermarket",
     "note": "",
-    "date": "2026-05-24"
+    "date": "2026-05-24",
+    "shared": true
   },
   {
     "id": "1779609704094",
