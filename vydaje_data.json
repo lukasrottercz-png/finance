@@ -519,5 +519,14 @@
     "note": "",
     "date": "2026-05-01",
     "shared": false
+  },
+  {
+    "id": "1780312219373",
+    "amount": 134,
+    "catKey": "stravovani",
+    "subcat": "Restaurace",
+    "note": "",
+    "date": "2026-05-02",
+    "shared": false
   }
 ]
