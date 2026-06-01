@@ -408,7 +408,9 @@
     "subcat": "Hračky",
     "note": "Stan Adamek",
     "date": "2026-04-02",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780306904725",
@@ -418,8 +420,8 @@
     "note": "",
     "date": "2026-04-02",
     "shared": true,
-    "jitkaSettled": false,
-    "settledDate": ""
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780310406810",
@@ -428,7 +430,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-07",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780310614512",
@@ -437,7 +441,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-12",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780310730042",
@@ -446,7 +452,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-14",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780310772599",
@@ -455,7 +463,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-14",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780311026488",
@@ -464,7 +474,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-24",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780311081441",
@@ -473,7 +485,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-28",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780311120431",
@@ -482,7 +496,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-28",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780311166950",
@@ -491,7 +507,9 @@
     "subcat": "Supermarket",
     "note": "",
     "date": "2026-04-29",
-    "shared": true
+    "shared": true,
+    "jitkaSettled": true,
+    "settledDate": "2026-06-01"
   },
   {
     "id": "1780312059336",
