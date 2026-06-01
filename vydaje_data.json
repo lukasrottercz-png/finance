@@ -418,8 +418,8 @@
     "note": "",
     "date": "2026-04-02",
     "shared": true,
-    "jitkaSettled": true,
-    "settledDate": "2026-06-01"
+    "jitkaSettled": false,
+    "settledDate": ""
   },
   {
     "id": "1780310406810",
