@@ -600,5 +600,14 @@
     "note": "",
     "date": "2026-05-12",
     "shared": true
+  },
+  {
+    "id": "1780334946804",
+    "amount": 284,
+    "catKey": "deti",
+    "subcat": "Hračky",
+    "note": "Danikova kostka",
+    "date": "2026-06-01",
+    "shared": false
   }
 ]
