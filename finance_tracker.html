@@ -673,10 +673,10 @@ async function loadVydaje() {
       const d = new Date(p.date);
       return d.getMonth() === nowForMzda.getMonth() && d.getFullYear() === nowForMzda.getFullYear();
     });
-    if (usporEl && p2 && p2.mzda) {
-      const mzda = p2.mzda;
+    if (usporEl) {
+      const mzda = (p2 && p2.mzda) ? p2.mzda : null;
 
-      // Načti trvalé platby pro výpočet
+      // Načti trvalé platby pro výpočet — vždy
       let trvaleTotal = 0;
       try {
         const resT = await fetch('https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/trvale_data.json', {
@@ -698,22 +698,22 @@ async function loadVydaje() {
 
       const vydajeTotal = total;
       const utraceno = vydajeTotal + trvaleTotal;
-      const uspory = mzda - utraceno;
-      const pctUspor = Math.round(uspory / mzda * 100);
-      const barPct = Math.min(100, Math.max(0, Math.round(utraceno / mzda * 100)));
-      usporEl.innerHTML = `
+
+      // Řádek mzdy + zbývá + progress bar — jen pokud mzda zadána pro tento měsíc
+      const mzdaRow = mzda ? `
         <div class="row" style="margin-bottom:8px">
           <div class="row-lbl">💼 Čistá mzda</div>
           <div class="row-val pos">${fmt(mzda)}</div>
-        </div>
-        <div class="row" style="margin-bottom:6px">
-          <div class="row-lbl">🧾 Výdaje (appka)</div>
-          <div class="row-val danger">${fmt(vydajeTotal)}</div>
-        </div>
-        <div class="row" style="margin-bottom:6px">
-          <div class="row-lbl">📅 Trvalé platby</div>
-          <div class="row-val danger">${fmt(trvaleTotal)}</div>
-        </div>
+        </div>` : `
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;padding:6px 0">
+          ℹ️ Mzda pro ${nowForMzda.toLocaleDateString('cs-CZ', {month:'long', year:'numeric'})} zatím nezadána
+        </div>`;
+
+      const zbyvaSekce = mzda ? (() => {
+        const uspory = mzda - utraceno;
+        const pctUspor = Math.round(uspory / mzda * 100);
+        const barPct = Math.min(100, Math.max(0, Math.round(utraceno / mzda * 100)));
+        return `
         <div class="row" style="margin-bottom:12px;border-top:0.5px solid var(--border);padding-top:8px">
           <div class="row-lbl"><strong>💰 Zbývá</strong></div>
           <div class="row-val ${uspory >= 0 ? 'pos' : 'danger'}"><strong>${fmt(uspory)}</strong></div>
@@ -722,8 +722,17 @@ async function loadVydaje() {
           <div style="height:100%;width:${barPct}%;background:${barPct > 90 ? 'var(--red)' : barPct > 75 ? 'var(--orange)' : 'var(--green)'};border-radius:4px;transition:width 0.3s"></div>
         </div>
         <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % mzdy · míra úspor ${pctUspor} %</div>`;
-    } else if (usporEl) {
-      usporEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Mzda pro tento měsíc zatím nezadána — přidej nové období pro ${nowForMzda.toLocaleDateString('cs-CZ', {month:'long', year:'numeric'})}</div>`;
+      })() : '';
+
+      usporEl.innerHTML = mzdaRow + `
+        <div class="row" style="margin-bottom:6px">
+          <div class="row-lbl">🧾 Výdaje (appka)</div>
+          <div class="row-val danger">${fmt(vydajeTotal)}</div>
+        </div>
+        <div class="row" style="margin-bottom:6px">
+          <div class="row-lbl">📅 Trvalé platby</div>
+          <div class="row-val danger">${fmt(trvaleTotal)}</div>
+        </div>` + zbyvaSekce;
     }
   } catch(e) {
     if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Chyba při načítání výdajů</div>`;
