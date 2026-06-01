@@ -399,5 +399,14 @@
     "note": "Stan Adamek",
     "date": "2026-04-02",
     "shared": true
+  },
+  {
+    "id": "1780306904725",
+    "amount": 476,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-04-02",
+    "shared": true
   }
 ]
