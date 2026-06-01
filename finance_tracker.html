@@ -666,9 +666,13 @@ async function loadVydaje() {
       </div>`;
     }).join('');
 
-    // Míra úspor
+    // Míra úspor — použij mzdu pouze pokud existuje period pro aktuální měsíc
     const usporEl = document.getElementById('uspory-content');
-    const p2 = periods[periods.length - 1];
+    const nowForMzda = new Date();
+    const p2 = periods.find(p => {
+      const d = new Date(p.date);
+      return d.getMonth() === nowForMzda.getMonth() && d.getFullYear() === nowForMzda.getFullYear();
+    });
     if (usporEl && p2 && p2.mzda) {
       const mzda = p2.mzda;
 
@@ -719,7 +723,7 @@ async function loadVydaje() {
         </div>
         <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % mzdy · míra úspor ${pctUspor} %</div>`;
     } else if (usporEl) {
-      usporEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Zadej mzdu při přidání nového období</div>`;
+      usporEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Mzda pro tento měsíc zatím nezadána — přidej nové období pro ${nowForMzda.toLocaleDateString('cs-CZ', {month:'long', year:'numeric'})}</div>`;
     }
   } catch(e) {
     if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Chyba při načítání výdajů</div>`;
@@ -829,13 +833,13 @@ function renderDashboard() {
         <div class="card"><div class="card-lbl">Portfolio — investováno</div><div class="card-val">${fmt(celkem)}</div></div>
       </div>`;
     })()}
-    ${p.mzda ? (() => {
-      // Načti výdaje a trvalé platby pro míru úspor — zobrazí se po načtení
+    ${(() => {
+      // Sekce vždy zobrazena — mzdu ověří loadVydaje podle aktuálního měsíce
       return `<div class="sec" id="uspory-sec">
         <h3>Příjem vs. výdaje</h3>
         <div id="uspory-content" style="font-size:13px;color:var(--text3)">⏳ Načítám…</div>
       </div>`;
-    })() : ''}
+    })()}
     ${ghSection}
     <div class="sec"><h3>Vývoj v čase</h3><div class="chart-canvas-wrap"><canvas id="chart-dash"></canvas></div></div>
     <div class="sec" id="ai-comment-sec">
