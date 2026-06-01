@@ -374,5 +374,13 @@
     "subcat": "Narozeniny",
     "note": "Oslava Roubike Danik 9let",
     "date": "2026-05-31"
+  },
+  {
+    "id": "1780298540104",
+    "amount": 248,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-05-31"
   }
 ]
