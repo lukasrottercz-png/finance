@@ -342,5 +342,13 @@
     "subcat": "MHD",
     "note": "",
     "date": "2026-05-30"
+  },
+  {
+    "id": "1780296922438",
+    "amount": 2016,
+    "catKey": "doprava",
+    "subcat": "Benzín — RAV4",
+    "note": "",
+    "date": "2026-06-01"
   }
 ]
