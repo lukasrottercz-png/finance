@@ -366,5 +366,13 @@
     "subcat": "Narozeniny",
     "note": "Dort Daník 9 let",
     "date": "2026-05-31"
+  },
+  {
+    "id": "1780298497254",
+    "amount": 3400,
+    "catKey": "darky",
+    "subcat": "Narozeniny",
+    "note": "Oslava Roubike Danik 9let",
+    "date": "2026-05-31"
   }
 ]
