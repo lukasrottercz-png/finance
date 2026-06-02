@@ -673,6 +673,7 @@ function fmtDate(d) {
 let currentView = localStorage.getItem('ukoly_view') || 'list';
 
 function setView(v) {
+  if (window.innerWidth <= 900) v = 'list';
   currentView = v;
   localStorage.setItem('ukoly_view', v);
   document.getElementById('btn-list').classList.toggle('active', v === 'list');
