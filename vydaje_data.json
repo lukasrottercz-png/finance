@@ -609,15 +609,5 @@
     "note": "Danikova kostka",
     "date": "2026-06-01",
     "shared": false
-  },
-  {
-    "id": "1780429277282",
-    "amount": 160000,
-    "catKey": "doprava",
-    "subcat": "Nákup vozidla",
-    "note": "",
-    "date": "2026-06-02",
-    "shared": false,
-    "mimoradny": true
   }
 ]
