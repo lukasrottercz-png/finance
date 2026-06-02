@@ -1,6 +1,32 @@
 [
   {
     "date": "2026-06-02",
-    "text": "Dobrý den! Máte tři úkoly po termínu: ventilační mřížky ve Zličíně a úprava potrubí v Hradci visí už pět dní, a Monika čeká dva dny na odpověď ohledně pinkcoat terminálu na venkovní akci. Za dva dny potřebujete zaplatit fakturu za Hondu a zajistit od Kotrby feedback, jestli mohou něco snížit. V připnutých poznámkách vidím, že máte na skladu velké nadzásoby citronelových svíček z Penny, které by se měly vrátit. Doporučuji dnes hlavně dohnat ty tři prošlé úkoly, ať se vám to dál nehromadí, a vyřídit Moniku – pak budete mít čistý stůl před péčí a platbou faktury za Hondu."
+    "text": "Ventilační mřížky Zličín a úprava potrubí Hradec-Vavros jsou po termínu 5 dní. Potvrdit Monice ohledně půjčení terminalu z prodejny je po termínu 2 dny. Zajistit feedback od Kotrby do 5.6. (za 2 dny). Nohel Garden-Osov: vratka svíček citronely z Penny, velké nadzásoby. Konec XIaomi za 16 dní, nástup Nohel za 19 dní. Zaměř se na: Dnes prioritně vyřídit prošlé úkoly (Zličín, Hradec, potvrzení Monice) a zajistit feedback od Kotrby do pátku.",
+    "data": {
+      "uvod": "",
+      "body": [
+        {
+          "emoji": "🔴",
+          "text": "Ventilační mřížky Zličín a úprava potrubí Hradec-Vavros jsou po termínu 5 dní."
+        },
+        {
+          "emoji": "🔴",
+          "text": "Potvrdit Monice ohledně půjčení terminalu z prodejny je po termínu 2 dny."
+        },
+        {
+          "emoji": "🟠",
+          "text": "Zajistit feedback od Kotrby do 5.6. (za 2 dny)."
+        },
+        {
+          "emoji": "📌",
+          "text": "Nohel Garden-Osov: vratka svíček citronely z Penny, velké nadzásoby."
+        },
+        {
+          "emoji": "📅",
+          "text": "Konec XIaomi za 16 dní, nástup Nohel za 19 dní."
+        }
+      ],
+      "zaver": "Dnes prioritně vyřídit prošlé úkoly (Zličín, Hradec, potvrzení Monice) a zajistit feedback od Kotrby do pátku."
+    }
   }
 ]
