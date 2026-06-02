@@ -190,6 +190,17 @@
       "done": false,
       "repeat": "",
       "tags": []
+    },
+    {
+      "id": "mpwx3qw89mh",
+      "name": "Zaplatit Fakturu za Hondu",
+      "date": "2026-06-05",
+      "note": "",
+      "done": false,
+      "repeat": "",
+      "tags": [
+        "osobní"
+      ]
     }
   ],
   "events": [
