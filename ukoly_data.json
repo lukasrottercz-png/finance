@@ -158,9 +158,10 @@
       "name": "Přidat do hauer materiálu aplikace pro reporting obratu",
       "date": "2026-05-27",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
-      "tags": []
+      "tags": [],
+      "completedAt": "2026-06-02"
     },
     {
       "id": "mpr1tb1wtz4",
