@@ -678,6 +678,7 @@ function setView(v) {
   document.getElementById('btn-list').classList.toggle('active', v === 'list');
   document.getElementById('btn-kanban').classList.toggle('active', v === 'kanban');
   document.querySelector('main').classList.toggle('kanban-mode', v === 'kanban');
+  document.getElementById('ukolList').style.display = v === 'list' ? '' : 'none';
   document.getElementById('ukolKanban').style.display = v === 'kanban' ? '' : 'none';
   // filter row only relevant in list view
   document.querySelector('.filter-row').style.display = v === 'list' ? '' : 'none';
@@ -1152,12 +1153,11 @@ function saveGhTokenTerm() {
 
 // INIT
 autoAdvanceEvents();
-renderUkoly();
 renderEvents();
 renderGhSection();
 setView(currentView);
 if (ghToken()) {
-  ghLoad().then(() => { autoAdvanceEvents(); renderUkoly(); renderEvents(); });
+  ghLoad().then(() => { autoAdvanceEvents(); renderUkoly(); renderKanban(ukoly); renderEvents(); });
 }
 </script>
 <div class="toast" id="toast"></div>
