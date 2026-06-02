@@ -45,6 +45,16 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .quick-save{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
 .quick-note.focus-mode{padding:16px}
 .quick-note.focus-mode .quick-inp{min-height:150px;font-size:17px}
+.quick-left{display:flex;align-items:center;gap:10px;min-width:0}
+.quick-exit{display:none;font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap}
+body.quick-only .quick-exit{display:inline-block}
+body.quick-only .search-wrap,
+body.quick-only .filters,
+body.quick-only #stitek-filter-row,
+body.quick-only .list-toolbar,
+body.quick-only #note-list{display:none!important}
+body.quick-only .quick-note{padding:16px}
+body.quick-only .quick-inp{min-height:62vh;font-size:17px}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
 
 /* FILTERS */
@@ -264,7 +274,10 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
     <div class="quick-note" id="quick-note">
       <textarea id="quick-inp" class="quick-inp" placeholder="✏️ Rychlá poznámka — napiš a ulož…" rows="2" oninput="quickAutosave()" onkeydown="quickKey(event)"></textarea>
       <div class="quick-actions">
-        <span class="quick-hint" id="quick-hint"></span>
+        <div class="quick-left">
+          <a href="poznamky.html" class="quick-exit" id="quick-exit">‹ Všechny poznámky</a>
+          <span class="quick-hint" id="quick-hint"></span>
+        </div>
         <button class="quick-save" onclick="saveQuick()">Uložit</button>
       </div>
     </div>
@@ -1347,10 +1360,9 @@ function initQuick(){
   restoreQuickDraft();
   const params=new URLSearchParams(location.search);
   if(params.has('quick')){
-    const qn=document.getElementById('quick-note');
+    document.body.classList.add('quick-only');
     const ta=document.getElementById('quick-inp');
-    if(qn) qn.classList.add('focus-mode');
-    if(ta){ ta.rows=6; setTimeout(()=>{ ta.focus(); window.scrollTo(0,0); }, 120); }
+    if(ta){ setTimeout(()=>{ try{ ta.focus(); }catch(e){} window.scrollTo(0,0); }, 150); }
   }
 }
 
