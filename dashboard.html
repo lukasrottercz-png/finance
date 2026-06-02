@@ -107,6 +107,14 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
 .btn { padding: 10px 18px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); cursor: pointer; font-size: 14px; color: var(--text); font-family: inherit; }
 .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
 .ai-text { font-size: 14px; line-height: 1.7; color: var(--text2); white-space: pre-wrap; }
+.bf-intro { font-size: 14px; line-height: 1.55; color: var(--text2); margin-bottom: 12px; }
+.bf-list { display: flex; flex-direction: column; gap: 2px; }
+.bf-item { display: flex; align-items: flex-start; gap: 11px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+.bf-item:last-child { border-bottom: none; }
+.bf-emoji { font-size: 16px; line-height: 1.45; flex-shrink: 0; width: 20px; text-align: center; }
+.bf-text { font-size: 14px; line-height: 1.45; color: var(--text); }
+.bf-focus { margin-top: 12px; padding: 12px 14px; background: var(--blue-bg); border-radius: var(--r); font-size: 14px; line-height: 1.5; color: var(--text); }
+.bf-focus-lbl { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--blue); margin-bottom: 3px; }
 .muted { font-size: 13px; color: var(--text3); }
 .empty-sm { font-size: 13px; color: var(--text3); padding: 4px 0; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 22px; border-radius: var(--r); font-size: 14px; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 999; }
@@ -388,9 +396,9 @@ function renderAiSection() {
     return;
   }
   const todayEntry = aiLog.find(e => e.date === todayStr());
-  if (todayEntry && todayEntry.text) {
-    el.innerHTML = `<div class="ai-text">${esc(todayEntry.text)}</div>
-      <div class="muted" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  if (todayEntry && (todayEntry.data || todayEntry.text)) {
+    el.innerHTML = briefingHtml(todayEntry) +
+      `<div class="muted" style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span>Brífink na ${fmtDate(todayEntry.date)}</span>
         <button class="btn" style="padding:5px 12px;font-size:13px" onclick="runAi()">↻ Přegenerovat</button>
       </div>`;
@@ -403,6 +411,23 @@ function renderAiSection() {
     return;
   }
   el.innerHTML = `<button class="btn btn-primary" onclick="runAi()">✨ Vygenerovat brífink</button>`;
+}
+
+function briefingHtml(entry) {
+  const d = entry.data;
+  if (!d || !Array.isArray(d.body)) {
+    // starší/záložní formát — souvislý text
+    return `<div class="ai-text">${esc(entry.text||'')}</div>`;
+  }
+  let h = '';
+  if (d.uvod) h += `<div class="bf-intro">${esc(d.uvod)}</div>`;
+  if (d.body.length) {
+    h += `<div class="bf-list">` + d.body.map(it =>
+      `<div class="bf-item"><span class="bf-emoji">${esc(it.emoji||'•')}</span><span class="bf-text">${esc(it.text||'')}</span></div>`
+    ).join('') + `</div>`;
+  }
+  if (d.zaver) h += `<div class="bf-focus"><span class="bf-focus-lbl">Dnes se zaměř na</span> ${esc(d.zaver)}</div>`;
+  return h;
 }
 
 function buildAiContext() {
@@ -453,14 +478,24 @@ async function runAi() {
   aiGenerating = true;
   el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`;
 
-  const prompt = `Jsi osobní asistent, který každé ráno připravuje krátký brífink. Z dat níže napiš stručný, přátelský brífink v češtině — souvislý text bez Markdownu a odrážek, maximálně 5-7 vět.
+  const prompt = `Jsi osobní asistent, který každé ráno připravuje krátký, dobře čitelný brífink. Z dat níže vytvoř strukturovaný přehled a vrať ho VÝHRADNĚ jako JSON, bez jakéhokoli dalšího textu, bez Markdownu a bez code fence.
 
-Postup:
-1. Pokud existuje včerejší brífink, začni jednou větou, která na něj naváže — co se posunulo, co zůstalo viset. Pokud předchozí není, tohle vynech.
-2. Vypíchni to opravdu důležité: úkoly po termínu nebo na dnes, blížící se události, stav rozpočtu. Buď konkrétní s čísly.
-3. Zakonči 1-2 konkrétními návrhy, na co se dnes zaměřit.
+Formát:
+{
+  "uvod": "Jedna krátká věta, která navazuje na včerejší brífink (co se posunulo, co zůstalo viset). Pokud včerejší brífink není, nech prázdný řetězec.",
+  "body": [
+    { "emoji": "🔴", "text": "Krátká, konkrétní položka." }
+  ],
+  "zaver": "Jedna věta — na co se dnes hlavně zaměřit (1-2 věci)."
+}
 
-Nepřeháněj délku, žádné patos ani kázání. Mluv přímo, věcně, ale lidsky.
+Pravidla pro 'body':
+- 3 až 6 položek, každá jedna stručná věta.
+- Seskup logicky a vyber vhodný emoji: 🔴 úkoly po termínu, 🟠 termín dnes/zítra, 📅 blížící se události, 📌 podstatné z poznámek (vč. nesplněných úkolů uvnitř poznámek).
+- Buď konkrétní (názvy, počty dní). Nevypisuj všechno — vyber to, co je opravdu důležité.
+- Žádné peníze ani finance (nemáš je k dispozici a ani je nezmiňuj).
+
+Mluv česky, věcně a lidsky, bez patosu.
 
 ${buildAiContext()}`;
 
@@ -468,16 +503,29 @@ ${buildAiContext()}`;
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:800, messages:[{role:'user',content:prompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, messages:[{role:'user',content:prompt}] })
     });
     if (!res.ok) {
       if (res.status === 401) { localStorage.removeItem('anthropic_api_key'); aiGenerating=false; el.innerHTML = `<div class="muted">Neplatný API klíč.</div>`; return; }
       throw new Error(res.status);
     }
     const data = await res.json();
-    const text = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
+    let raw = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
+    raw = raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim(); // odstraň případný code fence
+
+    let parsed = null, flat = raw;
+    try {
+      const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      parsed = JSON.parse(raw.slice(s, e+1));
+      // ploché znění pro kontinuitu a fallback
+      flat = [parsed.uvod, ...(parsed.body||[]).map(b=>b.text), parsed.zaver?('Zaměř se na: '+parsed.zaver):'']
+        .filter(Boolean).join(' ');
+    } catch(err) { parsed = null; } // když se parsování nepovede, necháme raw jako text
+
+    const entry = { date: todayStr(), text: flat };
+    if (parsed && Array.isArray(parsed.body)) entry.data = parsed;
     aiLog = aiLog.filter(e => e.date !== todayStr());
-    aiLog.push({ date: todayStr(), text });
+    aiLog.push(entry);
     aiLog.sort((a,b)=>a.date.localeCompare(b.date));
     if (aiLog.length > 14) aiLog = aiLog.slice(-14);
     aiGenerating = false;
