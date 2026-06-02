@@ -58,7 +58,6 @@
 
   /* MAIN */
   main { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; width: 100%; }
-  main.kanban-mode { max-width: 1400px; }
 
   /* SECTION HEADERS */
   .section-hd {
@@ -270,151 +269,6 @@
   @media (max-width: 500px) {
     .countdown-num { font-size: 32px; }
   }
-
-  @media (max-width: 900px) {
-    .view-toggle { display: none; }
-    #ukolKanban { display: none !important; }
-    #ukolList { display: block !important; }
-    .filter-row { display: flex !important; }
-    #ukoly-tag-filters { display: block !important; }
-  }
-
-  /* VIEW TOGGLE */
-  .view-toggle {
-    display: flex;
-    background: var(--surface2);
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-  }
-  .view-btn {
-    padding: 5px 12px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .view-btn.active {
-    background: var(--surface);
-    color: var(--text);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-
-  /* KANBAN */
-  .kanban-board {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .kb-col {
-    background: var(--surface2);
-    border-radius: var(--r);
-    padding: 12px;
-    min-height: 200px;
-  }
-  .kb-col-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .kb-col-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .kb-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .kb-count {
-    font-size: 11px;
-    color: var(--muted);
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: 20px;
-    padding: 1px 8px;
-  }
-  .kb-card {
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--r);
-    padding: 10px 12px;
-    margin-bottom: 7px;
-    cursor: pointer;
-    transition: background 0.15s;
-    position: relative;
-  }
-  .kb-card:hover { background: var(--surface2); }
-  .kb-card.overdue { border-left: 2.5px solid var(--red); }
-  .kb-card.done-card { opacity: 0.48; }
-  .kb-card-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
-    line-height: 1.35;
-    margin-bottom: 6px;
-    word-break: break-word;
-  }
-  .kb-card.done-card .kb-card-name { text-decoration: line-through; color: var(--muted); }
-  .kb-card-meta {
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-  }
-  .kb-card-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 7px;
-    flex-wrap: wrap;
-  }
-  .kb-check {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    flex-shrink: 0;
-    cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-    background: transparent;
-    vertical-align: middle;
-  }
-  .kb-check:hover { border-color: var(--accent); }
-  .kb-check.checked { background: var(--accent); border-color: var(--accent); }
-  .kb-check.checked::after { content: '✓'; color: #fff; font-size: 10px; font-weight: 700; }
-  .kb-card-add {
-    border: 0.5px dashed var(--border);
-    border-radius: var(--r);
-    padding: 8px;
-    text-align: center;
-    font-size: 12px;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    margin-top: 4px;
-  }
-  .kb-card-add:hover { border-color: var(--accent); color: var(--accent); }
-  .kb-urg-badge {
-    font-size: 11px; font-weight: 600;
-    padding: 2px 7px; border-radius: 20px;
-    white-space: nowrap;
-  }
 </style>
 </head>
 <body>
@@ -423,10 +277,6 @@
   <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between">
     <div class="logo">📋 Úkoly & Události</div>
     <div style="display:flex;align-items:center;gap:10px">
-      <div class="view-toggle">
-        <button class="view-btn active" id="btn-list" onclick="setView('list')">☰ Seznam</button>
-        <button class="view-btn" id="btn-kanban" onclick="setView('kanban')">⊞ Kanban</button>
-      </div>
       <button id="sync-btn" onclick="syncNow()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">💰 Finance</a>
       <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">🧾 Výdaje</a>
@@ -456,7 +306,6 @@
   <div id="ukoly-tag-filters"></div>
 
   <div id="ukolList"></div>
-  <div id="ukolKanban" style="display:none"></div>
 
   <hr class="divider">
 
@@ -669,87 +518,6 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('cs-CZ', { day:'numeric', month:'long', year:'numeric' });
 }
 
-// ── VIEW TOGGLE ───────────────────────────────────────────────────────────────
-let currentView = localStorage.getItem('ukoly_view') || 'list';
-
-function setView(v) {
-  if (window.innerWidth <= 900) v = 'list';
-  currentView = v;
-  localStorage.setItem('ukoly_view', v);
-  document.getElementById('btn-list').classList.toggle('active', v === 'list');
-  document.getElementById('btn-kanban').classList.toggle('active', v === 'kanban');
-  document.querySelector('main').classList.toggle('kanban-mode', v === 'kanban');
-  document.getElementById('ukolList').style.display = v === 'list' ? '' : 'none';
-  document.getElementById('ukolKanban').style.display = v === 'kanban' ? '' : 'none';
-  // filter row only relevant in list view
-  document.querySelector('.filter-row').style.display = v === 'list' ? '' : 'none';
-  document.getElementById('ukoly-tag-filters').style.display = v === 'list' ? '' : 'none';
-  renderUkoly();
-}
-
-function renderKanban(all) {
-  const cols = [
-    { id: 'overdue', label: 'Po termínu', color: '#ff3b30', test: u => !u.done && daysUntil(u.date) < 0 },
-    { id: 'urgent',  label: 'Urgentní',   color: '#ff9500', test: u => !u.done && daysUntil(u.date) >= 0 && daysUntil(u.date) <= 7 },
-    { id: 'planned', label: 'Plánované',  color: '#378ADD', test: u => !u.done && daysUntil(u.date) > 7 },
-    { id: 'done',    label: 'Hotovo',     color: '#34c759', test: u => u.done },
-  ];
-
-  const el = document.getElementById('ukolKanban');
-  let html = '<div class="kanban-board">';
-  cols.forEach(col => {
-    const items = all.filter(col.test).sort((a,b) => daysUntil(a.date) - daysUntil(b.date));
-    const DONE_LIMIT = 5;
-    const isDoneCol = col.id === 'done';
-    const visible = isDoneCol ? items.slice(0, DONE_LIMIT) : items;
-    const hidden = isDoneCol ? items.slice(DONE_LIMIT) : [];
-    html += `<div class="kb-col">
-      <div class="kb-col-header">
-        <div class="kb-col-label"><span class="kb-dot" style="background:${col.color}"></span>${col.label}</div>
-        <span class="kb-count">${items.length}</span>
-      </div>`;
-    const renderCard = u => {
-      const days = daysUntil(u.date);
-      const isOverdue = !u.done && days < 0;
-      const tagsHtml = (u.tags||[]).length
-        ? (u.tags||[]).map(t => { const [bg,c] = tagColor(t); return `<span class="tag-pill" style="background:${bg};color:${c}">${t}</span>`; }).join('')
-        : '';
-      let badge = '';
-      if (!u.done) {
-        if (isOverdue) badge = `<span class="kb-urg-badge" style="background:rgba(255,59,48,0.1);color:var(--red)">prošlo ${Math.abs(days)}d</span>`;
-        else if (days === 0) badge = `<span class="kb-urg-badge" style="background:rgba(255,149,0,0.1);color:var(--yellow)">Dnes!</span>`;
-        else badge = `<span class="kb-urg-badge" style="background:rgba(174,174,178,0.1);color:var(--muted)">za ${days}d</span>`;
-      }
-      return `<div class="kb-card ${isOverdue?'overdue':''} ${u.done?'done-card':''}">
-        <div class="kb-card-name">${esc(u.name)}</div>
-        <div class="kb-card-meta">
-          <span onclick="toggleUkol('${u.id}')" class="kb-check ${u.done?'checked':''}"></span>
-          ${fmtDate(u.date)}
-          ${u.repeat ? '🔄' : ''}
-        </div>
-        ${tagsHtml || badge ? `<div class="kb-card-actions">${badge}${tagsHtml}</div>` : ''}
-        <button class="task-edit" style="position:absolute;top:8px;right:6px" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
-      </div>`;
-    };
-    visible.forEach(u => { html += renderCard(u); });
-    if (hidden.length > 0) {
-      const hidId = 'kb-done-hidden';
-      const btnId = 'kb-done-btn';
-      html += `<div id="${hidId}" style="display:none">${hidden.map(renderCard).join('')}</div>`;
-      html += `<button id="${btnId}" class="kb-card-add" onclick="
-        var h=document.getElementById('${hidId}');
-        var b=document.getElementById('${btnId}');
-        if(h.style.display==='none'){h.style.display='';b.textContent='↑ skrýt';}
-        else{h.style.display='none';b.textContent='+ zobrazit dalších ${hidden.length}';}
-      ">+ zobrazit dalších ${hidden.length}</button>`;
-    }
-    if (col.id !== 'done') html += `<div class="kb-card-add" onclick="openUkolModal()">+ přidat</div>`;
-    html += `</div>`;
-  });
-  html += '</div>';
-  el.innerHTML = html;
-}
-
 // ── ÚKOLY ────────────────────────────────────────────────────────────────────
 let ukoly = load('tw_ukoly2', []);
 let uFilter = 'open';
@@ -803,7 +571,6 @@ function renderUkoly() {
 
   if (list.length === 0) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly.</div></div>`;
-    renderKanban(ukoly);
     return;
   }
   el.innerHTML = list.map(u => {
@@ -831,7 +598,6 @@ function renderUkoly() {
       <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
     </div>`;
   }).join('');
-  renderKanban(ukoly);
 }
 
 function setTagFilter(tag) {
@@ -1154,11 +920,11 @@ function saveGhTokenTerm() {
 
 // INIT
 autoAdvanceEvents();
+renderUkoly();
 renderEvents();
 renderGhSection();
-setView(currentView);
 if (ghToken()) {
-  ghLoad().then(() => { autoAdvanceEvents(); renderUkoly(); renderKanban(ukoly); renderEvents(); });
+  ghLoad().then(() => { autoAdvanceEvents(); renderUkoly(); renderEvents(); });
 }
 </script>
 <div class="toast" id="toast"></div>
