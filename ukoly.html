@@ -58,6 +58,7 @@
 
   /* MAIN */
   main { max-width: 700px; margin: 0 auto; padding: 20px 16px 60px; width: 100%; }
+  main.kanban-mode { max-width: 1400px; }
 
   /* SECTION HEADERS */
   .section-hd {
@@ -676,7 +677,7 @@ function setView(v) {
   localStorage.setItem('ukoly_view', v);
   document.getElementById('btn-list').classList.toggle('active', v === 'list');
   document.getElementById('btn-kanban').classList.toggle('active', v === 'kanban');
-  document.getElementById('ukolList').style.display = v === 'list' ? '' : 'none';
+  document.querySelector('main').classList.toggle('kanban-mode', v === 'kanban');
   document.getElementById('ukolKanban').style.display = v === 'kanban' ? '' : 'none';
   // filter row only relevant in list view
   document.querySelector('.filter-row').style.display = v === 'list' ? '' : 'none';
