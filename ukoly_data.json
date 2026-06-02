@@ -52,12 +52,12 @@
       "name": "Do Handover materialu pridat tipy jak propagovat prodejnu",
       "date": "2026-05-22",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
       "tags": [
         "xiaomi"
       ],
-      "completedAt": null
+      "completedAt": "2026-06-02"
     },
     {
       "id": "mpf4eaxsn8o",
