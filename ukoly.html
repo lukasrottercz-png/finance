@@ -270,6 +270,14 @@
     .countdown-num { font-size: 32px; }
   }
 
+  @media (max-width: 900px) {
+    .view-toggle { display: none; }
+    #ukolKanban { display: none !important; }
+    #ukolList { display: block !important; }
+    .filter-row { display: flex !important; }
+    #ukoly-tag-filters { display: block !important; }
+  }
+
   /* VIEW TOGGLE */
   .view-toggle {
     display: flex;
@@ -688,12 +696,16 @@ function renderKanban(all) {
   let html = '<div class="kanban-board">';
   cols.forEach(col => {
     const items = all.filter(col.test).sort((a,b) => daysUntil(a.date) - daysUntil(b.date));
+    const DONE_LIMIT = 5;
+    const isDoneCol = col.id === 'done';
+    const visible = isDoneCol ? items.slice(0, DONE_LIMIT) : items;
+    const hidden = isDoneCol ? items.slice(DONE_LIMIT) : [];
     html += `<div class="kb-col">
       <div class="kb-col-header">
         <div class="kb-col-label"><span class="kb-dot" style="background:${col.color}"></span>${col.label}</div>
         <span class="kb-count">${items.length}</span>
       </div>`;
-    items.forEach(u => {
+    const renderCard = u => {
       const days = daysUntil(u.date);
       const isOverdue = !u.done && days < 0;
       const tagsHtml = (u.tags||[]).length
@@ -705,7 +717,7 @@ function renderKanban(all) {
         else if (days === 0) badge = `<span class="kb-urg-badge" style="background:rgba(255,149,0,0.1);color:var(--yellow)">Dnes!</span>`;
         else badge = `<span class="kb-urg-badge" style="background:rgba(174,174,178,0.1);color:var(--muted)">za ${days}d</span>`;
       }
-      html += `<div class="kb-card ${isOverdue?'overdue':''} ${u.done?'done-card':''}">
+      return `<div class="kb-card ${isOverdue?'overdue':''} ${u.done?'done-card':''}">
         <div class="kb-card-name">${esc(u.name)}</div>
         <div class="kb-card-meta">
           <span onclick="toggleUkol('${u.id}')" class="kb-check ${u.done?'checked':''}"></span>
@@ -715,8 +727,21 @@ function renderKanban(all) {
         ${tagsHtml || badge ? `<div class="kb-card-actions">${badge}${tagsHtml}</div>` : ''}
         <button class="task-edit" style="position:absolute;top:8px;right:6px" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
       </div>`;
-    });
-    html += `<div class="kb-card-add" onclick="openUkolModal()">+ přidat</div></div>`;
+    };
+    visible.forEach(u => { html += renderCard(u); });
+    if (hidden.length > 0) {
+      const hidId = 'kb-done-hidden';
+      const btnId = 'kb-done-btn';
+      html += `<div id="${hidId}" style="display:none">${hidden.map(renderCard).join('')}</div>`;
+      html += `<button id="${btnId}" class="kb-card-add" onclick="
+        var h=document.getElementById('${hidId}');
+        var b=document.getElementById('${btnId}');
+        if(h.style.display==='none'){h.style.display='';b.textContent='↑ skrýt';}
+        else{h.style.display='none';b.textContent='+ zobrazit dalších ${hidden.length}';}
+      ">+ zobrazit dalších ${hidden.length}</button>`;
+    }
+    if (col.id !== 'done') html += `<div class="kb-card-add" onclick="openUkolModal()">+ přidat</div>`;
+    html += `</div>`;
   });
   html += '</div>';
   el.innerHTML = html;
