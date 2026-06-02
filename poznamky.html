@@ -467,6 +467,8 @@ let editId=null;
 let curType='volna';
 let curLayout=localStorage.getItem('poz_layout')||'list';
 let autoSaveTimer=null;
+let loadPromise=Promise.resolve(); // startovní načtení z GitHubu — uložení na něj počká
+let quickSaving=false;
 
 function saveLocal(){ try{ localStorage.setItem('lk_poz',JSON.stringify(notes)); }catch(e){} }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
@@ -930,19 +932,20 @@ function selectType(type){
   if(ta && !ta.value.trim()) ta.value=TEMPLATES[type]||'';
 }
 
-function saveNote(){
+async function saveNote(){
   const title=(document.getElementById('edit-title').value||'').trim();
   const content=(document.getElementById('edit-content').value||'').trim();
   const tagsRaw=(document.getElementById('edit-tags')?.value||'').trim();
   const tags=parseTags(tagsRaw);
   if(!title && !content){ showToast('Zadej název nebo obsah'); return; }
+  await loadPromise; // počkej na čerstvá data ze startu, ať nic nepřepíšeš
   const now=new Date().toISOString().slice(0,10);
   if(editId){
     notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
   } else {
     notes.unshift({id:uid(),title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
   }
-  ghSave();
+  await ghSave();
   clearDraft();
   showToast('Uloženo ✓');
   closeEdit();
@@ -1190,7 +1193,7 @@ function saveGhTok(){
   localStorage.setItem('gh_token',inp.value.trim());
   localStorage.removeItem('gh_sha_poz');
   showToast('Token uložen — načítám data…');
-  ghLoad().then(()=>renderList());
+  loadPromise = ghLoad().then(()=>renderList());
 }
 
 // ── PIN ───────────────────────────────────────────────────────────────
@@ -1339,22 +1342,32 @@ function restoreQuickDraft(){
 function quickKey(e){
   if((e.metaKey||e.ctrlKey) && e.key==='Enter'){ e.preventDefault(); saveQuick(); }
 }
-function saveQuick(){
+async function saveQuick(){
+  if(quickSaving) return;
   const ta=document.getElementById('quick-inp');
   if(!ta) return;
   const content=(ta.value||'').trim();
   if(!content){ ta.focus(); return; }
-  const now=today();
-  const firstLine=content.split('\n')[0].trim().replace(/^#+\s*/,'').replace(/^- \[.\]\s*/,'').replace(/^[-*]\s*/,'');
-  const title=firstLine.slice(0,80) || ('Rychlá poznámka '+fmtDate(now));
-  notes.unshift({id:uid(),title,content,type:'volna',tags:['rychlá'],pinned:false,createdAt:now,updatedAt:now});
-  ghSave();
-  ta.value='';
-  clearQuickDraft();
-  const hint=document.getElementById('quick-hint'); if(hint) hint.textContent='';
-  showToast('Uloženo ✓');
-  renderList();
-  ta.focus();
+  quickSaving=true;
+  const btn=document.querySelector('.quick-save');
+  if(btn){ btn.disabled=true; btn.textContent='Ukládám…'; }
+  try{
+    await loadPromise; // počkej na čerstvá data ze startu, ať nic nepřepíšeš
+    const now=today();
+    const firstLine=content.split('\n')[0].trim().replace(/^#+\s*/,'').replace(/^- \[.\]\s*/,'').replace(/^[-*]\s*/,'');
+    const title=firstLine.slice(0,80) || ('Rychlá poznámka '+fmtDate(now));
+    notes.unshift({id:uid(),title,content,type:'volna',tags:['rychlá'],pinned:false,createdAt:now,updatedAt:now});
+    await ghSave();
+    ta.value='';
+    clearQuickDraft();
+    const hint=document.getElementById('quick-hint'); if(hint) hint.textContent='';
+    showToast('Uloženo ✓');
+    renderList();
+    ta.focus();
+  } finally {
+    quickSaving=false;
+    if(btn){ btn.disabled=false; btn.textContent='Uložit'; }
+  }
 }
 function initQuick(){
   restoreQuickDraft();
@@ -1370,7 +1383,7 @@ function initQuick(){
 renderList();
 initQuick();
 if(ghToken()){
-  ghLoad().then(()=>renderList());
+  loadPromise = ghLoad().then(()=>renderList());
 }
 </script>
 </body>
