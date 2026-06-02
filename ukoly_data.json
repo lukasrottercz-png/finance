@@ -117,10 +117,10 @@
       "name": "Podivat se na AI Perplexity",
       "date": "2026-05-25",
       "note": "",
-      "done": true,
+      "done": false,
       "repeat": "",
       "tags": [],
-      "completedAt": "2026-06-01"
+      "completedAt": null
     },
     {
       "id": "mplkw8gr6wj",
@@ -157,24 +157,6 @@
       "id": "mpnnqgyrkhw",
       "name": "Přidat do hauer materiálu aplikace pro reporting obratu",
       "date": "2026-05-27",
-      "note": "",
-      "done": false,
-      "repeat": "",
-      "tags": []
-    },
-    {
-      "id": "mpr1tb1wtz4",
-      "name": "Potvrdit Monice jestli muzeme pukcot terminal z prdejny na akci venkovni",
-      "date": "2026-06-01",
-      "note": "",
-      "done": false,
-      "repeat": "",
-      "tags": []
-    },
-    {
-      "id": "mpusy81byrs",
-      "name": "Přidat plánování marketingových akcí do předávacího protokolu",
-      "date": "2026-06-01",
       "note": "",
       "done": false,
       "repeat": "",
