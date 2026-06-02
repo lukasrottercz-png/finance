@@ -177,9 +177,10 @@
       "name": "Přidat plánování marketingových akcí do předávacího protokolu",
       "date": "2026-06-01",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
-      "tags": []
+      "tags": [],
+      "completedAt": "2026-06-02"
     },
     {
       "id": "mpwdbk0gpp2",
