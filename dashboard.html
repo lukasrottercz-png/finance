@@ -30,15 +30,20 @@
   }
 }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-.shell { max-width: 760px; margin: 0 auto; padding: 0 16px 60px; }
+.shell { max-width: 980px; margin: 0 auto; padding: 0 16px 60px; }
 .topbar { background: var(--bg2); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
-.topbar-inner { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.topbar-inner { max-width: 980px; margin: 0 auto; padding: 0 16px; }
 header { padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 header h1 { font-size: 18px; font-weight: 600; }
 header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
 .nav { display: flex; align-items: center; gap: 8px; }
 .nav a, .nav button { font-size: 13px; padding: 6px 12px; border-radius: var(--r); border: 0.5px solid var(--border2); color: var(--text2); text-decoration: none; white-space: nowrap; background: var(--bg); cursor: pointer; }
 .nav button { font-size: 18px; padding: 4px 8px; border: none; color: var(--text2); }
+
+/* Vícesloupcový layout */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.dash-col { display: flex; flex-direction: column; gap: 12px; }
+.dash-col .sec { margin-bottom: 0; }
 
 .sec { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 16px 18px; margin-bottom: 12px; }
 .sec h3 { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
@@ -64,6 +69,13 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
 .b-today { background: var(--orange-bg); color: var(--orange); }
 .b-soon { background: var(--blue-bg); color: var(--blue); }
 .tagpill { display:inline-block; font-size:10px; padding:1px 7px; border-radius:20px; background:var(--bg3); color:var(--text2); margin-right:4px; margin-top:3px; }
+
+/* Připnuté poznámky */
+.note-item { display:block; padding:9px 0; border-bottom:0.5px solid var(--border); text-decoration:none; color:inherit; }
+.note-item:last-child { border-bottom:none; }
+.note-item:hover .note-title { color:var(--accent); }
+.note-title { font-size:14px; font-weight:500; }
+.note-preview { font-size:12px; color:var(--text3); margin-top:2px; line-height:1.4; }
 
 /* Události / countdown */
 .cd { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
@@ -102,6 +114,9 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
 .setup { background: var(--orange-bg); border: 0.5px solid var(--orange); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 12px; font-size: 13px; color: var(--text); }
 .setup input { width:100%; font-size:16px; padding:9px 12px; border-radius:var(--r); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); margin-top:8px; }
 
+@media (max-width: 760px) {
+  .dash-grid { grid-template-columns: 1fr; }
+}
 @media (max-width: 600px) {
   .shell, .topbar-inner { padding-left: 12px; padding-right: 12px; }
   header h1 { font-size: 16px; }
@@ -167,37 +182,51 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
 
   <div id="setup-banner"></div>
 
-  <!-- Rozpočet na dnes -->
-  <div class="sec" id="budget-sec">
-    <h3>Rozpočet na dnes</h3>
-    <div id="budget-content"><div class="empty-sm">⏳ Načítám…</div></div>
+  <div class="dash-grid">
+    <!-- LEVÝ SLOUPEC — akční -->
+    <div class="dash-col">
+      <!-- Rozpočet na dnes -->
+      <div class="sec" id="budget-sec">
+        <h3>Rozpočet na dnes</h3>
+        <div id="budget-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+
+      <!-- Úkoly -->
+      <div class="sec">
+        <h3>Úkoly <span class="h-extra" id="tasks-extra"></span></h3>
+        <div id="tasks-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+
+      <!-- Připnuté poznámky -->
+      <div class="sec" id="notes-sec">
+        <h3>📌 Připnuté poznámky</h3>
+        <div id="notes-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+    </div>
+
+    <!-- PRAVÝ SLOUPEC — stav -->
+    <div class="dash-col">
+      <!-- Události -->
+      <div class="sec" id="events-sec">
+        <h3>Nejbližší události</h3>
+        <div id="events-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+
+      <!-- Měsíc -->
+      <div class="sec">
+        <h3>Tento měsíc</h3>
+        <div id="month-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+
+      <!-- Čisté jmění -->
+      <div class="sec" id="networth-sec">
+        <h3>Čisté jmění</h3>
+        <div id="networth-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Úkoly -->
-  <div class="sec">
-    <h3>Úkoly <span class="h-extra" id="tasks-extra"></span></h3>
-    <div id="tasks-content"><div class="empty-sm">⏳ Načítám…</div></div>
-  </div>
-
-  <!-- Události -->
-  <div class="sec" id="events-sec">
-    <h3>Nejbližší události</h3>
-    <div id="events-content"><div class="empty-sm">⏳ Načítám…</div></div>
-  </div>
-
-  <!-- Měsíc -->
-  <div class="sec">
-    <h3>Tento měsíc</h3>
-    <div id="month-content"><div class="empty-sm">⏳ Načítám…</div></div>
-  </div>
-
-  <!-- Čisté jmění -->
-  <div class="sec" id="networth-sec">
-    <h3>Čisté jmění</h3>
-    <div id="networth-content"><div class="empty-sm">⏳ Načítám…</div></div>
-  </div>
-
-  <!-- AI shrnutí -->
+  <!-- AI shrnutí — přes celou šířku -->
   <div class="sec">
     <h3>AI shrnutí dne</h3>
     <div id="ai-content"></div>
@@ -234,6 +263,7 @@ let vydaje = [];    // expenses
 let trvale = [];    // recurring
 let ukoly = [];     // tasks
 let udalosti = [];  // events
+let poznamky = [];  // notes
 
 let budgetMode = localStorage.getItem('dash_budget_mode') || 'rate';
 let savingsRate = parseFloat(localStorage.getItem('dash_savings_rate') || '30');
@@ -295,17 +325,19 @@ async function ghFetch(file) {
 
 async function loadAll() {
   try {
-    const [fin, vyd, trv, term] = await Promise.all([
+    const [fin, vyd, trv, term, poz] = await Promise.all([
       ghFetch('finance_data.json').catch(()=>null),
       ghFetch('vydaje_data.json').catch(()=>null),
       ghFetch('trvale_data.json').catch(()=>null),
       ghFetch('ukoly_data.json').catch(()=>null),
+      ghFetch('poznamky_data.json').catch(()=>null),
     ]);
     finance = Array.isArray(fin) ? fin : [];
     vydaje  = Array.isArray(vyd) ? vyd : [];
     trvale  = Array.isArray(trv) ? trv : [];
     ukoly   = (term && term.ukoly) ? term.ukoly : [];
     udalosti= (term && term.events) ? term.events : [];
+    poznamky= Array.isArray(poz) ? poz : [];
   } catch(e) { console.error('loadAll:', e); }
   renderAll();
 }
@@ -344,6 +376,7 @@ function renderAll() {
   renderSetupBanner();
   renderBudget();
   renderTasks();
+  renderNotes();
   renderEvents();
   renderMonth();
   renderNetworth();
@@ -412,6 +445,27 @@ function renderTasks() {
       </div>
       <span class="task-badge ${badgeCls}">${badgeTxt}</span>
     </div>`;
+  }).join('');
+}
+
+function renderNotes() {
+  const el = document.getElementById('notes-content');
+  const pinned = poznamky.filter(n => n.pinned);
+  if (!pinned.length) {
+    el.innerHTML = `<div class="empty-sm">Žádné připnuté poznámky. Připni si je 📌 v appce Poznámky.</div>`;
+    return;
+  }
+  const stripMd = (s) => String(s||'')
+    .replace(/^#+\s*/gm,'').replace(/[*_`>#-]/g,'').replace(/\[[ x]\]/gi,'')
+    .replace(/\n+/g,' ').replace(/\s+/g,' ').trim();
+  const POZ_URL = 'https://lukasrottercz-png.github.io/finance/poznamky.html';
+  el.innerHTML = pinned.slice(0,5).map(n => {
+    const preview = stripMd(n.content);
+    const short = preview.length > 110 ? preview.slice(0,110) + '…' : preview;
+    return `<a href="${POZ_URL}" class="note-item">
+      <div class="note-title">${esc(n.title || '(bez názvu)')}</div>
+      ${short ? `<div class="note-preview">${esc(short)}</div>` : ''}
+    </a>`;
   }).join('');
 }
 
