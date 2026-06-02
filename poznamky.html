@@ -37,6 +37,14 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .search-wrap{position:relative;margin-bottom:16px}
 .search-inp{width:100%;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 14px 10px 36px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
 .search-inp::placeholder{color:var(--text3)}
+.quick-note{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:14px;transition:padding .15s}
+.quick-inp{width:100%;background:transparent;border:none;outline:none;resize:none;font-family:inherit;font-size:15px;color:var(--text);line-height:1.5;min-height:44px;display:block}
+.quick-inp::placeholder{color:var(--text3)}
+.quick-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.quick-hint{font-size:12px;color:var(--text3)}
+.quick-save{padding:7px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
+.quick-note.focus-mode{padding:16px}
+.quick-note.focus-mode .quick-inp{min-height:150px;font-size:17px}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
 
 /* FILTERS */
@@ -253,6 +261,13 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 <div class="main" id="main-view">
   <!-- LIST VIEW -->
   <div id="list-view">
+    <div class="quick-note" id="quick-note">
+      <textarea id="quick-inp" class="quick-inp" placeholder="✏️ Rychlá poznámka — napiš a ulož…" rows="2" oninput="quickAutosave()" onkeydown="quickKey(event)"></textarea>
+      <div class="quick-actions">
+        <span class="quick-hint" id="quick-hint"></span>
+        <button class="quick-save" onclick="saveQuick()">Uložit</button>
+      </div>
+    </div>
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
       <input class="search-inp" id="search-inp" type="text" placeholder="Hledat v poznámkách…" oninput="renderList()">
@@ -1291,8 +1306,57 @@ function fmtInsert(type){
   ta.setSelectionRange(cur, selE);
 }
 
+// ── RYCHLÁ POZNÁMKA ───────────────────────────────────────────────────
+function quickAutosave(){
+  const ta=document.getElementById('quick-inp');
+  if(!ta) return;
+  const v=ta.value;
+  try{ localStorage.setItem('lk_poz_quick_draft', v); }catch(e){}
+  const hint=document.getElementById('quick-hint');
+  if(hint) hint.textContent = v.trim() ? 'Koncept se ukládá' : '';
+}
+function clearQuickDraft(){ try{ localStorage.removeItem('lk_poz_quick_draft'); }catch(e){} }
+function restoreQuickDraft(){
+  try{
+    const v=localStorage.getItem('lk_poz_quick_draft');
+    const ta=document.getElementById('quick-inp');
+    if(v && ta){ ta.value=v; quickAutosave(); }
+  }catch(e){}
+}
+function quickKey(e){
+  if((e.metaKey||e.ctrlKey) && e.key==='Enter'){ e.preventDefault(); saveQuick(); }
+}
+function saveQuick(){
+  const ta=document.getElementById('quick-inp');
+  if(!ta) return;
+  const content=(ta.value||'').trim();
+  if(!content){ ta.focus(); return; }
+  const now=today();
+  const firstLine=content.split('\n')[0].trim().replace(/^#+\s*/,'').replace(/^- \[.\]\s*/,'').replace(/^[-*]\s*/,'');
+  const title=firstLine.slice(0,80) || ('Rychlá poznámka '+fmtDate(now));
+  notes.unshift({id:uid(),title,content,type:'volna',tags:['rychlá'],pinned:false,createdAt:now,updatedAt:now});
+  ghSave();
+  ta.value='';
+  clearQuickDraft();
+  const hint=document.getElementById('quick-hint'); if(hint) hint.textContent='';
+  showToast('Uloženo ✓');
+  renderList();
+  ta.focus();
+}
+function initQuick(){
+  restoreQuickDraft();
+  const params=new URLSearchParams(location.search);
+  if(params.has('quick')){
+    const qn=document.getElementById('quick-note');
+    const ta=document.getElementById('quick-inp');
+    if(qn) qn.classList.add('focus-mode');
+    if(ta){ ta.rows=6; setTimeout(()=>{ ta.focus(); window.scrollTo(0,0); }, 120); }
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────
 renderList();
+initQuick();
 if(ghToken()){
   ghLoad().then(()=>renderList());
 }
