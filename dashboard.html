@@ -152,49 +152,40 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
   <!-- Nastavení -->
   <div class="settings" id="settings">
     <div class="set-row">
-      <label>Cíl rozpočtu — jak ho počítat</label>
-      <div class="seg" id="mode-seg">
-        <button data-mode="rate" onclick="setMode('rate')">Míra úspor %</button>
-        <button data-mode="fixed" onclick="setMode('fixed')">Limit na výdaje Kč</button>
-      </div>
+      <label>GitHub token</label>
+      <input type="password" id="gh-inp" placeholder="ghp_…">
     </div>
-    <div class="set-row" id="rate-row">
-      <label>Kolik % čisté mzdy chci ušetřit</label>
-      <input type="number" id="rate-inp" min="0" max="100" step="1" placeholder="30">
+    <div class="set-row">
+      <label>Anthropic API klíč (pro ranní brífink)</label>
+      <input type="password" id="ai-inp" placeholder="sk-ant-…">
     </div>
-    <div class="set-row" id="fixed-row" style="display:none">
-      <label>Měsíční limit na běžné výdaje (Kč)</label>
-      <input type="number" id="fixed-inp" min="0" step="1000" placeholder="30000">
-    </div>
-    <button class="btn btn-primary" onclick="saveSettings()">Uložit</button>
-    <div style="margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)">
-      <div class="set-row">
-        <label>GitHub token</label>
-        <input type="password" id="gh-inp" placeholder="ghp_…">
-      </div>
-      <div class="set-row">
-        <label>Anthropic API klíč (pro AI shrnutí)</label>
-        <input type="password" id="ai-inp" placeholder="sk-ant-…">
-      </div>
-      <button class="btn" onclick="saveKeys()">Uložit klíče</button>
-    </div>
+    <button class="btn btn-primary" onclick="saveKeys()">Uložit</button>
   </div>
 
   <div id="setup-banner"></div>
 
-  <div class="dash-grid">
-    <!-- LEVÝ SLOUPEC — akční -->
-    <div class="dash-col">
-      <!-- Rozpočet na dnes -->
-      <div class="sec" id="budget-sec">
-        <h3>Rozpočet na dnes</h3>
-        <div id="budget-content"><div class="empty-sm">⏳ Načítám…</div></div>
-      </div>
+  <!-- AI brífink — přes celou šířku, nahoře -->
+  <div class="sec" id="ai-sec">
+    <h3>☀️ Brífink na dnešek</h3>
+    <div id="ai-content"></div>
+  </div>
 
+  <div class="dash-grid">
+    <!-- LEVÝ SLOUPEC -->
+    <div class="dash-col">
       <!-- Úkoly -->
       <div class="sec">
         <h3>Úkoly <span class="h-extra" id="tasks-extra"></span></h3>
         <div id="tasks-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+    </div>
+
+    <!-- PRAVÝ SLOUPEC -->
+    <div class="dash-col">
+      <!-- Události -->
+      <div class="sec" id="events-sec">
+        <h3>Nejbližší události</h3>
+        <div id="events-content"><div class="empty-sm">⏳ Načítám…</div></div>
       </div>
 
       <!-- Připnuté poznámky -->
@@ -203,33 +194,6 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
         <div id="notes-content"><div class="empty-sm">⏳ Načítám…</div></div>
       </div>
     </div>
-
-    <!-- PRAVÝ SLOUPEC — stav -->
-    <div class="dash-col">
-      <!-- Události -->
-      <div class="sec" id="events-sec">
-        <h3>Nejbližší události</h3>
-        <div id="events-content"><div class="empty-sm">⏳ Načítám…</div></div>
-      </div>
-
-      <!-- Měsíc -->
-      <div class="sec">
-        <h3>Tento měsíc</h3>
-        <div id="month-content"><div class="empty-sm">⏳ Načítám…</div></div>
-      </div>
-
-      <!-- Čisté jmění -->
-      <div class="sec" id="networth-sec">
-        <h3>Čisté jmění</h3>
-        <div id="networth-content"><div class="empty-sm">⏳ Načítám…</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- AI shrnutí — přes celou šířku -->
-  <div class="sec">
-    <h3>AI shrnutí dne</h3>
-    <div id="ai-content"></div>
   </div>
 
 </div>
@@ -240,40 +204,20 @@ header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
 const GH_USER = 'lukasrottercz-png';
 const GH_REPO = 'finance';
 
-const CATS = {
-  bydleni:{i:'🏠',l:'Bydlení'}, doprava:{i:'🚗',l:'Doprava'}, potraviny:{i:'🛒',l:'Potraviny'},
-  stravovani:{i:'🍽',l:'Stravování'}, deti:{i:'👶',l:'Děti'}, pece:{i:'💇',l:'Péče o sebe'},
-  zdravi:{i:'🏥',l:'Zdraví'}, obleceni:{i:'👕',l:'Oblečení'}, cestovani:{i:'✈️',l:'Cestování'},
-  zabava:{i:'🎮',l:'Zábava'}, predplatne:{i:'📱',l:'Předplatné'}, pojisteni:{i:'🛡',l:'Pojištění'},
-  sporeni:{i:'💰',l:'Spoření'}, domacnost:{i:'🔧',l:'Domácnost'}, darky:{i:'🎁',l:'Dárky'},
-  ostatni:{i:'❓',l:'Ostatní'}
-};
 const EVENT_ICONS = { insurance:'🛡️', work:'💼', lease:'🏠', finance:'💳', anniv:'📅', other:'📄' };
 
-// Finance struktura (pro čisté jmění)
-const BANKS = ['rb','moneta','cs','kb','air','mbank','roger','ronda'];
-const NW_PRODUCTS = [ // produkty započítané do "celkem" (mimo hypotéky)
-  {key:'bezny',eur:false},{key:'sporici1',eur:false},{key:'sporici2',eur:false},
-  {key:'terminovany',eur:false},{key:'eur',eur:true},{key:'penzijni',eur:false},{key:'stavebko',eur:false}
-];
-
 // ── STAV ──────────────────────────────────────────────────────────────
-let finance = [];   // periods
-let vydaje = [];    // expenses
-let trvale = [];    // recurring
 let ukoly = [];     // tasks
 let udalosti = [];  // events
 let poznamky = [];  // notes
-
-let budgetMode = localStorage.getItem('dash_budget_mode') || 'rate';
-let savingsRate = parseFloat(localStorage.getItem('dash_savings_rate') || '30');
-let fixedLimit = parseFloat(localStorage.getItem('dash_fixed_limit') || '30000');
+let aiLog = [];     // historie AI brífinků [{date, text}]
+let dataLoaded = false;
+let aiGenerating = false;
 
 // ── HELPERY ─────────────────────────────────────────────────────────────
 function ghToken() { return localStorage.getItem('gh_token') || ''; }
 function aiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
 function todayStr() { return new Date().toISOString().slice(0,10); }
-function fmt(n) { if (n == null || isNaN(n)) return '—'; return Math.round(n).toLocaleString('cs-CZ') + ' Kč'; }
 function fmtDate(d) { return new Date(d + 'T12:00:00').toLocaleDateString('cs-CZ', { day:'numeric', month:'long' }); }
 function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
 
@@ -281,31 +225,6 @@ function daysUntil(d) {
   const t = new Date(); t.setHours(0,0,0,0);
   const target = new Date(d + 'T00:00:00');
   return Math.round((target - t) / 86400000);
-}
-function daysLeftInMonth() {
-  const now = new Date();
-  const last = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-  return last - now.getDate() + 1; // včetně dneška
-}
-function isThisMonth(dateStr) {
-  const d = new Date(dateStr), now = new Date();
-  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-}
-function currentPeriodMzda() {
-  const now = new Date();
-  const p = finance.find(p => {
-    const d = new Date(p.date + 'T12:00:00');
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-  return p && p.mzda ? p.mzda : null;
-}
-function trvaleAktivni() {
-  const now = todayStr();
-  return trvale.filter(t => {
-    if (t.od && now < t.od) return false;
-    if (t.do && now > t.do) return false;
-    return true;
-  });
 }
 
 // ── GITHUB NAČÍTÁNÍ ───────────────────────────────────────────────────
@@ -323,49 +242,50 @@ async function ghFetch(file) {
   return JSON.parse(new TextDecoder('utf-8').decode(bytes));
 }
 
+async function ghPut(file, obj, shaKey) {
+  const token = ghToken();
+  if (!token) return false;
+  const url = `https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${file}`;
+  const headers = { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+  try {
+    const json = JSON.stringify(obj, null, 2);
+    const bytes = new TextEncoder().encode(json);
+    let binary = ''; bytes.forEach(b => binary += String.fromCharCode(b));
+    const content = btoa(binary);
+    let sha = localStorage.getItem(shaKey) || '';
+    if (!sha) {
+      const chk = await fetch(url, { headers });
+      if (chk.ok) { sha = (await chk.json()).sha; localStorage.setItem(shaKey, sha); }
+    }
+    const body = { message: 'Dashboard AI log ' + todayStr(), content };
+    if (sha) body.sha = sha;
+    let res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (res.status === 409) { // konflikt — načti aktuální sha a zkus znovu
+      const chk2 = await fetch(url, { headers });
+      if (chk2.ok) { sha = (await chk2.json()).sha; localStorage.setItem(shaKey, sha); body.sha = sha; }
+      res = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    }
+    if (!res.ok) throw new Error('GitHub PUT ' + res.status);
+    const data = await res.json();
+    localStorage.setItem(shaKey, data.content.sha);
+    return true;
+  } catch(e) { console.error('ghPut:', e); return false; }
+}
+
 async function loadAll() {
   try {
-    const [fin, vyd, trv, term, poz] = await Promise.all([
-      ghFetch('finance_data.json').catch(()=>null),
-      ghFetch('vydaje_data.json').catch(()=>null),
-      ghFetch('trvale_data.json').catch(()=>null),
+    const [term, poz, log] = await Promise.all([
       ghFetch('ukoly_data.json').catch(()=>null),
       ghFetch('poznamky_data.json').catch(()=>null),
+      ghFetch('dashboard_ai_log.json').catch(()=>null),
     ]);
-    finance = Array.isArray(fin) ? fin : [];
-    vydaje  = Array.isArray(vyd) ? vyd : [];
-    trvale  = Array.isArray(trv) ? trv : [];
     ukoly   = (term && term.ukoly) ? term.ukoly : [];
     udalosti= (term && term.events) ? term.events : [];
     poznamky= Array.isArray(poz) ? poz : [];
+    aiLog   = Array.isArray(log) ? log : [];
   } catch(e) { console.error('loadAll:', e); }
+  dataLoaded = true;
   renderAll();
-}
-
-// ── VÝPOČTY ROZPOČTU ──────────────────────────────────────────────────
-function budgetData() {
-  const mzda = currentPeriodMzda();
-  const trvaleTotal = trvaleAktivni().reduce((s,t)=>s+(t.castka||0),0);
-  const monthExps = vydaje.filter(e => isThisMonth(e.date));
-  const bezne = monthExps.filter(e => !e.mimoradny).reduce((s,e)=>s+(e.amount||0),0);
-  const mimoradne = monthExps.filter(e => e.mimoradny).reduce((s,e)=>s+(e.amount||0),0);
-  const todayExps = vydaje.filter(e => e.date === todayStr() && !e.mimoradny).reduce((s,e)=>s+(e.amount||0),0);
-
-  let limit = null, cilUspor = null;
-  if (budgetMode === 'fixed') {
-    limit = fixedLimit;
-  } else if (mzda) {
-    cilUspor = mzda * (savingsRate/100);
-    limit = mzda - trvaleTotal - cilUspor;
-  }
-  const dnyZbyva = daysLeftInMonth();
-  let zbyvaMesic = null, denniBudget = null, dnesZbyva = null;
-  if (limit != null) {
-    zbyvaMesic = limit - bezne;
-    denniBudget = zbyvaMesic / dnyZbyva;
-    dnesZbyva = denniBudget - todayExps;
-  }
-  return { mzda, trvaleTotal, bezne, mimoradne, todayExps, limit, cilUspor, dnyZbyva, zbyvaMesic, denniBudget, dnesZbyva };
 }
 
 // ── RENDER ──────────────────────────────────────────────────────────────
@@ -374,12 +294,9 @@ function renderAll() {
     new Date().toLocaleDateString('cs-CZ', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
   if (document.getElementById('sync-btn')) document.getElementById('sync-btn').style.opacity = '1';
   renderSetupBanner();
-  renderBudget();
   renderTasks();
   renderNotes();
   renderEvents();
-  renderMonth();
-  renderNetworth();
   renderAiSection();
 }
 
@@ -388,29 +305,6 @@ function renderSetupBanner() {
   if (!ghToken()) {
     el.innerHTML = `<div class="setup">🔑 Pro načtení dat zadej GitHub token v ⚙️ nastavení nahoře. Bez něj dashboard nevidí tvoje data.</div>`;
   } else { el.innerHTML = ''; }
-}
-
-function renderBudget() {
-  const el = document.getElementById('budget-content');
-  const b = budgetData();
-  if (b.limit == null) {
-    el.innerHTML = `<div class="empty-sm">Pro výpočet rozpočtu zadej čistou mzdu pro tento měsíc ve Finance trackeru${budgetMode==='fixed'?'':' (nebo přepni v ⚙️ na pevný limit)'}.</div>
-      <div class="minirow" style="margin-top:8px"><span class="lbl">Dnes utraceno</span><span>${fmt(b.todayExps)}</span></div>`;
-    return;
-  }
-  const overspent = b.dnesZbyva < 0;
-  const heroColor = overspent ? 'var(--red)' : (b.dnesZbyva < b.denniBudget*0.25 ? 'var(--orange)' : 'var(--green)');
-  const spentPct = Math.min(100, Math.max(0, Math.round((b.todayExps / Math.max(b.denniBudget,1)) * 100)));
-  el.innerHTML = `
-    <div class="budget-hero">
-      <div class="budget-big" style="color:${heroColor}">${b.dnesZbyva>=0?'':'−'}${fmt(Math.abs(b.dnesZbyva)).replace(' Kč','')} <span style="font-size:20px;color:var(--text3)">Kč</span></div>
-      <div class="budget-cap">${overspent ? 'dnes jsi přes denní rozpočet' : 'můžeš ještě dnes utratit'}</div>
-    </div>
-    <div class="pbar-track"><div class="pbar-fill" style="width:${spentPct}%;background:${spentPct>100?'var(--red)':spentPct>75?'var(--orange)':'var(--green)'}"></div></div>
-    <div class="muted" style="text-align:center;margin-bottom:8px">Dnes utraceno ${fmt(b.todayExps)} z denního rozpočtu ${fmt(b.denniBudget)}</div>
-    <div class="minirow"><span class="lbl">Zbývá do konce měsíce</span><span class="${b.zbyvaMesic>=0?'':'danger'}">${fmt(b.zbyvaMesic)}</span></div>
-    <div class="minirow"><span class="lbl">Zbývá dní v měsíci</span><span>${b.dnyZbyva}</span></div>
-  `;
 }
 
 function renderTasks() {
@@ -484,125 +378,113 @@ function renderEvents() {
     </div>`).join('');
 }
 
-function renderMonth() {
-  const el = document.getElementById('month-content');
-  const b = budgetData();
-  let rows = `
-    <div class="minirow"><span class="lbl">Běžné výdaje</span><span class="danger">${fmt(b.bezne)}</span></div>
-    <div class="minirow"><span class="lbl">Trvalé platby</span><span class="danger">${fmt(b.trvaleTotal)}</span></div>`;
-  if (b.mimoradne > 0) {
-    const mimList = vydaje.filter(e=>isThisMonth(e.date)&&e.mimoradny).map(e=>e.subcat||e.note||(CATS[e.catKey]?CATS[e.catKey].l:'')).filter(Boolean).join(', ');
-    rows += `<div class="minirow"><span class="lbl">⭐ Mimořádné${mimList?` <span class="muted">(${esc(mimList)})</span>`:''}</span><span style="color:var(--accent)">${fmt(b.mimoradne)}</span></div>`;
-  }
-  if (b.mzda) {
-    const utracenoBezne = b.bezne + b.trvaleTotal;
-    const uspory = b.mzda - utracenoBezne;
-    const pctUspor = Math.round(uspory / b.mzda * 100);
-    const barPct = Math.min(100, Math.max(0, Math.round(utracenoBezne / b.mzda * 100)));
-    rows = `<div class="minirow"><span class="lbl">💼 Čistá mzda</span><span class="pos">${fmt(b.mzda)}</span></div>` + rows +
-      `<div class="minirow"><span class="lbl"><strong>Zbývá z výplaty</strong></span><span class="${uspory>=0?'pos':'danger'}"><strong>${fmt(uspory)}</strong></span></div>`;
-    rows += `<div class="pbar-track" style="margin-top:10px"><div class="pbar-fill" style="width:${barPct}%;background:${barPct>90?'var(--red)':barPct>75?'var(--orange)':'var(--green)'}"></div></div>
-      <div class="muted" style="text-align:center">Utraceno ${barPct} % výplaty · míra úspor ${pctUspor} %${b.mimoradne>0?' <span style="color:var(--accent)">(mimořádné se nepočítají)</span>':''}</div>`;
-  } else {
-    rows += `<div class="empty-sm" style="margin-top:6px">Mzda pro tento měsíc zatím nezadána ve Finance trackeru.</div>`;
-  }
-  el.innerHTML = rows;
-}
-
-function renderNetworth() {
-  const el = document.getElementById('networth-content');
-  if (!finance.length) { el.innerHTML = `<div class="empty-sm">Zatím žádný snímek majetku.</div>`; return; }
-  const calc = (p) => {
-    let t = 0;
-    BANKS.forEach(b => NW_PRODUCTS.forEach(pr => {
-      const v = (p.data && p.data[b+'_'+pr.key]) || 0;
-      t += pr.eur ? v * (p.eur_kurz||25) : v;
-    }));
-    return t;
-  };
-  const calcHyp = (p) => BANKS.reduce((s,b)=>s+((p.data&&p.data[b+'_hypoteka'])||0),0);
-  const sorted = [...finance].sort((a,b)=>a.date.localeCompare(b.date));
-  const last = sorted[sorted.length-1];
-  const prev = sorted.length>1 ? sorted[sorted.length-2] : null;
-  const bez = calc(last) - calcHyp(last);
-  const dif = prev ? bez - (calc(prev)-calcHyp(prev)) : null;
-  const difTxt = dif!=null && dif!==0 ? `<span class="${dif>=0?'pos':'neg'}">${dif>=0?'+':'−'}${fmt(Math.abs(dif)).replace(' Kč','')} Kč</span>` : '';
-  el.innerHTML = `
-    <div class="row"><div class="row-lbl">Bez hypotéky <div class="row-sub">k ${fmtDate(last.date)}</div></div><div class="row-val">${fmt(bez)} ${difTxt}</div></div>`;
-}
-
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── AI SHRNUTÍ ──────────────────────────────────────────────────────────
+// ── AI BRÍFINK ──────────────────────────────────────────────────────────
 function renderAiSection() {
   const el = document.getElementById('ai-content');
   if (!aiKey()) {
-    el.innerHTML = `<div class="muted">Pro AI shrnutí zadej Anthropic API klíč v ⚙️ nastavení.</div>`;
+    el.innerHTML = `<div class="muted">Pro ranní brífink zadej Anthropic API klíč v ⚙️ nastavení. Pak ti ho každé ráno připravím automaticky.</div>`;
     return;
   }
-  let cache = null;
-  try { cache = JSON.parse(localStorage.getItem('dash_ai_cache')||'null'); } catch(e){}
-  if (cache && cache.date === todayStr() && cache.text) {
-    el.innerHTML = `<div class="ai-text">${esc(cache.text)}</div>
-      <button class="btn" style="margin-top:12px" onclick="runAi()">↻ Přegenerovat</button>`;
-  } else {
-    el.innerHTML = `<button class="btn btn-primary" onclick="runAi()">✨ Vygenerovat shrnutí dne</button>`;
+  const todayEntry = aiLog.find(e => e.date === todayStr());
+  if (todayEntry && todayEntry.text) {
+    el.innerHTML = `<div class="ai-text">${esc(todayEntry.text)}</div>
+      <div class="muted" style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Brífink na ${fmtDate(todayEntry.date)}</span>
+        <button class="btn" style="padding:5px 12px;font-size:13px" onclick="runAi()">↻ Přegenerovat</button>
+      </div>`;
+    return;
   }
+  if (aiGenerating) { el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`; return; }
+  if (dataLoaded && ghToken()) { // automaticky jednou denně
+    el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`;
+    runAi();
+    return;
+  }
+  el.innerHTML = `<button class="btn btn-primary" onclick="runAi()">✨ Vygenerovat brífink</button>`;
+}
+
+function buildAiContext() {
+  // Úkoly
+  const open = ukoly.filter(u=>!u.done).map(u=>({...u,d:daysUntil(u.date)})).sort((a,b)=>a.d-b.d);
+  const near = open.filter(u=>u.d<=14);
+  const taskLines = near.map(u => `- ${u.name} (${u.d<0?`prošlo ${-u.d}d`:u.d===0?'dnes':`za ${u.d}d`})${(u.tags&&u.tags.length)?` [${u.tags.join(', ')}]`:''}`).join('\n') || 'žádné v nejbližších 14 dnech';
+  const laterCount = open.length - near.length;
+  // Události
+  const evLines = udalosti.map(e=>({...e,d:daysUntil(e.date)})).filter(e=>e.d>=0).sort((a,b)=>a.d-b.d).slice(0,5)
+    .map(e=>`- ${e.name} za ${e.d} dní`).join('\n') || 'žádné';
+  // Připnuté poznámky
+  const pinLines = poznamky.filter(n=>n.pinned).slice(0,6).map(n => {
+    const c = String(n.content||'').replace(/\s+/g,' ').trim().slice(0,160);
+    return `- ${n.title||'(bez názvu)'}${c?`: ${c}`:''}`;
+  }).join('\n') || 'žádné';
+  // Nesplněné úkoly schované uvnitř poznámek
+  const noteTasks = [];
+  poznamky.forEach(n => String(n.content||'').split('\n').forEach(line => {
+    const m = line.match(/^- \[ \] (.+)/);
+    if (m) noteTasks.push(`- ${m[1].trim()} (z poznámky „${n.title||'?'}")`);
+  }));
+  const noteTaskLines = noteTasks.slice(0,15).join('\n') || 'žádné';
+  const prevEntry = aiLog.filter(e=>e.date < todayStr()).sort((a,b)=>a.date.localeCompare(b.date)).pop();
+
+  return `Dnešní datum: ${new Date().toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}.
+
+ÚKOLY (do 14 dní)${laterCount>0?`, plus ${laterCount} dalších s pozdějším termínem`:''}:
+${taskLines}
+
+NESPLNĚNÉ ÚKOLY UVNITŘ POZNÁMEK:
+${noteTaskLines}
+
+PŘIPNUTÉ POZNÁMKY:
+${pinLines}
+
+NEJBLIŽŠÍ UDÁLOSTI:
+${evLines}
+
+${prevEntry?`VČEREJŠÍ BRÍFINK (${prevEntry.date}):\n${prevEntry.text}`:'(Předchozí brífink není k dispozici — tohle je první.)'}`;
 }
 
 async function runAi() {
   const el = document.getElementById('ai-content');
   const key = aiKey();
   if (!key) { toggleSettings(); return; }
-  el.innerHTML = `<div class="muted">⏳ Přemýšlím…</div>`;
+  if (aiGenerating) return;
+  aiGenerating = true;
+  el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`;
 
-  const b = budgetData();
-  const open = ukoly.filter(u=>!u.done).map(u=>({...u,d:daysUntil(u.date)})).filter(u=>u.d<=14).sort((a,b)=>a.d-b.d);
-  const taskLines = open.map(u => `- ${u.name} (${u.d<0?`prošlo ${-u.d}d`:u.d===0?'dnes':`za ${u.d}d`})`).join('\n') || 'žádné v nejbližších dnech';
-  const evLines = udalosti.map(e=>({...e,d:daysUntil(e.date)})).filter(e=>e.d>=0).sort((a,b)=>a.d-b.d).slice(0,3)
-    .map(e=>`- ${e.name} za ${e.d} dní`).join('\n') || 'žádné';
+  const prompt = `Jsi osobní asistent, který každé ráno připravuje krátký brífink. Z dat níže napiš stručný, přátelský brífink v češtině — souvislý text bez Markdownu a odrážek, maximálně 5-7 vět.
 
-  const ctx = `Dnešní datum: ${new Date().toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long'})}.
+Postup:
+1. Pokud existuje včerejší brífink, začni jednou větou, která na něj naváže — co se posunulo, co zůstalo viset. Pokud předchozí není, tohle vynech.
+2. Vypíchni to opravdu důležité: úkoly po termínu nebo na dnes, blížící se události, stav rozpočtu. Buď konkrétní s čísly.
+3. Zakonči 1-2 konkrétními návrhy, na co se dnes zaměřit.
 
-ÚKOLY (do 14 dní):
-${taskLines}
+Nepřeháněj délku, žádné patos ani kázání. Mluv přímo, věcně, ale lidsky.
 
-UDÁLOSTI:
-${evLines}
-
-PENÍZE TENTO MĚSÍC:
-${b.mzda?`- Čistá mzda: ${Math.round(b.mzda)} Kč`:'- Mzda pro tento měsíc nezadána'}
-- Běžné výdaje zatím: ${Math.round(b.bezne)} Kč
-- Trvalé platby: ${Math.round(b.trvaleTotal)} Kč
-${b.mimoradne>0?`- Mimořádné výdaje: ${Math.round(b.mimoradne)} Kč (do běžného rozpočtu se nepočítají)`:''}
-${b.dnesZbyva!=null?`- Na dnešek zbývá k utracení: ${Math.round(b.dnesZbyva)} Kč (denní rozpočet ${Math.round(b.denniBudget)} Kč)`:''}
-${b.zbyvaMesic!=null?`- Do konce měsíce zbývá: ${Math.round(b.zbyvaMesic)} Kč na ${b.dnyZbyva} dní`:''}`;
-
-  const prompt = `Jsi osobní asistent. Na základě těchto dat napiš stručné, přátelské shrnutí dne v češtině (4-6 vět). Upozorni na to nejdůležitější: úkoly po termínu nebo na dnes, blížící se události, a jak je na tom rozpočet. Buď konkrétní s čísly, ale uvolněný. Bez Markdownu, bez odrážek, souvislý text.
-
-${ctx}`;
+${buildAiContext()}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 700, messages: [{ role:'user', content: prompt }] })
+      headers: { 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:800, messages:[{role:'user',content:prompt}] })
     });
     if (!res.ok) {
-      if (res.status === 401) { localStorage.removeItem('anthropic_api_key'); el.innerHTML = `<div class="muted">Neplatný API klíč.</div>`; return; }
+      if (res.status === 401) { localStorage.removeItem('anthropic_api_key'); aiGenerating=false; el.innerHTML = `<div class="muted">Neplatný API klíč.</div>`; return; }
       throw new Error(res.status);
     }
     const data = await res.json();
     const text = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
-    localStorage.setItem('dash_ai_cache', JSON.stringify({ date: todayStr(), text }));
-    el.innerHTML = `<div class="ai-text">${esc(text)}</div>
-      <button class="btn" style="margin-top:12px" onclick="runAi()">↻ Přegenerovat</button>`;
+    aiLog = aiLog.filter(e => e.date !== todayStr());
+    aiLog.push({ date: todayStr(), text });
+    aiLog.sort((a,b)=>a.date.localeCompare(b.date));
+    if (aiLog.length > 14) aiLog = aiLog.slice(-14);
+    aiGenerating = false;
+    renderAiSection();
+    ghPut('dashboard_ai_log.json', aiLog, 'gh_sha_ailog'); // zápis na pozadí
   } catch(e) {
+    aiGenerating = false;
     el.innerHTML = `<div class="muted" style="color:var(--red)">Chyba: ${e.message}</div>
       <button class="btn" style="margin-top:12px" onclick="runAi()">Zkusit znovu</button>`;
   }
@@ -613,27 +495,9 @@ function toggleSettings() {
   const s = document.getElementById('settings');
   s.classList.toggle('open');
   if (s.classList.contains('open')) {
-    document.getElementById('rate-inp').value = savingsRate;
-    document.getElementById('fixed-inp').value = fixedLimit;
     document.getElementById('gh-inp').value = ghToken();
     document.getElementById('ai-inp').value = aiKey();
-    applyModeUI();
   }
-}
-function setMode(m) { budgetMode = m; applyModeUI(); }
-function applyModeUI() {
-  document.querySelectorAll('#mode-seg button').forEach(btn => btn.classList.toggle('on', btn.dataset.mode === budgetMode));
-  document.getElementById('rate-row').style.display = budgetMode==='rate' ? 'flex' : 'none';
-  document.getElementById('fixed-row').style.display = budgetMode==='fixed' ? 'flex' : 'none';
-}
-function saveSettings() {
-  savingsRate = parseFloat(document.getElementById('rate-inp').value) || 0;
-  fixedLimit = parseFloat(document.getElementById('fixed-inp').value) || 0;
-  localStorage.setItem('dash_budget_mode', budgetMode);
-  localStorage.setItem('dash_savings_rate', savingsRate);
-  localStorage.setItem('dash_fixed_limit', fixedLimit);
-  toast('Uloženo ✓');
-  renderBudget(); renderMonth();
 }
 function saveKeys() {
   const gh = document.getElementById('gh-inp').value.trim();
