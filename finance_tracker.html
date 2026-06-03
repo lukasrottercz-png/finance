@@ -144,6 +144,9 @@ header .hdate { font-size: 13px; color: var(--text3); }
   .chart-lbl { min-width: 80px; font-size: 11px; }
   .bar-val { font-size: 10px; min-width: 28px; }
 }
+
+.home-link{cursor:pointer;transition:opacity .15s}
+.home-link:hover{opacity:.55}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -151,7 +154,7 @@ header .hdate { font-size: 13px; color: var(--text3); }
 <div style="background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.1);position:sticky;top:0;z-index:10">
   <div style="max-width:800px;margin:0 auto;padding:0 16px">
   <header style="background:transparent;border:none;position:static;padding:14px 0">
-    <h1>💰 Osobní finance</h1>
+    <a href="https://lukasrottercz-png.github.io/finance/dashboard.html" class="home-link" title="Zpět na hlavní stranu" style="text-decoration:none;color:inherit;display:inline-block"><h1>💰 Osobní finance</h1></a>
     <div style="display:flex;align-items:center;gap:8px">
       <button id="sync-btn" onclick="syncAll()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" target="_blank" 

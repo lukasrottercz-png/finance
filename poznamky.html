@@ -263,13 +263,16 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
 
 /* AI MODAL */
 .ai-result{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap}
+
+.home-link{cursor:pointer;transition:opacity .15s}
+.home-link:hover{opacity:.55}
 </style>
 </head>
 <body>
 
 <div class="hdr">
   <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
-    <div class="hdr-title">📝 Poznámky</div>
+    <a href="https://lukasrottercz-png.github.io/finance/dashboard.html" class="home-link hdr-title" title="Zpět na hlavní stranu" style="text-decoration:none;color:inherit;cursor:pointer">📝 Poznámky</a>
     <div class="hdr-actions">
       <button class="hdr-btn" onclick="syncTap()" id="sync-btn" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
