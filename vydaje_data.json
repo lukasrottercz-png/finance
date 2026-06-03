@@ -629,5 +629,15 @@
     "date": "2026-06-03",
     "shared": false,
     "mimoradny": false
+  },
+  {
+    "id": "1780473459680",
+    "amount": 10855,
+    "catKey": "potraviny",
+    "subcat": "Podíl Jitka",
+    "note": "",
+    "date": "2026-06-03",
+    "shared": false,
+    "mimoradny": false
   }
 ]
