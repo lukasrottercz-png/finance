@@ -28,5 +28,35 @@
       ],
       "zaver": "Dnes prioritně vyřídit prošlé úkoly (Zličín, Hradec, potvrzení Monice) a zajistit feedback od Kotrby do pátku."
     }
+  },
+  {
+    "date": "2026-06-03",
+    "text": "Ventilační mřížky, potrubí Hradec a potvrzení Monice stále visí, feedback od Kotrby je potřeba do pátku. Vyřešit ventilační mřížky Zličín a úpravu potrubí Hradec-Vavros (oboje prošlo 5 dní). Potvrdit Monice ohledně půjčení terminalu z prodejny na venkovní akci (prošlo 2 dny). Zajistit feedback od Kotrby, jestli mohou něco snížit (termín 5.6., za 2 dny). Zaplatit fakturu za Hondu (termín za 2 dny). Nohel Garden-Osov: vratka citronelových svíček z Penny, velké nadzásoby ke skladování. Zaměř se na: Dnes prioritně dotáhnout všechny prošlé úkoly (Zličín, Hradec, potvrzení Monice) a zajistit feedback od Kotrby.",
+    "data": {
+      "uvod": "Ventilační mřížky, potrubí Hradec a potvrzení Monice stále visí, feedback od Kotrby je potřeba do pátku.",
+      "body": [
+        {
+          "emoji": "🔴",
+          "text": "Vyřešit ventilační mřížky Zličín a úpravu potrubí Hradec-Vavros (oboje prošlo 5 dní)."
+        },
+        {
+          "emoji": "🔴",
+          "text": "Potvrdit Monice ohledně půjčení terminalu z prodejny na venkovní akci (prošlo 2 dny)."
+        },
+        {
+          "emoji": "🟠",
+          "text": "Zajistit feedback od Kotrby, jestli mohou něco snížit (termín 5.6., za 2 dny)."
+        },
+        {
+          "emoji": "🟠",
+          "text": "Zaplatit fakturu za Hondu (termín za 2 dny)."
+        },
+        {
+          "emoji": "📌",
+          "text": "Nohel Garden-Osov: vratka citronelových svíček z Penny, velké nadzásoby ke skladování."
+        }
+      ],
+      "zaver": "Dnes prioritně dotáhnout všechny prošlé úkoly (Zličín, Hradec, potvrzení Monice) a zajistit feedback od Kotrby."
+    }
   }
 ]
