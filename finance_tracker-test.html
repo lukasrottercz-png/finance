@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<title>Osobní finance</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f2f2f7; --bg2: #ffffff; --bg3: #f2f2f7;
+  --text: #1c1c1e; --text2: #6c6c70; --text3: #aeaeb2;
+  --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+  --green: #34c759; --green-bg: #e8f8ed;
+  --red: #ff3b30; --red-bg: #fff0ef;
+  --blue: #007aff; --blue-bg: #e5f1ff;
+  --orange: #ff9500;
+  --accent: #7c3aed;
+  --r: 13px; --rl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000; --bg2: #1c1c1e; --bg3: #000000;
+    --text: #ffffff; --text2: #aeaeb2; --text3: #636366;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+    --green: #34c759; --green-bg: #0d3320;
+    --red: #ff3b30; --red-bg: #3d0e0b;
+    --blue: #0a84ff; --blue-bg: #001f4d;
+    --orange: #ff9500;
+    --accent: #a78bfa;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.shell { max-width: 800px; margin: 0 auto; padding: 0 16px 60px; }
+header { padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 500; }
+header .hdate { font-size: 13px; color: var(--text3); }
+.tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab { padding: 6px 16px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); cursor: pointer; font-size: 14px; color: var(--text2); }
+.tab:hover { background: var(--bg2); }
+.tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.card { background: var(--bg2); border-radius: var(--r); padding: 14px 16px; }
+.card-lbl { font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.card-val { font-size: 18px; font-weight: 500; }
+.card-diff { font-size: 12px; margin-top: 4px; }
+.pos { color: var(--green); } .neg { color: var(--red); }
+.sec { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 16px 18px; margin-bottom: 12px; }
+.sec h3 { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+.row { display: flex; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--border); gap: 8px; }
+.row:last-child { border-bottom: none; }
+.row-lbl { flex: 1; font-size: 14px; }
+.row-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.row-val { font-size: 14px; font-weight: 500; min-width: 140px; text-align: right; }
+.row-diff { font-size: 12px; min-width: 72px; text-align: right; }
+.danger { color: var(--red) !important; }
+.pbar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.pbar select { font-size: 14px; padding: 6px 10px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); }
+.pbar .kurz { font-size: 13px; color: var(--text3); }
+.chart-wrap { display: flex; flex-direction: column; gap: 8px; }
+.chart-row { display: flex; align-items: center; gap: 8px; }
+.chart-lbl { font-size: 12px; color: var(--text2); min-width: 110px; text-align: right; white-space: nowrap; }
+.bar-track { flex: 1; background: var(--bg2); border-radius: 3px; height: 20px; }
+.bar-fill { height: 100%; border-radius: 3px; min-width: 2px; }
+.bar-val { font-size: 11px; font-weight: 500; white-space: nowrap; min-width: 36px; text-align: right; }
+.wizard { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--rl); overflow: hidden; }
+.wiz-head { padding: 16px 20px; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.wiz-title { font-size: 16px; font-weight: 500; flex: 1; }
+.wiz-step { font-size: 20px; font-weight: 500; color: var(--text); white-space: nowrap; }
+.wiz-prog { height: 3px; background: var(--bg2); }
+.wiz-prog-bar { height: 100%; background: var(--blue); transition: width 0.25s; }
+.wiz-body { padding: 20px; }
+.wiz-date-row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
+.wiz-fields { display: flex; flex-direction: column; gap: 14px; }
+.fg { display: flex; flex-direction: column; gap: 5px; }
+.fg label { font-size: 13px; color: var(--text2); }
+.fg input { font-size: 16px; padding: 10px 12px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); width: 100%; }
+.fg input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+.fg input.eur { border-color: rgba(24,95,165,0.5); background: var(--blue-bg); }
+.fg input.hyp { border-color: rgba(163,45,45,0.4); }
+.fg .hint { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.wiz-nav { display: flex; gap: 8px; padding: 16px 20px; border-top: 0.5px solid var(--border); justify-content: space-between; align-items: center; }
+.wiz-nav-l { display: flex; gap: 8px; align-items: center; }
+.btn { padding: 8px 18px; border-radius: var(--r); border: 0.5px solid var(--border2); background: transparent; cursor: pointer; font-size: 14px; color: var(--text); }
+.btn:hover { background: var(--bg2); }
+.btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+.btn-primary:hover { opacity: 0.85; background: var(--text); }
+.btn-danger { border-color: rgba(163,45,45,0.4); color: var(--red); font-size: 13px; padding: 6px 12px; }
+.btn-danger:hover { background: var(--red-bg); }
+.empty { text-align: center; padding: 52px 20px; color: var(--text2); }
+.empty .icon { font-size: 44px; margin-bottom: 12px; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 22px; border-radius: var(--r); font-size: 14px; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 999; }
+.toast.show { opacity: 1; }
+.chart-canvas-wrap { position: relative; height: 220px; }
+
+@media (max-width: 600px) {
+  /* Základní layout */
+  .shell { padding: 0 12px 60px; }
+  header { padding: 14px 0 12px; flex-wrap: wrap; gap: 4px; }
+  header h1 { font-size: 16px; }
+  header .hdate { font-size: 12px; }
+
+  /* Tabs — scrollovatelné */
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { white-space: nowrap; flex-shrink: 0; font-size: 13px; padding: 5px 12px; }
+
+  /* Karty — 2 sloupce */
+  .cards { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .card { padding: 10px 12px; }
+  .card-val { font-size: 15px; }
+  .card-lbl { font-size: 11px; }
+
+  /* Řádky přehledu */
+  .row-val { font-size: 13px; min-width: 100px; }
+  .row-diff { font-size: 11px; min-width: 60px; }
+  .row-lbl { font-size: 13px; }
+
+  /* Grafy */
+  .chart-canvas-wrap { height: 180px; }
+
+  /* Sekce */
+  .sec { padding: 12px 14px; }
+
+  /* Wizard */
+  .wiz-head { padding: 12px 14px; }
+  .wiz-title { font-size: 14px; }
+  .wiz-step { font-size: 16px; }
+  .wiz-body { padding: 14px; }
+  .wiz-nav { padding: 12px 14px; }
+  .wiz-date-row { grid-template-columns: 1fr; }
+  .fg input, .fg textarea { font-size: 16px; padding: 10px 12px; }
+  .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cat-btn { padding: 10px 4px; }
+  .cat-icon { font-size: 22px; }
+  .cat-lbl { font-size: 10px; }
+  .subcat-label { font-size: 15px; }
+
+  /* Tlačítka */
+  .btn { padding: 9px 14px; font-size: 13px; }
+  .btn-primary { padding: 12px 18px; }
+
+  /* Chart labels */
+  .chart-lbl { min-width: 80px; font-size: 11px; }
+  .bar-val { font-size: 10px; min-width: 28px; }
+}
+
+.home-link{cursor:pointer;transition:opacity .15s}
+.home-link:hover{opacity:.55}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<div style="background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.1);position:sticky;top:0;z-index:10">
+  <div style="max-width:800px;margin:0 auto;padding:0 16px">
+  <header style="background:transparent;border:none;position:static;padding:14px 0">
+    <a href="https://lukasrottercz-png.github.io/finance/dashboard.html" class="home-link" title="Zpět na hlavní stranu" style="text-decoration:none;color:inherit;display:inline-block"><h1>💰 Osobní finance</h1></a><span style="font-size:9px;font-weight:700;color:#34c759;border:1px solid #34c759;border-radius:10px;padding:1px 5px;margin-left:8px;vertical-align:middle">DRIVE</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button id="sync-btn" onclick="syncAll()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px" title="Synchronizovat">↻</button>
+      <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" target="_blank" 
+        style="font-size:13px;padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--border2);color:var(--text2);text-decoration:none;white-space:nowrap">🧾 Výdaje</a>
+      <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" target="_blank"
+        style="font-size:13px;padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--border2);color:var(--text2);text-decoration:none;white-space:nowrap">📋 Úkoly</a>
+      <a href="https://lukasrottercz-png.github.io/finance/poznamky.html" target="_blank"
+        style="font-size:13px;padding:6px 12px;border-radius:var(--r);border:0.5px solid var(--border2);color:var(--text2);text-decoration:none;white-space:nowrap">📝 Poznámky</a>
+      <span class="hdate" id="hdate"></span>
+    </div>
+  </header>
+  </div>
+</div>
+<div style="height:8px;background:var(--bg)"></div>
+<div class="shell">
+  <div class="tabs" id="tabs" style="padding:0 16px"></div>
+  <div id="content" style="padding:0 16px"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const BANKS = [
+  { key:'rb',     label:'Raiffeisenbank', short:'RB' },
+  { key:'moneta', label:'Moneta',         short:'MONETA' },
+  { key:'cs',     label:'ČS',             short:'CS' },
+  { key:'kb',     label:'KB',             short:'KB' },
+  { key:'air',    label:'AirBank',        short:'Air' },
+  { key:'mbank',  label:'mBank',          short:'mBank' },
+  { key:'roger',  label:'Roger aukce',    short:'Roger' },
+  { key:'ronda',  label:'Ronda invest',   short:'Ronda' },
+];
+const PRODUCTS = [
+  { key:'bezny',       label:'Běžný účet (CZK)',   eur:false, cat:'bezne' },
+  { key:'sporici1',    label:'Spořící 1 (CZK)',     eur:false, cat:'sporici' },
+  { key:'sporici2',    label:'Spořící 2 (CZK)',     eur:false, cat:'sporici' },
+  { key:'terminovany', label:'Termínovaný (CZK)',   eur:false, cat:'sporici' },
+  { key:'eur',         label:'EUR účet',            eur:true,  cat:'bezne' },
+  { key:'penzijni',    label:'Penzijní spoření',    eur:false, cat:'investice' },
+  { key:'stavebko',    label:'Stavebko Daník',      eur:false, cat:'investice' },
+  { key:'hypoteka',    label:'Hypotéka',            eur:false, cat:'zavazky' },
+];
+
+const CK = (b,p) => b + '_' + p;
+
+function makeEmpty(date) {
+  const d = { date, eur_kurz: 25.0, data: {}, events: [], note: '' };
+  BANKS.forEach(b => PRODUCTS.forEach(p => { d.data[CK(b.key,p.key)] = 0; }));
+  return d;
+}
+
+function calcCelkem(p) {
+  let t = 0;
+  BANKS.forEach(b => PRODUCTS.filter(pr => pr.cat !== 'zavazky').forEach(pr => {
+    const v = p.data[CK(b.key,pr.key)] || 0;
+    t += pr.eur ? v * (p.eur_kurz || 25) : v;
+  }));
+  return t;
+}
+function calcHyp(p) { return BANKS.reduce((s,b) => s + (p.data[CK(b.key,'hypoteka')]||0), 0); }
+function calcBez(p) { return calcCelkem(p) - calcHyp(p); }
+
+let periods = [];
+try { periods = JSON.parse(localStorage.getItem('lk_finance') || '[]'); } catch(e) {}
+let view = 'dashboard';
+let selIdx = Math.max(0, periods.length - 1);
+let wiz = null;
+
+// ── GOOGLE DRIVE STORAGE ──────────────────────────────────────────────
+const GOOGLE_CLIENT_ID='549502284523-okg9u0p3almkgr1q2to17phr9fks270e.apps.googleusercontent.com';
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+const GH_FILE='finance_data.json'; // vlastní (čtení+zápis)
+
+let tokenClient=null, accessToken='', tokenExpiry=0;
+
+function ghToken(){ return localStorage.getItem('google_connected')?'google':''; }
+function isConnected(){ return !!localStorage.getItem('google_connected'); }
+function gisReady(){ return typeof google!=='undefined' && google.accounts && google.accounts.oauth2; }
+
+function ensureTokenClient(){
+  if(tokenClient) return true;
+  if(!gisReady() || !GOOGLE_CLIENT_ID) return false;
+  tokenClient=google.accounts.oauth2.initTokenClient({ client_id:GOOGLE_CLIENT_ID, scope:DRIVE_SCOPE, callback:function(){} });
+  return true;
+}
+
+function getAccessToken(interactive){
+  return new Promise(function(resolve,reject){
+    if(accessToken && Date.now()<tokenExpiry-60000){ resolve(accessToken); return; }
+    if(!GOOGLE_CLIENT_ID){ reject(new Error('chybí client id')); return; }
+    if(!ensureTokenClient()){ reject(new Error('GIS not ready')); return; }
+    tokenClient.callback=function(resp){
+      if(resp && resp.error){ reject(new Error(resp.error)); return; }
+      accessToken=resp.access_token;
+      tokenExpiry=Date.now()+((resp.expires_in||3600)*1000);
+      localStorage.setItem('google_connected','1');
+      resolve(accessToken);
+    };
+    tokenClient.error_callback=function(err){ reject(new Error('oauth '+((err&&err.type)||'error'))); };
+    try{ tokenClient.requestAccessToken({prompt: interactive?'consent':''}); }
+    catch(e){ reject(e); }
+  });
+}
+
+async function driveApi(url,opts){
+  opts=opts||{};
+  let token=await getAccessToken(false);
+  opts.headers=Object.assign({},opts.headers,{'Authorization':'Bearer '+token});
+  let res=await fetch(url,opts);
+  if(res.status===401){
+    accessToken=''; tokenExpiry=0;
+    token=await getAccessToken(false);
+    opts.headers['Authorization']='Bearer '+token;
+    res=await fetch(url,opts);
+  }
+  return res;
+}
+
+function driveIdKey(f){ return 'drive_id_'+f; }
+
+async function driveFindFile(fname){
+  const ck=driveIdKey(fname);
+  let id=localStorage.getItem(ck)||'';
+  if(id){
+    const rr=await driveApi('https://www.googleapis.com/drive/v3/files/'+id+'?fields=id,trashed');
+    if(rr.ok){ const dd=await rr.json(); if(!dd.trashed) return id; }
+    localStorage.removeItem(ck);
+  }
+  const q=encodeURIComponent("name='"+fname+"' and trashed=false");
+  const r=await driveApi('https://www.googleapis.com/drive/v3/files?q='+q+'&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc');
+  if(!r.ok) throw new Error('FIND '+r.status);
+  const d=await r.json();
+  if(d.files && d.files.length){ localStorage.setItem(ck,d.files[0].id); return d.files[0].id; }
+  return '';
+}
+
+async function driveReadJSON(fname){
+  const id=await driveFindFile(fname);
+  if(!id) return {data:null, exists:false};
+  const r=await driveApi('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media');
+  if(!r.ok) throw new Error('READ '+r.status);
+  let j=null; try{ j=await r.json(); }catch(e){ j=null; }
+  return {data:j, exists:true};
+}
+
+async function driveWriteJSON(fname,obj){
+  const json=JSON.stringify(obj,null,2);
+  let id=localStorage.getItem(driveIdKey(fname)) || await driveFindFile(fname);
+  if(id){
+    const r=await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
+      {method:'PATCH',headers:{'Content-Type':'application/json'},body:json});
+    if(!r.ok) throw new Error('UPDATE '+r.status);
+    return id;
+  }
+  const boundary='fin'+Date.now();
+  const meta=JSON.stringify({name:fname,mimeType:'application/json'});
+  const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+
+             '\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+json+'\r\n--'+boundary+'--';
+  const r2=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body:body});
+  if(!r2.ok) throw new Error('CREATE '+r2.status);
+  const d=await r2.json(); localStorage.setItem(driveIdKey(fname),d.id);
+  return d.id;
+}
+
+// Finance (vlastní soubor)
+async function ghLoad(){
+  if(!isConnected()) return false;
+  try{
+    const r=await driveReadJSON(GH_FILE);
+    if(r.exists && Array.isArray(r.data)){ periods=r.data; selIdx=Math.max(0,periods.length-1); localStorage.setItem('lk_finance',JSON.stringify(periods)); }
+    updateSyncIcon('ok'); return true;
+  }catch(e){ console.error('driveLoad finance:',e); updateSyncIcon('error'); return false; }
+}
+async function ghSave(){
+  if(!isConnected()){ save(); updateSyncIcon('local'); return; }
+  try{ await driveWriteJSON(GH_FILE, periods); localStorage.setItem('lk_finance',JSON.stringify(periods)); updateSyncIcon('ok'); }
+  catch(e){ console.error('driveSave finance:',e); save(); updateSyncIcon('error'); toast('Drive nedostupný — uloženo lokálně'); }
+}
+
+// Čtení souborů appky Výdaje (jen čtení)
+async function readTrvaleFromDrive(){
+  try{ const r=await driveReadJSON('trvale_data.json'); return {exists:r.exists, list:(r.exists&&Array.isArray(r.data))?r.data:[]}; }
+  catch(e){ console.error('readTrvale:',e); return {exists:false, list:[]}; }
+}
+async function readVydajeFromDrive(){
+  try{ const r=await driveReadJSON('vydaje_data.json'); return {exists:r.exists, list:(r.exists&&Array.isArray(r.data))?r.data:[]}; }
+  catch(e){ console.error('readVydaje:',e); return {exists:false, list:[]}; }
+}
+
+function updateSyncIcon(state){
+  const b=document.getElementById('sync-btn'); if(!b) return;
+  if(state==='syncing'){ b.textContent='↻'; b.style.opacity='0.3'; b.title='Synchronizuji…'; }
+  else if(state==='ok'){ b.textContent='↻'; b.style.opacity='1'; b.style.color='#34c759'; b.title='Připojeno k Google Drive ✓ — klepni pro sync'; }
+  else if(state==='local'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff9500'; b.title='Nepřihlášeno — klepni a přihlas se Googlem'; }
+  else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
+}
+
+async function connectGoogle(){
+  if(!GOOGLE_CLIENT_ID){ toast('V kódu chybí Google Client ID'); return; }
+  try{ await getAccessToken(true); }
+  catch(e){ console.error(e); toast('Přihlášení se nezdařilo'); return; }
+  updateSyncIcon('syncing');
+  await Promise.all([ghLoad(), ghLoadInv()]);
+  await ghSave(); await ghSaveInv(loadInv());
+  selIdx=Math.max(0,periods.length-1); _aiCommentCache=''; renderTabs(); rc();
+  updateSyncIcon('ok'); toast('Připojeno k Google Drive ✓');
+}
+function disconnectGoogle(){
+  if(accessToken){ try{ google.accounts.oauth2.revoke(accessToken,function(){}); }catch(e){} }
+  accessToken=''; tokenExpiry=0; localStorage.removeItem('google_connected');
+  updateSyncIcon('local'); renderTabs(); rc(); toast('Odhlášeno — data zůstávají lokálně i na Disku');
+}
+
+function fmt(n) {
+  if (n == null) return '—';
+  return Math.round(n).toLocaleString('cs-CZ') + ' Kč';
+}
+function fmtEur(n) { return Math.round(n).toLocaleString('cs-CZ') + ' EUR'; }
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d + 'T12:00:00').toLocaleDateString('cs-CZ', { day:'numeric', month:'long', year:'numeric' });
+}
+function fmtShort(d) {
+  if (!d) return '';
+  return new Date(d + 'T12:00:00').toLocaleDateString('cs-CZ', { month:'short', year:'numeric' });
+}
+function save() { try { localStorage.setItem('lk_finance', JSON.stringify(periods)); } catch(e) {} }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function diff(cur, prv, inv, asCard) {
+  if (prv == null) return '';
+  const d = Math.round(cur - prv);
+  if (d === 0) return '';
+  const good = inv ? d < 0 : d >= 0;
+  const cls = good ? 'pos' : 'neg';
+  const s = (d >= 0 ? '+' : '') + d.toLocaleString('cs-CZ');
+  if (asCard) return `<div class="card-diff ${cls}">${s} Kč</div>`;
+  return `<span class="row-diff ${cls}">${s}</span>`;
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────
+function renderTabs() {
+  const ts = [
+    { k:'dashboard', l:'Dashboard' },
+    { k:'prehled',   l:'Přehled' },
+    { k:'vyvoj',     l:'Vývoj' },
+    { k:'investice', l:'📈 Investice' },
+    { k:'zadat',     l:'+ Přidat' },
+  ];
+  const menuItems = [];
+  if (periods.length > 0) menuItems.push({ k:'edit', l:'✏️ Upravit období' });
+  menuItems.push({ k:'export', l:'⬇ Export CSV' });
+  menuItems.push({ k:'import', l:'⬆ Import CSV' });
+  menuItems.push({ k:'gh-token', l:'🔑 Google Drive' });
+  menuItems.push({ k:'ai-key', l:'🤖 Anthropic API klíč' });
+
+  const menuHtml = `
+    <div style="position:relative;display:inline-block">
+      <button class="tab" onclick="toggleTabMenu()" id="tab-menu-btn">⋯</button>
+      <div id="tab-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);min-width:160px;z-index:50;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.12)">
+        ${menuItems.map(m=>`<button onclick="closeTabMenu();sw('${m.k}')" style="display:block;width:100%;padding:11px 16px;background:none;border:none;text-align:left;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)">${m.l}</button>`).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('tabs').innerHTML =
+    ts.map(t => `<button class="tab ${view===t.k?'active':''}" onclick="sw('${t.k}')">${t.l}</button>`).join('') +
+    menuHtml;
+}
+
+function toggleTabMenu() {
+  const m = document.getElementById('tab-menu');
+  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  setTimeout(() => document.addEventListener('click', closeTabMenu, {once:true}), 10);
+}
+function closeTabMenu() {
+  const m = document.getElementById('tab-menu');
+  if (m) m.style.display = 'none';
+}
+
+function sw(v) {
+  if (v === 'export') { exportCSV(); return; }
+  if (v === 'import') { importCSV(); return; }
+  if (v === 'zadat') { startWiz(false); return; }
+  if (v === 'edit' && periods.length > 0) { startWiz(true); return; }
+  if (v === 'gh-token') { promptGhToken(); return; }
+  if (v === 'ai-key') { promptAiKey(); return; }
+  view = v; wiz = null;
+  renderTabs(); rc();
+}
+
+function promptGhToken() {
+  if (isConnected()) {
+    if (confirm('Jsi přihlášen k Google Drive. Odhlásit?')) disconnectGoogle();
+  } else {
+    connectGoogle();
+  }
+}
+
+function promptAiKey() {
+  const cur = localStorage.getItem('anthropic_api_key') ? '(uložen)' : '';
+  const val = prompt('Anthropic API klíč ' + cur + '\nZadej sk-ant-... klíč:', '');
+  if (val === null) return;
+  if (val.trim()) {
+    localStorage.setItem('anthropic_api_key', val.trim());
+    _aiCommentCache = '';
+    toast('API klíč uložen ✓');
+    rc();
+  }
+}
+
+// ── AI KOMENTÁŘ (Claude API) ──────────────────────────────────────────
+async function loadAiComment() {
+  const el = document.getElementById('ai-comment');
+  if (!el || periods.length === 0) return;
+
+  let apiKey = localStorage.getItem('anthropic_api_key') || '';
+  if (!apiKey) {
+    el.innerHTML = `
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Pro AI analýzu zadej svůj Anthropic API klíč. Uloží se pouze v tomto prohlížeči.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..."
+          style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `<span style="color:var(--text3);font-size:13px">⏳ Claude analyzuje vaše finance…</span>`;
+
+  const history = periods.map((p, i) => {
+    const prev = i > 0 ? periods[i-1] : null;
+    const cel = Math.round(calcCelkem(p));
+    const bez = Math.round(calcBez(p));
+    const hyp = Math.round(calcHyp(p));
+    const difBez = prev ? Math.round(calcBez(p) - calcBez(prev)) : null;
+    const evStr = (p.events||[]).length
+      ? ' | Události: ' + p.events.map(e => `${e.cat}${e.amount?' '+Math.round(e.amount).toLocaleString('cs-CZ')+' Kč':''} — ${e.desc}`).join('; ')
+      : '';
+    const noteStr = p.note ? ` | Poznámka: ${p.note}` : '';
+    return `${p.date}: celkem ${cel.toLocaleString('cs-CZ')} Kč | bez hypotéky ${bez.toLocaleString('cs-CZ')} Kč | hypotéka ${hyp.toLocaleString('cs-CZ')} Kč${difBez !== null ? ` | změna ${difBez >= 0 ? '+' : ''}${difBez.toLocaleString('cs-CZ')} Kč` : ''}${evStr}${noteStr}`;
+  }).join('\n');
+
+  // Načti trvalé platby pro AI kontext
+  let trvaleInfo = '';
+  try {
+    const _t = await readTrvaleFromDrive();
+    const trvale = _t.list;
+    const now = new Date().toISOString().slice(0,10);
+    const aktivni = trvale.filter(t => {
+      if (t.od && now < t.od) return false;
+      if (t.do && now > t.do) return false;
+      return true;
+    });
+    if (aktivni.length) {
+      const totalTrvale = aktivni.reduce((s,t) => s + (t.castka||0), 0);
+      trvaleInfo = `\n\nTrvalé měsíční platby (celkem ${Math.round(totalTrvale).toLocaleString('cs-CZ')} Kč/měsíc):\n` +
+        aktivni.map(t => `- ${t.nazev} (${t.kat}): ${Math.round(t.castka).toLocaleString('cs-CZ')} Kč`).join('\n');
+    }
+  } catch(e) { console.error('AI trvale load:', e); }
+
+  const prompt = `Jsi osobní finanční poradce. Analyzuj tato data osobních financí Lukáše a napiš konkrétní komentář (4–6 vět) v češtině.
+
+Důležité vysvětlení struktury dat:
+- "Celkem finance" = součet všech peněz na bankovních účtech, spořících účtech, penzijním spoření a stavebním spoření. Jsou to reálně dostupné prostředky.
+- "Bez hypotéky" = hypotetický čistý majetek v případě okamžitého splacení hypotéky (Celkem finance mínus hypotéka). Jde o informativní číslo, ne reálný stav.
+- Hypotéka je dlouhodobý závazek — nesouvisí přímo s každodenní likviditou.
+
+Data (chronologicky):
+${history}${trvaleInfo}
+
+Zaměř se na: vývoj dostupných prostředků (Celkem finance), tempo splácení hypotéky, finanční zdraví a konkrétní doporučení. Zohledni trvalé platby jako měsíční zátěž. Zohledni zaznamenané události. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('anthropic_api_key');
+        el.innerHTML = `<span style="color:var(--red);font-size:13px">Neplatný API klíč — zadej ho znovu.</span>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <input type="password" id="api-key-input" placeholder="sk-ant-..."
+              style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+            <button onclick="saveApiKey()" class="btn btn-primary">Uložit</button>
+          </div>`;
+        return;
+      }
+      throw new Error('API error ' + res.status);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const html = `<div style="font-size:14px;line-height:1.7;color:var(--text)">${text}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--text3);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span>Analýza: ${new Date().toLocaleString('cs-CZ')}</span>
+        <button onclick="_aiCommentCache='';loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);text-decoration:underline">🔄 Aktualizovat</button>
+        <button onclick="localStorage.removeItem('anthropic_api_key');_aiCommentCache='';loadAiComment()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);text-decoration:underline">Změnit API klíč</button>
+      </div>`;
+    _aiCommentCache = html;
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<span style="color:var(--red);font-size:13px">Chyba: ${e.message}</span>`;
+  }
+}
+
+
+
+function toggleTrvale() {
+  const content = document.getElementById('trvale-content');
+  const chevron = document.getElementById('trvale-chevron');
+  if (!content) return;
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function saveApiKey() {
+  const inp = document.getElementById('api-key-input');
+  if (!inp || !inp.value.trim()) return;
+  localStorage.setItem('anthropic_api_key', inp.value.trim());
+  loadAiComment();
+}
+// ── CHART HELPER ──────────────────────────────────────────────────────
+const _charts = {};
+function drawLineChart(id, labels, datasets) {
+  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#a0a09a' : '#6b6b66';
+
+  _charts[id] = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: datasets.map(ds => ({
+        label: ds.label,
+        data: ds.data,
+        borderColor: ds.color,
+        backgroundColor: ds.color + '18',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.3,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: textColor, font: { size: 12 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('cs-CZ')} Kč`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: textColor, font: { size: 11 } }, grid: { color: gridColor } },
+        y: {
+          ticks: {
+            color: textColor, font: { size: 11 },
+            callback: v => Math.round(v/1000) + 'k'
+          },
+          grid: { color: gridColor }
+        }
+      }
+    }
+  });
+}
+
+
+// ── VÝDAJE Z GITHUB ───────────────────────────────────────────────────
+async function loadVydaje() {
+  const token = ghToken();
+  const vydajeEl = document.getElementById('vydaje-content');
+  const vydajeTotalEl = document.getElementById('vydaje-total');
+  const trvalEl = document.getElementById('trvale-content');
+  const trvalTotalEl = document.getElementById('trvale-total');
+
+  // Trvalé platby z Google Drive
+  if (trvalEl) {
+    try {
+      const _rt = await readTrvaleFromDrive();
+      if (!_rt.exists) {
+        trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné trvalé platby — přidej je v appce Výdaje</div>`;
+      } else {
+        const trvale = _rt.list;
+        const now = new Date().toISOString().slice(0,10);
+        const aktivni = trvale.filter(t => {
+          if (t.od && now < t.od) return false;
+          if (t.do && now > t.do) return false;
+          return true;
+        });
+        const total = aktivni.reduce((s,t) => s + (t.castka||0), 0);
+        if (trvalTotalEl) trvalTotalEl.textContent = fmt(total) + ' / měs.';
+        if (!aktivni.length) {
+          trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné aktivní trvalé platby</div>`;
+        } else {
+          trvalEl.innerHTML = aktivni.map(t => `
+            <div class="row">
+              <div class="row-lbl">${t.nazev}<div class="row-sub">${t.kat}</div></div>
+              <div class="row-val danger">${fmt(t.castka)}</div>
+            </div>`).join('');
+        }
+      }
+    } catch(e) {
+      trvalEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Chyba při načítání</div>`;
+    }
+  }
+
+  // Výdaje z Google Drive
+  if (!isConnected()) {
+    if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Pro zobrazení výdajů se přihlas Googlem</div>`;
+    return;
+  }
+
+  try {
+    const _rv = await readVydajeFromDrive();
+    if (!_rv.exists) {
+      if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné výdaje — přidej je v appce Výdaje</div>`;
+      return;
+    }
+    const exps = _rv.list;
+
+    // Filtruj tento měsíc
+    const now = new Date();
+    const thisMonth = exps.filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+
+    if (!thisMonth.length) {
+      if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Žádné výdaje tento měsíc</div>`;
+      return;
+    }
+
+    // Seskup po kategoriích
+    const byCat = {};
+    thisMonth.forEach(e => {
+      if (!byCat[e.catKey]) byCat[e.catKey] = 0;
+      byCat[e.catKey] += e.amount || 0;
+    });
+    const total = Object.values(byCat).reduce((s,v) => s+v, 0);
+    if (vydajeTotalEl) vydajeTotalEl.textContent = fmt(total);
+
+    const CAT_ICONS = { bydleni:'🏠', doprava:'🚗', potraviny:'🛒', stravovani:'🍽', deti:'👶', pece:'💇', zdravi:'🏥', obleceni:'👕', cestovani:'✈️', zabava:'🎮', predplatne:'📱', pojisteni:'🛡', sporeni:'💰', domacnost:'🔧', darky:'🎁', ostatni:'❓' };
+    const CAT_LABELS = { bydleni:'Bydlení', doprava:'Doprava', potraviny:'Potraviny', stravovani:'Stravování', deti:'Děti', pece:'Péče o sebe', zdravi:'Zdraví', obleceni:'Oblečení', cestovani:'Cestování', zabava:'Zábava', predplatne:'Předplatné', pojisteni:'Pojištění', sporeni:'Spoření', domacnost:'Domácnost', darky:'Dárky & Charity', ostatni:'Ostatní' };
+
+    const sorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+    if (vydajeEl) vydajeEl.innerHTML = sorted.map(([k,v]) => {
+      const pct = Math.round(v/total*100);
+      return `<div class="row">
+        <div class="row-lbl">${CAT_ICONS[k]||'❓'} ${CAT_LABELS[k]||k}</div>
+        <div style="flex:1;margin:0 12px">
+          <div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:var(--blue);border-radius:2px"></div>
+          </div>
+        </div>
+        <div class="row-val danger" style="min-width:90px">${fmt(v)}</div>
+      </div>`;
+    }).join('');
+
+    // Míra úspor — použij mzdu pouze pokud existuje period pro aktuální měsíc
+    const usporEl = document.getElementById('uspory-content');
+    const nowForMzda = new Date();
+    const p2 = periods.find(p => {
+      const d = new Date(p.date);
+      return d.getMonth() === nowForMzda.getMonth() && d.getFullYear() === nowForMzda.getFullYear();
+    });
+    if (usporEl) {
+      const mzda = (p2 && p2.mzda) ? p2.mzda : null;
+
+      // Načti trvalé platby pro výpočet — vždy
+      let trvaleTotal = 0;
+      try {
+        const _td = await readTrvaleFromDrive();
+        if (_td.exists) {
+          const now2 = new Date().toISOString().slice(0,10);
+          trvaleTotal = _td.list
+            .filter(t => (!t.od || now2 >= t.od) && (!t.do || now2 <= t.do))
+            .reduce((s,t) => s + (t.castka||0), 0);
+        }
+      } catch(e) { console.error('trvale load:', e); }
+
+      const vydajeTotal = total;
+      const utraceno = vydajeTotal + trvaleTotal;
+
+      // Řádek mzdy + zbývá + progress bar — jen pokud mzda zadána pro tento měsíc
+      const mzdaRow = mzda ? `
+        <div class="row" style="margin-bottom:8px">
+          <div class="row-lbl">💼 Čistá mzda</div>
+          <div class="row-val pos">${fmt(mzda)}</div>
+        </div>` : `
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px;padding:6px 0">
+          ℹ️ Mzda pro ${nowForMzda.toLocaleDateString('cs-CZ', {month:'long', year:'numeric'})} zatím nezadána
+        </div>`;
+
+      const zbyvaSekce = mzda ? (() => {
+        const uspory = mzda - utraceno;
+        const pctUspor = Math.round(uspory / mzda * 100);
+        const barPct = Math.min(100, Math.max(0, Math.round(utraceno / mzda * 100)));
+        return `
+        <div class="row" style="margin-bottom:12px;border-top:0.5px solid var(--border);padding-top:8px">
+          <div class="row-lbl"><strong>💰 Zbývá</strong></div>
+          <div class="row-val ${uspory >= 0 ? 'pos' : 'danger'}"><strong>${fmt(uspory)}</strong></div>
+        </div>
+        <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:6px">
+          <div style="height:100%;width:${barPct}%;background:${barPct > 90 ? 'var(--red)' : barPct > 75 ? 'var(--orange)' : 'var(--green)'};border-radius:4px;transition:width 0.3s"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % mzdy · míra úspor ${pctUspor} %</div>`;
+      })() : '';
+
+      usporEl.innerHTML = mzdaRow + `
+        <div class="row" style="margin-bottom:6px">
+          <div class="row-lbl">🧾 Výdaje (appka)</div>
+          <div class="row-val danger">${fmt(vydajeTotal)}</div>
+        </div>
+        <div class="row" style="margin-bottom:6px">
+          <div class="row-lbl">📅 Trvalé platby</div>
+          <div class="row-val danger">${fmt(trvaleTotal)}</div>
+        </div>` + zbyvaSekce;
+    }
+  } catch(e) {
+    if (vydajeEl) vydajeEl.innerHTML = `<div style="font-size:13px;color:var(--text3)">Chyba při načítání výdajů</div>`;
+    console.error('loadVydaje:', e);
+  }
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+let _aiCommentCache = ''; // Cache obsahu AI analýzy
+
+function renderDashboard() {
+  const ghSetup = !isConnected() ? `
+    <div class="sec" style="border:1px solid var(--border2);margin-bottom:16px">
+      <h3>Google Drive synchronizace</h3>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Přihlas se Googlem pro načtení a ukládání dat na Disk napříč zařízeními.</div>
+      <button onclick="connectGoogle()" class="btn btn-primary">Přihlásit se Googlem</button>
+    </div>` : '';
+
+  if (!periods.length) return `
+    ${ghSetup}
+    <div class="empty">
+      <div class="icon">📊</div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:8px">Zatím žádná data</div>
+      <div style="font-size:14px;color:var(--text3)">Přidej první období tlačítkem + Přidat</div>
+    </div>`;
+
+  const p = periods[periods.length - 1];
+  const prev = periods.length > 1 ? periods[periods.length - 2] : null;
+  const cel = calcCelkem(p), bez = calcBez(p), hyp = calcHyp(p);
+  const pCel = prev ? calcCelkem(prev) : null;
+  const pBez = prev ? calcBez(prev) : null;
+  const pHyp = prev ? calcHyp(prev) : null;
+  const dif = prev ? bez - pBez : null;
+
+  // Graf vývoje
+  const rows = periods.map((pd, i) => ({
+    date: pd.date,
+    cel: calcCelkem(pd),
+    bez: calcBez(pd),
+    hyp: calcHyp(pd),
+    difCel: i > 0 ? calcCelkem(pd) - calcCelkem(periods[i-1]) : null,
+    difBez: i > 0 ? calcBez(pd) - calcBez(periods[i-1]) : null,
+    difHyp: i > 0 ? calcHyp(pd) - calcHyp(periods[i-1]) : null,
+  }));
+
+  const labels = rows.map(r => fmtShort(r.date));
+
+  setTimeout(() => {
+    drawLineChart('chart-dash', labels,
+      [
+        { label: 'Celkem finance', data: rows.map(r => Math.round(r.cel)), color: '#185fa5' },
+        { label: 'Bez hypotéky',   data: rows.map(r => Math.round(r.bez)), color: '#2d7a4f' },
+        { label: 'Hypotéka',       data: rows.map(r => Math.round(r.hyp)), color: '#a32d2d' },
+      ]
+    );
+    loadVydaje();
+  }, 50);
+
+  const apiKey = localStorage.getItem('anthropic_api_key') || '';
+  const aiContent = _aiCommentCache
+    ? _aiCommentCache
+    : apiKey
+      ? `<button onclick="loadAiComment()" class="btn btn-primary" style="font-size:14px;padding:8px 18px">🤖 Spustit AI analýzu</button>`
+      : `<div style="font-size:14px;color:var(--text2);margin-bottom:12px">Pro AI analýzu zadej svůj Anthropic API klíč.</div>
+         <div style="display:flex;gap:8px;flex-wrap:wrap">
+           <input type="password" id="api-key-input" placeholder="sk-ant-..."
+             style="flex:1;min-width:200px;font-size:14px;padding:8px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+           <button onclick="saveApiKey()" class="btn btn-primary" style="white-space:nowrap">Uložit a analyzovat</button>
+         </div>`;
+
+  const ghSection = !isConnected() ? `
+    <div class="sec" style="border:1px solid var(--border2)">
+      <h3>Google Drive synchronizace</h3>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:12px">Přihlas se Googlem pro ukládání dat na Disk napříč zařízeními.</div>
+      <button onclick="connectGoogle()" class="btn btn-primary">Přihlásit se Googlem</button>
+      </div>
+    </div>` : '';
+
+  return `
+    <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK${ghTok ? ' &nbsp;·&nbsp; <span style="color:var(--green)">● GitHub sync</span>' : ''}</div>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Celkem finance</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
+      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div></div>
+      <div class="card"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
+      <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
+      ${p.mzda ? `<div class="card"><div class="card-lbl">Čistá mzda / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
+    </div>
+    ${(() => {
+      const inv = loadInv();
+      const transe = inv.transe || [];
+      const aktualni = inv.aktualni || [];
+      const celkem = transe.reduce((s,t) => s+(t.castka||0), 0);
+      const posledni = aktualni.length ? aktualni[aktualni.length-1] : null;
+      if (!celkem) return '';
+      const zisk = posledni ? posledni.hodnota - celkem : null;
+      const ziskPct = zisk != null && celkem ? (zisk/celkem*100) : null;
+      return `<div class="cards" style="margin-top:0">
+        ${posledni ? `<div class="card"><div class="card-lbl">Portfolio — aktuální hodnota</div><div class="card-val">${fmt(posledni.hodnota)}</div>${zisk!=null?`<div class="${zisk>=0?'pos':'danger'}" style="font-size:13px;margin-top:4px">${zisk>=0?'+':''}${fmt(zisk)} (${ziskPct>=0?'+':''}${ziskPct.toFixed(1)} %)</div>`:''}</div>` : ''}
+        <div class="card"><div class="card-lbl">Portfolio — investováno</div><div class="card-val">${fmt(celkem)}</div></div>
+      </div>`;
+    })()}
+    ${(() => {
+      // Sekce vždy zobrazena — mzdu ověří loadVydaje podle aktuálního měsíce
+      return `<div class="sec" id="uspory-sec">
+        <h3>Příjem vs. výdaje</h3>
+        <div id="uspory-content" style="font-size:13px;color:var(--text3)">⏳ Načítám…</div>
+      </div>`;
+    })()}
+    ${ghSection}
+    <div class="sec"><h3>Vývoj v čase</h3><div class="chart-canvas-wrap"><canvas id="chart-dash"></canvas></div></div>
+    <div class="sec" id="ai-comment-sec">
+      <h3>AI analýza</h3>
+      <div id="ai-comment" style="font-size:14px;line-height:1.7;color:var(--text2)">${aiContent}</div>
+    </div>
+    <div class="sec">
+      <h3 onclick="toggleTrvale()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+        <span>Trvalé platby</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span id="trvale-total" style="font-weight:400;color:var(--text2);font-size:13px"></span>
+          <span id="trvale-chevron" style="color:var(--text3);font-size:12px;transition:transform 0.2s">▼</span>
+        </span>
+      </h3>
+      <div id="trvale-content" style="display:none"><span style="font-size:13px;color:var(--text3)">⏳ Načítám…</span></div>
+    </div>
+    <div class="sec" id="vydaje-sec">
+      <h3>Výdaje tento měsíc <span id="vydaje-total" style="float:right;font-weight:400;color:var(--text2)"></span></h3>
+      <div id="vydaje-content" style="font-size:13px;color:var(--text3)">⏳ Načítám výdaje…</div>
+    </div>`;
+}
+
+// ── PŘEHLED ───────────────────────────────────────────────────────────
+function renderPrehled() {
+  if (!periods.length) return `<div class="empty">
+    <div class="icon">📊</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:8px">Zatím žádná data</div>
+    <div style="font-size:14px;color:var(--text3)">Přidej první období tlačítkem + Přidat</div>
+  </div>`;
+
+  const p = periods[selIdx];
+  const prev = selIdx > 0 ? periods[selIdx-1] : null;
+  const cel = calcCelkem(p), bez = calcBez(p), hyp = calcHyp(p);
+  const pCel = prev ? calcCelkem(prev) : null;
+  const pBez = prev ? calcBez(prev) : null;
+  const pHyp = prev ? calcHyp(prev) : null;
+  const dif = prev ? bez - pBez : null;
+
+  function secRows(cat) {
+    const out = [];
+    PRODUCTS.filter(pr => pr.cat === cat).forEach(pr => {
+      BANKS.forEach(b => {
+        const v = p.data[CK(b.key,pr.key)] || 0;
+        const pv = prev ? (prev.data[CK(b.key,pr.key)] || 0) : null;
+        if (!v && !pv) return;
+        const isZ = cat === 'zavazky';
+        const czk = pr.eur ? v * (p.eur_kurz||25) : v;
+        const pCzk = pr.eur && prev ? pv * (prev.eur_kurz||25) : pv;
+        const disp = pr.eur && v ? `${fmtEur(v)} ≈ ${fmt(czk)}` : fmt(v);
+        out.push(`<div class="row">
+          <div class="row-lbl">${pr.label}<div class="row-sub">${b.label}</div></div>
+          <div class="row-val ${isZ?'danger':''}">${disp}</div>
+          ${diff(czk, pCzk, isZ, false)}
+        </div>`);
+      });
+    });
+    return out.length ? out.join('') : `<div style="font-size:13px;color:var(--text3);padding:6px 0">Žádné záznamy</div>`;
+  }
+
+  function sec(title, cat) { return `<div class="sec"><h3>${title}</h3>${secRows(cat)}</div>`; }
+
+  return `
+    <div class="pbar">
+      <label style="font-size:14px;color:var(--text2)">Období:</label>
+      <select onchange="selIdx=+this.value;rc()">
+        ${periods.map((pd,i) => `<option value="${i}" ${i===selIdx?'selected':''}>${fmtDate(pd.date)}</option>`).join('')}
+      </select>
+      <span class="kurz">kurz EUR: ${p.eur_kurz} CZK</span>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Celkem finance</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
+      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div>${diff(bez,pBez,false,true)}</div>
+      <div class="card"><div class="card-lbl">Rozdíl oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
+      <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
+    </div>
+    ${sec('Běžné účty & EUR','bezne')}
+    ${sec('Spořící & termínované','sporici')}
+    ${sec('Investice','investice')}
+    ${sec('Závazky','zavazky')}`;
+}
+
+// ── VÝVOJ ────────────────────────────────────────────────────────────
+function renderVyvoj() {
+  if (!periods.length) return renderPrehled();
+  const rows = periods.map((p,i) => ({
+    date: p.date,
+    cel: calcCelkem(p),
+    bez: calcBez(p),
+    hyp: calcHyp(p),
+  }));
+  const labels = rows.map(r => fmtShort(r.date));
+
+  setTimeout(() => {
+    drawLineChart('chart-vyvoj-cel', labels, [
+      { label: 'Celkem finance', data: rows.map(r => Math.round(r.cel)), color: '#185fa5' },
+    ]);
+    drawLineChart('chart-vyvoj-bez', labels, [
+      { label: 'Bez hypotéky', data: rows.map(r => Math.round(r.bez)), color: '#2d7a4f' },
+    ]);
+    drawLineChart('chart-vyvoj-hyp', labels, [
+      { label: 'Hypotéka', data: rows.map(r => Math.round(r.hyp)), color: '#a32d2d' },
+    ]);
+  }, 50);
+
+  return `
+    <div class="sec"><h3>Celkem finance</h3><div class="chart-canvas-wrap"><canvas id="chart-vyvoj-cel"></canvas></div></div>
+    <div class="sec"><h3>Bez hypotéky</h3><div class="chart-canvas-wrap"><canvas id="chart-vyvoj-bez"></canvas></div></div>
+    <div class="sec"><h3>Hypotéka — zůstatek</h3><div class="chart-canvas-wrap"><canvas id="chart-vyvoj-hyp"></canvas></div></div>`;
+}
+
+// ── WIZARD ────────────────────────────────────────────────────────────
+function startWiz(isEdit) {
+  const base = isEdit ? JSON.parse(JSON.stringify(periods[selIdx])) : makeEmpty(new Date().toISOString().slice(0,10));
+  wiz = { p: base, step: -1, isEdit, editIdx: isEdit ? selIdx : -1 };
+  view = isEdit ? 'edit' : 'zadat';
+  renderTabs(); rc();
+}
+
+function wizNext() {
+  if (wiz.step === -1) {
+    const d = document.getElementById('w_date').value;
+    if (!d) { toast('Zadej datum'); return; }
+    wiz.p.date = d;
+    wiz.p.eur_kurz = parseFloat(document.getElementById('w_kurz').value) || 25;
+    wiz.p.mzda = parseFloat(document.getElementById('w_mzda').value) || 0;
+  } else if (wiz.step === BANKS.length) {
+    saveEventsStep();
+  } else {
+    saveWizStep();
+  }
+  wiz.step++;
+  rc();
+}
+
+function wizPrev() {
+  if (wiz.step === -1) { view = 'dashboard'; wiz = null; renderTabs(); rc(); return; }
+  if (wiz.step === BANKS.length) saveEventsStep(); else saveWizStep();
+  wiz.step--;
+  rc();
+}
+
+function saveWizStep() {
+  if (wiz.step < 0 || wiz.step >= BANKS.length) return;
+  const b = BANKS[wiz.step];
+  PRODUCTS.forEach(pr => {
+    const el = document.getElementById('w_' + CK(b.key, pr.key));
+    if (el) wiz.p.data[CK(b.key, pr.key)] = parseFloat(el.value) || 0;
+  });
+}
+
+async function wizSave() {
+  saveEventsStep();
+  if (wiz.isEdit) {
+    periods[wiz.editIdx] = wiz.p;
+    toast('Aktualizováno ✓');
+  } else {
+    periods.push(wiz.p);
+    periods.sort((a,b) => a.date.localeCompare(b.date));
+    selIdx = periods.findIndex(p => p.date === wiz.p.date);
+    toast('Přidáno ✓');
+  }
+  save();
+  _aiCommentCache = '';
+  view = 'dashboard'; wiz = null;
+  renderTabs();
+  ghSave(); // bez await — běží na pozadí
+  rc();
+}
+
+function wizDel() {
+  if (!confirm('Opravdu smazat toto období?')) return;
+  periods.splice(wiz.editIdx, 1);
+  selIdx = Math.max(0, periods.length - 1);
+  save();
+  _aiCommentCache = '';
+  toast('Smazáno');
+  view = 'dashboard'; wiz = null;
+  renderTabs();
+  ghSave();
+  rc();
+}
+
+function fetchKurz(date) {
+  window.open('https://www.kurzy.cz/kurzy-men/aktualni/czk-eur/', '_blank');
+}
+
+function addEvent() {
+  if (!wiz.p.events) wiz.p.events = [];
+  saveEventsStep();
+  wiz.p.events.push({ cat: 'Jiné', amount: '', desc: '' });
+  rc();
+}
+function removeEvent(i) {
+  saveEventsStep();
+  wiz.p.events.splice(i, 1);
+  rc();
+}
+function saveEventsStep() {
+  if (wiz.step !== BANKS.length) return;
+  const evs = wiz.p.events || [];
+  evs.forEach((ev, i) => {
+    const cat = document.getElementById('ev_cat_' + i);
+    const amt = document.getElementById('ev_amt_' + i);
+    const desc = document.getElementById('ev_desc_' + i);
+    if (cat) ev.cat = cat.value;
+    if (amt) ev.amount = parseFloat(amt.value) || 0;
+    if (desc) ev.desc = desc.value;
+  });
+  const note = document.getElementById('w_note');
+  if (note) wiz.p.note = note.value;
+}
+
+function renderWizard() {
+  const total = BANKS.length + 1;
+  const isLast = wiz.step === BANKS.length;
+  const isFirst = wiz.step === -1;
+  const isBankStep = wiz.step >= 0 && wiz.step < BANKS.length;
+  const pct = isFirst ? 0 : Math.round((wiz.step + 1) / total * 100);
+  const stepLbl = isFirst ? 'Datum a kurz' : isBankStep ? `${BANKS[wiz.step].label} — ${wiz.step+1} / ${BANKS.length}` : 'Události & poznámka';
+  const title = wiz.isEdit ? `Upravit: ${fmtDate(wiz.p.date)}` : 'Nové období';
+  const EVENT_CATS = ['Nákup vozidla','Investice','Mimořádná splátka','Větší výdaj','Příjem','Jiné'];
+
+  let body = '';
+  if (isFirst) {
+    body = `<div class="wiz-date-row">
+      <div class="fg"><label>Datum</label><input type="date" id="w_date" value="${wiz.p.date}"></div>
+      <div class="fg">
+        <label>Kurz EUR / CZK</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="number" id="w_kurz" value="${wiz.p.eur_kurz}" step="0.01" placeholder="25.0" style="flex:1">
+          <button class="btn" type="button" onclick="fetchKurz(document.getElementById('w_date').value)" style="white-space:nowrap;padding:9px 12px">📈 Zobrazit kurz</button>
+        </div>
+        <div class="hint">Klikni na 📈 Zobrazit kurz → opište aktuální kurz ČNB</div>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:14px">
+      <label>Čistá mzda (Kč)</label>
+      <input type="number" id="w_mzda" value="${wiz.p.mzda||''}" placeholder="0" step="1" inputmode="numeric">
+      <div class="hint">Čistá mzda za toto období — slouží k výpočtu míry úspor</div>
+    </div>`;
+  } else if (isBankStep) {
+    const b = BANKS[wiz.step];
+    body = `<div class="wiz-fields">${PRODUCTS.map(pr => {
+      const k = CK(b.key, pr.key);
+      const v = wiz.p.data[k] || 0;
+      const isH = pr.cat === 'zavazky'; const isE = pr.eur;
+      return `<div class="fg">
+        <label>${pr.label}${isE ? ' — zadávej v EUR' : ''}</label>
+        <input type="number" id="w_${k}" value="${v||''}" placeholder="0" step="1" inputmode="numeric" class="${isE?'eur':isH?'hyp':''}">
+        ${isH ? '<div class="hint">Kladné číslo — zůstatek dluhu</div>' : ''}
+      </div>`;
+    }).join('')}</div>`;
+  } else {
+    const evs = wiz.p.events || [];
+    const eRows = evs.map((ev, i) => `
+      <div style="display:grid;grid-template-columns:150px 130px 1fr 32px;gap:8px;align-items:center;margin-bottom:8px">
+        <select id="ev_cat_${i}" style="font-size:13px;padding:8px 8px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+          ${EVENT_CATS.map(c => `<option ${c===ev.cat?'selected':''}>${c}</option>`).join('')}
+        </select>
+        <input type="number" id="ev_amt_${i}" value="${ev.amount||''}" placeholder="Kč" step="1" inputmode="numeric" style="font-size:13px;padding:8px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <input type="text" id="ev_desc_${i}" value="${ev.desc||''}" placeholder="Popis..." style="font-size:13px;padding:8px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+        <button onclick="removeEvent(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0">✕</button>
+      </div>`).join('');
+    body = `<div class="wiz-fields">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Zaznamenej výrazné výdaje nebo události tohoto období (volitelné)</div>
+      <div id="ev-rows">${eRows}</div>
+      <button class="btn" onclick="addEvent()" style="align-self:flex-start;margin-top:4px">+ Přidat událost</button>
+      <div class="fg" style="margin-top:12px">
+        <label>Volná poznámka</label>
+        <textarea id="w_note" rows="3" placeholder="Např. změna zaměstnání, mimořádný příjem, výrazný výdaj..." style="font-size:14px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);resize:vertical;width:100%">${wiz.p.note||''}</textarea>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="wizard">
+    <div class="wiz-head">
+      <div class="wiz-title">${title}</div>
+      <div class="wiz-step">${stepLbl}</div>
+    </div>
+    <div class="wiz-prog"><div class="wiz-prog-bar" style="width:${pct}%"></div></div>
+    <div class="wiz-body">${body}</div>
+    <div class="wiz-nav">
+      <div class="wiz-nav-l">
+        <button class="btn" onclick="wizPrev()">${isFirst ? 'Zrušit' : '← Zpět'}</button>
+        ${wiz.isEdit ? `<button class="btn btn-danger" onclick="wizDel()">Smazat</button>` : ''}
+      </div>
+      ${isLast
+        ? `<button class="btn btn-primary" onclick="wizSave()">Uložit ✓</button>`
+        : `<button class="btn btn-primary" onclick="wizNext()">Další →</button>`}
+    </div>
+  </div>`;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!periods.length) { toast('Žádná data'); return; }
+  const hdr = ['datum','eur_kurz',
+    ...BANKS.flatMap(b => PRODUCTS.map(p => `${b.short}_${p.key}`)),
+    'celkem_finance','bez_hypoteky','hypoteka'];
+  const rows = [hdr.join(';')];
+  periods.forEach(p => {
+    rows.push([p.date, p.eur_kurz,
+      ...BANKS.flatMap(b => PRODUCTS.map(pr => p.data[CK(b.key,pr.key)]||0)),
+      Math.round(calcCelkem(p)), Math.round(calcBez(p)), Math.round(calcHyp(p))
+    ].join(';'));
+  });
+  const blob = new Blob(['\uFEFF'+rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `finance_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exportováno');
+}
+
+// ── IMPORT CSV ────────────────────────────────────────────────────────
+function importCSV() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const text = ev.target.result.replace(/^\uFEFF/, ''); // strip BOM
+        const lines = text.trim().split('\n');
+        if (lines.length < 2) { toast('CSV je prázdné'); return; }
+        const hdr = lines[0].split(';');
+        const imported = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(';');
+          if (cols.length < 2) continue;
+          const date = cols[0].trim();
+          const eur_kurz = parseFloat(cols[1]) || 25;
+          if (!date) continue;
+          const entry = makeEmpty(date);
+          entry.eur_kurz = eur_kurz;
+          // Mapuj sloupce podle hlavičky
+          hdr.forEach((h, idx) => {
+            const parts = h.trim().split('_');
+            if (parts.length < 2) return;
+            // Najdi banku a produkt
+            const bank = BANKS.find(b => b.short === parts[0]);
+            if (!bank) return;
+            const prodKey = parts.slice(1).join('_');
+            const prod = PRODUCTS.find(p => p.key === prodKey);
+            if (!prod) return;
+            const val = parseFloat(cols[idx]) || 0;
+            entry.data[CK(bank.key, prod.key)] = val;
+          });
+          imported.push(entry);
+        }
+        if (!imported.length) { toast('Žádná data k importu'); return; }
+        // Sloučit — nová data přepíší existující stejné datum
+        imported.forEach(imp => {
+          const idx = periods.findIndex(p => p.date === imp.date);
+          if (idx >= 0) periods[idx] = imp;
+          else periods.push(imp);
+        });
+        periods.sort((a,b) => a.date.localeCompare(b.date));
+        selIdx = Math.max(0, periods.length - 1);
+        save();
+        toast(`Importováno ${imported.length} období ✓`);
+        view = 'prehled';
+        renderTabs(); rc();
+      } catch(err) {
+        toast('Chyba při importu — zkontroluj formát CSV');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  };
+  input.click();
+}
+
+// ── INVESTICE ─────────────────────────────────────────────────────────
+const INV_ETF = [
+  { tiker:'VWCE.DE', nazev:'Vanguard FTSE All-World',          typ:'core', alokace:80 },
+  { tiker:'SXRV.DE', nazev:'iShares NASDAQ 100',               typ:'sat',  alokace:7  },
+  { tiker:'2B76.DE', nazev:'iShares Automation & Robotics',    typ:'sat',  alokace:7  },
+  { tiker:'MEUD.FR', nazev:'Lyxor Core STOXX Europe 600',      typ:'sat',  alokace:6  },
+];
+
+function loadInv(){ try{ return JSON.parse(localStorage.getItem('lk_inv')||'{"transe":[],"aktualni":[]}'); }catch(e){ return {transe:[],aktualni:[]}; } }
+function saveInv(inv){ localStorage.setItem('lk_inv',JSON.stringify(inv)); ghSaveInv(inv); }
+
+async function ghLoadInv(){
+  if(!isConnected()) return;
+  try{
+    const r=await driveReadJSON('investice_data.json');
+    if(r.exists && r.data && typeof r.data==='object'){ localStorage.setItem('lk_inv',JSON.stringify(r.data)); }
+  }catch(e){ console.error('driveLoadInv:',e); }
+}
+
+async function ghSaveInv(inv){
+  if(!isConnected()) return;
+  try{ await driveWriteJSON('investice_data.json', inv); }
+  catch(e){ console.error('driveSaveInv:',e); }
+}
+
+function renderInvestice(){
+  const inv=loadInv();
+  const transe=inv.transe||[];
+  const aktualni=inv.aktualni||[];
+  const celkem=transe.reduce((s,t)=>s+(t.castka||0),0);
+  const posledni=aktualni.length?aktualni[aktualni.length-1]:null;
+  const aktHodnota=posledni?posledni.hodnota:null;
+  const zisk=aktHodnota!=null?aktHodnota-celkem:null;
+  const ziskPct=zisk!=null&&celkem?(zisk/celkem*100):null;
+  const rozlozeni=INV_ETF.map(e=>{
+    const i2=transe.reduce((s,t)=>{ const p=(t.etf||[]).find(x=>x.tiker===e.tiker); return s+(p?p.castka:0); },0);
+    return {...e,investovano:i2};
+  });
+  return `
+  <div class="sec"><h3>Portfolio</h3>
+    <div class="cards">
+      <div class="card"><div class="card-lbl">Investováno celkem</div><div class="card-val">${fmt(celkem||0)}</div></div>
+      ${aktHodnota!=null?`
+      <div class="card"><div class="card-lbl">Aktuální hodnota</div><div class="card-val">${fmt(aktHodnota)}</div></div>
+      <div class="card"><div class="card-lbl">Zisk / ztráta</div><div class="card-val ${zisk>=0?'pos':'danger'}">${zisk>=0?'+':''}${fmt(zisk)} (${ziskPct>=0?'+':''}${ziskPct.toFixed(1)} %)</div></div>`:''}
+    </div>
+  </div>
+  <div class="sec"><h3>Rozložení</h3>
+    ${rozlozeni.map(e=>{
+      const pct=celkem?Math.round(e.investovano/celkem*100):e.alokace;
+      const bar=celkem?(e.investovano/celkem*100):e.alokace;
+      return `<div class="row" style="margin-bottom:10px;align-items:center">
+        <div style="min-width:150px"><div style="font-size:14px;font-weight:500">${e.tiker}</div><div style="font-size:12px;color:var(--text2)">${e.nazev}</div></div>
+        <div style="flex:1;margin:0 12px"><div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;width:${bar}%;background:${e.typ==='core'?'#7c3aed':'var(--green)'};border-radius:3px"></div></div></div>
+        <div style="min-width:110px;text-align:right;font-size:13px">${e.investovano?fmt(e.investovano):'—'} <span style="color:var(--text3)">${pct} %</span></div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0">Tranše</h3>
+      <button onclick="openTranseDialog()" style="background:#7c3aed;color:#fff;border:none;border-radius:var(--r);padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">+ Přidat tranši</button>
+    </div>
+    ${!transe.length?`<div style="font-size:13px;color:var(--text3);padding:12px 0">Zatím žádné tranše.</div>`:
+      transe.slice().reverse().map((t,ri)=>{ const idx=transe.length-1-ri; const etfTags=(t.etf||[]).map(e=>'<span style="font-size:12px;border:0.5px solid var(--border);border-radius:6px;padding:2px 8px">'+e.tiker+' <strong>'+fmt(e.castka)+'</strong></span>').join(''); return '<div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;border:0.5px solid var(--border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-weight:500">'+(t.nazev||'Tranše')+'</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600">'+fmt(t.castka)+'</span><button onclick="editTranse('+idx+')" style="background:none;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;padding:3px 8px;color:var(--text2)">✏️</button><button onclick="deleteTranse('+idx+')" style="background:none;border:0.5px solid rgba(255,59,48,0.3);border-radius:6px;cursor:pointer;font-size:12px;padding:3px 8px;color:var(--red)">🗑</button></div></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">'+t.datum+'</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+etfTags+'</div></div>'; }).join('')}
+  </div>
+  <div class="sec">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0">Vývoj hodnoty</h3>
+      <button onclick="openHodnotaDialog()" style="background:var(--bg2);color:var(--text);border:0.5px solid var(--border);border-radius:var(--r);padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer">+ Aktualizovat</button>
+    </div>
+    ${!aktualni.length?`<div style="font-size:13px;color:var(--text3);padding:8px 0">Zadej aktuální hodnotu z XTB.</div>`:`
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="color:var(--text2);border-bottom:0.5px solid var(--border)"><td style="padding:6px 0">Datum</td><td style="padding:6px 8px;text-align:right">Hodnota</td><td style="padding:6px 8px;text-align:right">Zisk/ztráta</td><td style="padding:6px 0;text-align:right">%</td><td></td></tr>
+      ${aktualni.slice().reverse().map((a,i)=>{ const z=a.hodnota-celkem; const zp=celkem?(z/celkem*100):0; const idx=aktualni.length-1-i;
+        return `<tr style="border-bottom:0.5px solid var(--border)">
+          <td style="padding:8px 0">${a.datum}</td>
+          <td style="padding:8px;text-align:right;font-weight:500">${fmt(a.hodnota)}</td>
+          <td style="padding:8px;text-align:right;color:${z>=0?'var(--green)':'var(--red)'}">${z>=0?'+':''}${fmt(z)}</td>
+          <td style="padding:8px 0;text-align:right;color:${zp>=0?'var(--green)':'var(--red)'}">${zp>=0?'+':''}${zp.toFixed(1)} %</td>
+          <td style="padding:8px 0;text-align:right"><button onclick="showInvHodnotaMenu(${idx},this)" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text3);padding:0 4px">···</button></td>
+        </tr>`;
+      }).join('')}
+    </table>`}
+  </div>
+  <div id="inv-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:flex-end;justify-content:center">
+    <div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:700px;padding:20px;max-height:90vh;overflow-y:auto">
+      <div style="font-size:17px;font-weight:600;margin-bottom:16px">Přidat tranši</div>
+      <div class="fg"><label>Datum</label><input type="date" id="inv-datum" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="fg"><label>Název</label><input type="text" id="inv-nazev" placeholder="Tranše 1 — květen 2026"></div>
+      <div class="fg"><label>Celková částka (Kč)</label><input type="number" id="inv-celkem" placeholder="650000" oninput="updateInvAlokace()"></div>
+      <div style="margin:14px 0 8px;font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Rozdělení</div>
+      ${INV_ETF.map(e=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="min-width:80px;font-size:13px;font-family:monospace">${e.tiker}</span><span style="flex:1;font-size:12px;color:var(--text2)">${e.nazev}</span><input type="number" id="inv-etf-${e.tiker.replace('.','_')}" placeholder="0" style="width:110px;text-align:right;padding:6px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px"></div>`).join('')}
+      <div id="inv-extra-etf"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="saveTranse()" style="flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer">Uložit</button>
+        <button onclick="closeInvDialog()" style="padding:12px 16px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:15px;cursor:pointer">Zrušit</button>
+      </div>
+    </div>
+  </div>
+  <div id="inv-h-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:flex-end;justify-content:center">
+    <div style="background:var(--bg2);border-radius:16px 16px 0 0;width:100%;max-width:700px;padding:20px">
+      <div style="font-size:17px;font-weight:600;margin-bottom:16px">Aktuální hodnota portfolia</div>
+      <div class="fg"><label>Datum</label><input type="date" id="inv-h-datum" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="fg"><label>Hodnota z XTB (Kč)</label><input type="number" id="inv-h-hodnota" placeholder="0"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button onclick="saveHodnota()" style="flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer">Uložit</button>
+        <button onclick="closeHodnotaDialog()" style="padding:12px 16px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);font-size:15px;cursor:pointer">Zrušit</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function initInvesticeEvents(){
+  ['inv-overlay','inv-h-overlay'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('click',e=>{if(e.target===el) el.style.display='none';});
+  });
+}
+function openTranseDialog(){ const el=document.getElementById('inv-overlay'); if(el) el.style.display='flex'; setTimeout(()=>{ const c=document.getElementById('inv-celkem'); if(c&&!c.value){c.value='650000';updateInvAlokace();} },50); }
+function closeInvDialog(){ const el=document.getElementById('inv-overlay'); if(el) el.style.display='none'; }
+function openHodnotaDialog(){ const el=document.getElementById('inv-h-overlay'); if(el) el.style.display='flex'; }
+function closeHodnotaDialog(){ const el=document.getElementById('inv-h-overlay'); if(el) el.style.display='none'; }
+function updateInvAlokace(){ const c=parseFloat(document.getElementById('inv-celkem')?.value)||0; INV_ETF.forEach(e=>{ const el=document.getElementById('inv-etf-'+e.tiker.replace('.','_')); if(el) el.value=Math.round(c*e.alokace/100); }); }
+function saveTranse(){ const datum=document.getElementById('inv-datum')?.value; const nazev=document.getElementById('inv-nazev')?.value||'Tranše'; const castka=parseFloat(document.getElementById('inv-celkem')?.value)||0; if(!datum||!castka){toast('Vyplň datum a částku');return;} const tikers=INV_ETF.map(e=>e.tiker); const extra=window._editExtraTikers||[]; const allTikers=[...tikers,...extra]; const etf=allTikers.map(tk=>({tiker:tk,castka:parseFloat(document.getElementById('inv-etf-'+tk.replace(/\./g,'_'))?.value)||0})).filter(e=>e.castka>0); const inv=loadInv(); const editIdx=window._editTranseIdx; if(editIdx!=null){inv.transe[editIdx]={...inv.transe[editIdx],datum,nazev,castka,etf};window._editTranseIdx=null;window._editExtraTikers=[];}else{inv.transe.push({id:Date.now().toString(36),datum,nazev,castka,etf});} saveInv(inv); closeInvDialog(); toast('Tranše uložena ✓'); rc(); }
+function deleteTranse(idx){ if(!confirm('Smazat tuto tranši?')) return; const inv=loadInv(); inv.transe.splice(idx,1); saveInv(inv); toast('Tranše smazána'); rc(); }
+function editTranse(idx){ const inv=loadInv(); const t=inv.transe[idx]; if(!t) return; window._editTranseIdx=idx; const known=INV_ETF.map(e=>e.tiker); window._editExtraTikers=(t.etf||[]).map(e=>e.tiker).filter(tk=>!known.includes(tk)); const el=document.getElementById('inv-overlay'); if(el) el.style.display='flex'; setTimeout(()=>{ const d=document.getElementById('inv-datum'); const n=document.getElementById('inv-nazev'); const c=document.getElementById('inv-celkem'); if(d) d.value=t.datum; if(n) n.value=t.nazev||''; if(c) c.value=t.castka; const extra=document.getElementById('inv-extra-etf'); if(extra) extra.innerHTML=window._editExtraTikers.map(tk=>'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="min-width:80px;font-size:13px;font-family:monospace">'+tk+'</span><span style="flex:1;font-size:12px;color:var(--text2)">(historický)</span><input type="number" id="inv-etf-'+tk.replace(/\./g,'_')+'" placeholder="0" style="width:110px;text-align:right;padding:6px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px"></div>').join(''); (t.etf||[]).forEach(e=>{ const inp=document.getElementById('inv-etf-'+e.tiker.replace(/\./g,'_')); if(inp) inp.value=e.castka; }); },50); }
+function showInvHodnotaMenu(idx, btn){
+  document.getElementById('card-menu')?.remove();
+  const rect=btn.getBoundingClientRect();
+  const menu=document.createElement('div');
+  menu.id='card-menu';
+  menu.style.cssText=`position:fixed;top:${rect.bottom+4}px;right:${window.innerWidth-rect.right}px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:140px;overflow:hidden`;
+  menu.innerHTML=`
+    <button onclick="document.getElementById('card-menu')?.remove();editInvHodnota(${idx})" style="display:block;width:100%;padding:11px 16px;background:none;border:none;border-bottom:0.5px solid var(--border);text-align:left;font-size:14px;font-family:inherit;color:var(--text);cursor:pointer">✏️ Upravit</button>
+    <button onclick="document.getElementById('card-menu')?.remove();deleteInvHodnota(${idx})" style="display:block;width:100%;padding:11px 16px;background:none;border:none;text-align:left;font-size:14px;font-family:inherit;color:var(--red);cursor:pointer">🗑 Smazat</button>`;
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',()=>document.getElementById('card-menu')?.remove(),{once:true}),10);
+}
+
+function editInvHodnota(idx){
+  const inv=loadInv();
+  const a=inv.aktualni[idx];
+  if(!a) return;
+  document.getElementById('inv-h-datum').value=a.datum;
+  document.getElementById('inv-h-hodnota').value=a.hodnota;
+  openHodnotaDialog();
+  // Po uložení přepíšeme existující záznam
+  window._editInvHodnotaIdx=idx;
+}
+
+function deleteInvHodnota(idx){
+  if(!confirm('Smazat záznam?')) return;
+  const inv=loadInv();
+  inv.aktualni.splice(idx,1);
+  saveInv(inv);
+  toast('Smazáno');
+  rc();
+}
+
+function saveHodnota(){
+  const datum=document.getElementById('inv-h-datum')?.value;
+  const hodnota=parseFloat(document.getElementById('inv-h-hodnota')?.value)||0;
+  if(!datum||!hodnota){toast('Vyplň datum a hodnotu');return;}
+  const inv=loadInv();
+  inv.aktualni=inv.aktualni||[];
+  const editIdx=window._editInvHodnotaIdx;
+  if(editIdx!=null){
+    inv.aktualni[editIdx]={datum,hodnota};
+    window._editInvHodnotaIdx=null;
+  } else {
+    inv.aktualni.push({datum,hodnota});
+  }
+  inv.aktualni.sort((a,b)=>a.datum.localeCompare(b.datum));
+  saveInv(inv);
+  closeHodnotaDialog();
+  toast('Hodnota uložena ✓');
+  rc();
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────
+function rc() {
+  let html = '';
+  if (wiz) html = renderWizard();
+  else if (view === 'dashboard') html = renderDashboard();
+  else if (view === 'prehled') html = renderPrehled();
+  else if (view === 'vyvoj') html = renderVyvoj();
+  else if (view === 'investice') html = renderInvestice();
+  document.getElementById('content').innerHTML = html;
+  if (view === 'investice') initInvesticeEvents();
+}
+
+document.getElementById('hdate').textContent =
+  new Date().toLocaleDateString('cs-CZ', {day:'numeric', month:'long', year:'numeric'});
+
+// Přidej záložku Nastavení
+const _origRenderTabs = renderTabs;
+
+async function syncAll() {
+  if (!isConnected()) { await connectGoogle(); return; }
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.style.opacity = '0.3';
+  updateSyncIcon('syncing');
+  await Promise.all([ghLoad(), ghLoadInv()]);
+  selIdx = Math.max(0, periods.length - 1);
+  _aiCommentCache = '';
+  renderTabs();
+  rc();
+  toast('Synchronizováno ✓');
+  if (btn) btn.style.opacity = '1';
+  updateSyncIcon('ok');
+}
+
+// Načti data z Google Drive při startu pokud jsme připojeni
+(function startupSync(tries){
+  if (isConnected() && GOOGLE_CLIENT_ID) {
+    if (!gisReady()) {
+      if ((tries||0) < 20) { setTimeout(function(){startupSync((tries||0)+1);}, 250); return; }
+      updateSyncIcon('error'); renderTabs(); rc(); return;
+    }
+    updateSyncIcon('syncing');
+    Promise.all([ghLoad(), ghLoadInv()]).then(function(){
+      selIdx = Math.max(0, periods.length - 1);
+      renderTabs(); rc(); updateSyncIcon('ok');
+    });
+  } else {
+    updateSyncIcon('local'); renderTabs(); rc();
+  }
+})(0);
+</script>
+</body>
+</html>
