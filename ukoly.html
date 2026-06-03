@@ -196,8 +196,9 @@
   .event-item.urg-green  { border-left-color: var(--green); }
   .event-item.urg-gray   { border-left-color: var(--gray); }
 
-  .event-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  .event-row > div:first-child { flex: 1; min-width: 0; }
+  .event-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .event-num { font-size: 30px; font-weight: 700; line-height: 1; min-width: 48px; text-align: center; flex-shrink: 0; }
+  .event-main { flex: 1; min-width: 0; }
   .event-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .event-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .event-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -809,7 +810,8 @@ function renderEvents() {
       html += `
         <div class="event-item urg-${u}">
           <div class="event-row" onclick="openEventModal('${e.id}')">
-            <div>
+            <div class="event-num">${e.days < 0 ? Math.abs(e.days) : e.days}</div>
+            <div class="event-main">
               <div class="event-name">${cat.icon} ${esc(e.name)}${e.repeat ? ' <span style="font-size:11px;opacity:0.6">🔄 '+repeatLabel(e.repeat)+'</span>' : ''}</div>
               <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${urgLabel(e.days)}</div>
               ${e.note ? `<div class="event-note">${esc(e.note)}</div>` : ''}
