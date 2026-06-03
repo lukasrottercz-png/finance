@@ -211,6 +211,17 @@
       "repeat": "",
       "tags": [],
       "completedAt": "2026-06-03"
+    },
+    {
+      "id": "mpxs2j5wpd3",
+      "name": "Zaplatit pojištění Honda",
+      "date": "2026-06-03",
+      "note": "",
+      "done": false,
+      "repeat": "",
+      "tags": [
+        "osobní"
+      ]
     }
   ],
   "events": [
