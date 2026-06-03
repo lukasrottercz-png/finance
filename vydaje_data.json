@@ -639,5 +639,15 @@
     "date": "2026-06-03",
     "shared": false,
     "mimoradny": false
+  },
+  {
+    "id": "1780480381081",
+    "amount": 99,
+    "catKey": "stravovani",
+    "subcat": "Fast food",
+    "note": "",
+    "date": "2026-06-03",
+    "shared": false,
+    "mimoradny": false
   }
 ]
