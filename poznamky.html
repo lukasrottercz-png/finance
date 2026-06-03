@@ -259,7 +259,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
   <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
     <div class="hdr-title">📝 Poznámky</div>
     <div class="hdr-actions">
-      <button class="hdr-btn" onclick="syncNow()" id="sync-btn" title="Synchronizovat">↻</button>
+      <button class="hdr-btn" onclick="syncTap()" id="sync-btn" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
       <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html" class="hdr-link">🧾</a>
       <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
@@ -393,70 +393,119 @@ const GH_FILE = 'poznamky_data.json';
 
 function ghToken(){ return localStorage.getItem('gh_token')||''; }
 
-async function ghLoad(){
-  const token=ghToken(); if(!token) return;
-  try{
-    const res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
-      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
-    });
-    if(res.status===404) return;
-    if(!res.ok) throw new Error(res.status);
-    const data=await res.json();
-    const base64=data.content.replace(/\n/g,'');
-    const binary=atob(base64);
-    const bytes=new Uint8Array(binary.length);
-    for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-    notes=JSON.parse(new TextDecoder('utf-8').decode(bytes));
-    localStorage.setItem('gh_sha_poz',data.sha);
-    saveLocal();
-  }catch(e){ console.error('ghLoad poznamky:',e); }
+// Sloučení dvou sad poznámek podle id; u kolize vyhraje novější updatedAt
+// (při shodě data vyhraje smazaná = mazání se nepřepíše editací).
+function mergeNotes(a,b){
+  const map={};
+  const pick=(ex,n)=>{
+    const au=ex.updatedAt||ex.createdAt||'';
+    const bu=n.updatedAt||n.createdAt||'';
+    if(bu>au) return n;
+    if(au>bu) return ex;
+    if(n.deleted&&!ex.deleted) return n;
+    if(ex.deleted&&!n.deleted) return ex;
+    return n;
+  };
+  const put=(n)=>{ if(!n||!n.id) return; map[n.id]=map[n.id]?pick(map[n.id],n):n; };
+  (a||[]).forEach(put); (b||[]).forEach(put);
+  return Object.values(map);
 }
 
-async function ghSave(){
-  const token=ghToken(); if(!token){ saveLocal(); return; }
+async function ghFetchNotes(){
+  const token=ghToken(); if(!token) return null;
+  const res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
+    headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
+  });
+  if(res.status===404) return {notes:[],sha:''};
+  if(!res.ok) throw new Error('GET '+res.status);
+  const data=await res.json();
+  const binary=atob(data.content.replace(/\n/g,''));
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  const arr=JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  return {notes:Array.isArray(arr)?arr:[], sha:data.sha};
+}
+
+async function ghPutNotes(arr, sha){
+  const token=ghToken();
+  const json=JSON.stringify(arr,null,2);
+  const bytes=new TextEncoder().encode(json);
+  let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
+  const content=btoa(binary);
+  const body={message:'Poznámky '+new Date().toISOString().slice(0,10),content};
+  if(sha) body.sha=sha;
+  const url=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`;
+  const hdr={'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'};
+  let res=await fetch(url,{method:'PUT',headers:hdr,body:JSON.stringify(body)});
+  if(res.status===409){ // mezitím se na serveru něco změnilo — vezmi čerstvé sha a sloučení zopakuj
+    const s=await ghFetchNotes();
+    const merged=mergeNotes(arr, s.notes);
+    notes=merged; saveLocal();
+    const mb=new TextEncoder().encode(JSON.stringify(merged,null,2));
+    let mbin=''; mb.forEach(x=>mbin+=String.fromCharCode(x));
+    body.content=btoa(mbin);
+    body.sha=s.sha;
+    res=await fetch(url,{method:'PUT',headers:hdr,body:JSON.stringify(body)});
+  }
+  if(!res.ok) throw new Error('PUT '+res.status);
+  const data=await res.json();
+  localStorage.setItem('gh_sha_poz',data.content.sha);
+  return data.content.sha;
+}
+
+// Hlavní synchronizace: stáhni server, sluč s lokálem (nic se neztratí),
+// a pokud se sloučení liší od serveru, nahraj zpět.
+let syncing=false;
+async function ghSync(){
+  saveLocal();
+  if(!ghToken()){ updateSync('local'); return; }
+  if(syncing) return;
+  syncing=true; updateSync('syncing');
   try{
-    const json=JSON.stringify(notes,null,2);
-    const bytes=new TextEncoder().encode(json);
-    let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
-    const content=btoa(binary);
-    let sha=localStorage.getItem('gh_sha_poz')||'';
-    if(!sha){
-      const chk=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
-        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
-      });
-      if(chk.ok){ const cd=await chk.json(); sha=cd.sha; localStorage.setItem('gh_sha_poz',sha); }
-    }
-    const body={message:'Poznámky '+new Date().toISOString().slice(0,10),content};
-    if(sha) body.sha=sha;
-    let res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
-      method:'PUT',
-      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-    if(res.status===409){
-      const chk2=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
-        headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
-      });
-      if(chk2.ok){ const cd2=await chk2.json(); sha=cd2.sha; localStorage.setItem('gh_sha_poz',sha); }
-      body.sha=sha;
-      res=await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,{
-        method:'PUT',headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-        body:JSON.stringify(body)
-      });
-    }
-    if(!res.ok) throw new Error(res.status);
-    const data=await res.json();
-    localStorage.setItem('gh_sha_poz',data.content.sha);
-    saveLocal();
-  }catch(e){ console.error('ghSave poznamky:',e); saveLocal(); showToast('GitHub nedostupný — uloženo lokálně'); }
+    const server=await ghFetchNotes();
+    const merged=mergeNotes(notes, server.notes);
+    const changed = JSON.stringify([...merged].sort((a,b)=>(a.id>b.id?1:-1)))
+                 !== JSON.stringify([...server.notes].sort((a,b)=>(a.id>b.id?1:-1)));
+    notes=merged; saveLocal();
+    if(changed){ await ghPutNotes(merged, server.sha); }
+    else { localStorage.setItem('gh_sha_poz', server.sha); }
+    updateSync('ok');
+  }catch(e){
+    console.error('ghSync poznamky:',e);
+    updateSync('error');
+  }finally{ syncing=false; }
+}
+
+// ghLoad i ghSave teď dělají totéž = bezpečné sloučení
+async function ghLoad(){ await ghSync(); }
+async function ghSave(){ await ghSync(); }
+
+function updateSync(state){
+  const b=document.getElementById('sync-btn'); if(!b) return;
+  if(state==='syncing'){ b.textContent='↻'; b.style.opacity='0.35'; b.style.color=''; b.title='Synchronizuji…'; }
+  else if(state==='ok'){ b.textContent='↻'; b.style.opacity='1'; b.style.color=''; b.title='Synchronizováno ✓ — klepni pro ruční sync'; }
+  else if(state==='local'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff9500'; b.title='Jen lokálně — klepni a přihlas se k GitHubu'; }
+  else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
+}
+
+function syncTap(){
+  if(!ghToken()){ promptToken(); return; }
+  syncNow();
+}
+function promptToken(){
+  const t=prompt('Vlož GitHub token (ghp_…) pro synchronizaci na tomto zařízení:', ghToken());
+  if(t===null) return;
+  const v=t.trim(); if(!v) return;
+  localStorage.setItem('gh_token', v);
+  localStorage.removeItem('gh_sha_poz');
+  showToast('Token uložen — synchronizuji…');
+  loadPromise = ghSync().then(()=>renderList());
 }
 
 async function syncNow(){
-  const btn=document.getElementById('sync-btn');
-  if(btn) btn.style.opacity='0.3';
-  await ghLoad(); renderList();
+  await ghSync();
+  renderList();
   showToast('Synchronizováno ✓');
-  if(btn) btn.style.opacity='1';
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────
@@ -549,7 +598,7 @@ let curStitkFilter='';
 function renderList(){
   const q=(document.getElementById('search-inp').value||'').toLowerCase();
   const sortBy=document.getElementById('sort-select')?.value||'edited';
-  let list=[...notes];
+  let list=notes.filter(n=>!n.deleted);
 
   // Řazení
   list.sort((a,b)=>{
@@ -565,7 +614,7 @@ function renderList(){
   if(q) list=list.filter(n=>n.title.toLowerCase().includes(q)||n.content.toLowerCase().includes(q)||(n.tags||[]).join(' ').toLowerCase().includes(q));
 
   // Tag filter row
-  const allStitky=[...new Set(notes.flatMap(n=>n.tags||[]))].sort();
+  const allStitky=[...new Set(notes.filter(n=>!n.deleted).flatMap(n=>n.tags||[]))].sort();
   const tagRow=document.getElementById('stitek-filter-row');
   if(tagRow){
     tagRow.innerHTML=allStitky.map(t=>`<button class="stitek-filter-chip${curStitkFilter===t?' on':''}" onclick="setStitkFilter('${t}')">${t}</button>`).join('');
@@ -704,7 +753,8 @@ function closeCardMenu(){
 
 function confirmDelete(id){
   if(!confirm('Smazat poznámku?')) return;
-  notes=notes.filter(n=>n.id!==id);
+  const now=new Date().toISOString().slice(0,10);
+  notes=notes.map(n=>n.id===id?{...n,deleted:true,pinned:false,updatedAt:now}:n);
   ghSave();
   showToast('Smazáno');
   renderList();
@@ -956,7 +1006,8 @@ async function saveNote(){
 
 function deleteNote(){
   if(!confirm('Smazat poznámku?')) return;
-  notes=notes.filter(n=>n.id!==editId);
+  const now=new Date().toISOString().slice(0,10);
+  notes=notes.map(n=>n.id===editId?{...n,deleted:true,pinned:false,updatedAt:now}:n);
   ghSave();
   showToast('Smazáno');
   closeEdit();
@@ -1138,7 +1189,7 @@ async function runAi(){
 
   el.innerHTML='<span style="color:var(--text3)">⏳ Claude analyzuje tvoje poznámky…</span>';
 
-  const summary=notes.map(n=>{
+  const summary=notes.filter(n=>!n.deleted).map(n=>{
     const tasks=extractTasks(n.content);
     return `[${TYPES[n.type]?.label||n.type}] ${n.title} (${n.updatedAt})\n${n.content.slice(0,500)}${tasks.length?'\nNesplněné úkoly: '+tasks.join(', '):''}`;
   }).join('\n\n---\n\n');
@@ -1383,7 +1434,11 @@ function initQuick(){
 renderList();
 initQuick();
 if(ghToken()){
-  loadPromise = ghLoad().then(()=>renderList());
+  updateSync('syncing');
+  loadPromise = ghSync().then(()=>renderList());
+} else {
+  updateSync('local');
+  setTimeout(()=>showToast('⚠ Nejsi přihlášen k GitHubu — poznámky se neukládají na server. Klepni na ↻ nahoře.'), 600);
 }
 </script>
 </body>

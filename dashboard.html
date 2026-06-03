@@ -352,7 +352,7 @@ function renderTasks() {
 
 function renderNotes() {
   const el = document.getElementById('notes-content');
-  const pinned = poznamky.filter(n => n.pinned);
+  const pinned = poznamky.filter(n => n.pinned && !n.deleted);
   if (!pinned.length) {
     el.innerHTML = `<div class="empty-sm">Žádné připnuté poznámky. Připni si je 📌 v appce Poznámky.</div>`;
     return;
@@ -440,13 +440,13 @@ function buildAiContext() {
   const evLines = udalosti.map(e=>({...e,d:daysUntil(e.date)})).filter(e=>e.d>=0).sort((a,b)=>a.d-b.d).slice(0,5)
     .map(e=>`- ${e.name} za ${e.d} dní`).join('\n') || 'žádné';
   // Připnuté poznámky
-  const pinLines = poznamky.filter(n=>n.pinned).slice(0,6).map(n => {
+  const pinLines = poznamky.filter(n=>n.pinned&&!n.deleted).slice(0,6).map(n => {
     const c = String(n.content||'').replace(/\s+/g,' ').trim().slice(0,160);
     return `- ${n.title||'(bez názvu)'}${c?`: ${c}`:''}`;
   }).join('\n') || 'žádné';
   // Nesplněné úkoly schované uvnitř poznámek
   const noteTasks = [];
-  poznamky.forEach(n => String(n.content||'').split('\n').forEach(line => {
+  poznamky.filter(n=>!n.deleted).forEach(n => String(n.content||'').split('\n').forEach(line => {
     const m = line.match(/^- \[ \] (.+)/);
     if (m) noteTasks.push(`- ${m[1].trim()} (z poznámky „${n.title||'?'}")`);
   }));
