@@ -619,5 +619,15 @@
     "date": "2026-06-02",
     "shared": false,
     "mimoradny": false
+  },
+  {
+    "id": "1780468573910",
+    "amount": 1508,
+    "catKey": "doprava",
+    "subcat": "CNG — Octavia",
+    "note": "",
+    "date": "2026-06-03",
+    "shared": false,
+    "mimoradny": false
   }
 ]
