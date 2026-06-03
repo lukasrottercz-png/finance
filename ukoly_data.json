@@ -139,7 +139,10 @@
       "date": "2026-06-05",
       "note": "Z poznámky: Westfield Metropole 26:5.2026",
       "done": false,
-      "repeat": ""
+      "repeat": "",
+      "tags": [
+        "xiaomi"
+      ]
     },
     {
       "id": "mpmklafmvsg",
