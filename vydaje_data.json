@@ -669,5 +669,15 @@
     "date": "2026-06-03",
     "shared": false,
     "mimoradny": false
+  },
+  {
+    "id": "1780505807238",
+    "amount": 198,
+    "catKey": "potraviny",
+    "subcat": "Supermarket",
+    "note": "",
+    "date": "2026-06-03",
+    "shared": true,
+    "mimoradny": false
   }
 ]
