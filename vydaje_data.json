@@ -659,5 +659,15 @@
     "date": "2026-06-03",
     "shared": false,
     "mimoradny": false
+  },
+  {
+    "id": "1780494257100",
+    "amount": 89,
+    "catKey": "stravovani",
+    "subcat": "Kavárna",
+    "note": "",
+    "date": "2026-06-03",
+    "shared": false,
+    "mimoradny": false
   }
 ]
