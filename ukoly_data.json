@@ -207,9 +207,10 @@
       "name": "Zaplatit CNG za duben",
       "date": "2026-06-03",
       "note": "",
-      "done": false,
+      "done": true,
       "repeat": "",
-      "tags": []
+      "tags": [],
+      "completedAt": "2026-06-03"
     }
   ],
   "events": [
