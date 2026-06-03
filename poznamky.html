@@ -55,6 +55,18 @@ body.quick-only .list-toolbar,
 body.quick-only #note-list{display:none!important}
 body.quick-only .quick-note{padding:16px}
 body.quick-only .quick-inp{min-height:62vh;font-size:17px}
+.sync-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding:80px 16px 16px}
+.sync-overlay.on{display:flex}
+.sync-modal{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:420px}
+.sync-modal-title{font-size:17px;font-weight:700;margin-bottom:10px}
+.sync-modal-state{font-size:13px;padding:8px 12px;border-radius:10px;margin-bottom:14px}
+.sync-modal-state.ok{background:rgba(52,199,89,0.15);color:#34c759}
+.sync-modal-state.local,.sync-modal-state.err{background:rgba(255,149,0,0.15);color:#ff9500}
+.sync-modal-inp{width:100%;font-size:16px;padding:10px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text)}
+.sync-modal-hint{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.5}
+.sync-modal-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:flex-end}
+.sync-modal-btn{padding:9px 16px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.sync-modal-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
 
 /* FILTERS */
@@ -370,6 +382,20 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
 
 <div class="toast" id="toast"></div>
 
+<div class="sync-overlay" id="sync-overlay">
+  <div class="sync-modal">
+    <div class="sync-modal-title">↻ Synchronizace s GitHubem</div>
+    <div class="sync-modal-state" id="sync-modal-state"></div>
+    <input type="password" id="gh-tok-modal" class="sync-modal-inp" placeholder="GitHub token (ghp_…)" autocomplete="off">
+    <div class="sync-modal-hint">Token potřebuje právo <b>zápisu</b> do repa „finance" (fine-grained: Contents → Read and write; classic: scope <b>repo</b>). Uloží se jen v tomto prohlížeči/zařízení.</div>
+    <div class="sync-modal-actions">
+      <button class="sync-modal-btn" onclick="closeSyncModal()">Zavřít</button>
+      <button class="sync-modal-btn" onclick="syncNowFromModal()">Synchronizovat</button>
+      <button class="sync-modal-btn primary" onclick="saveTokenFromModal()">Uložit token</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────
 const TYPES = {
@@ -458,8 +484,8 @@ async function ghPutNotes(arr, sha){
 let syncing=false;
 async function ghSync(){
   saveLocal();
-  if(!ghToken()){ updateSync('local'); return; }
-  if(syncing) return;
+  if(!ghToken()){ updateSync('local'); return false; }
+  if(syncing) return false;
   syncing=true; updateSync('syncing');
   try{
     const server=await ghFetchNotes();
@@ -470,9 +496,15 @@ async function ghSync(){
     if(changed){ await ghPutNotes(merged, server.sha); }
     else { localStorage.setItem('gh_sha_poz', server.sha); }
     updateSync('ok');
+    return true;
   }catch(e){
     console.error('ghSync poznamky:',e);
     updateSync('error');
+    const m=String(e&&e.message||'');
+    if(m.includes('PUT 403')||m.includes('PUT 404')) showToast('⚠ Token nemá právo zápisu — změny se neuložily na GitHub');
+    else if(m.includes('401')) showToast('⚠ Neplatný GitHub token');
+    else showToast('⚠ GitHub nedostupný — uloženo jen lokálně');
+    return false;
   }finally{ syncing=false; }
 }
 
@@ -488,24 +520,42 @@ function updateSync(state){
   else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
 }
 
-function syncTap(){
-  if(!ghToken()){ promptToken(); return; }
-  syncNow();
+function syncTap(){ openSyncModal(); }
+
+function openSyncModal(){
+  const inp=document.getElementById('gh-tok-modal');
+  if(inp) inp.value=ghToken();
+  refreshSyncModalState();
+  document.getElementById('sync-overlay').classList.add('on');
 }
-function promptToken(){
-  const t=prompt('Vlož GitHub token (ghp_…) pro synchronizaci na tomto zařízení:', ghToken());
-  if(t===null) return;
-  const v=t.trim(); if(!v) return;
+function closeSyncModal(){ document.getElementById('sync-overlay').classList.remove('on'); }
+function refreshSyncModalState(){
+  const el=document.getElementById('sync-modal-state'); if(!el) return;
+  if(!ghToken()){ el.className='sync-modal-state local'; el.textContent='⚠ Bez tokenu — poznámky se ukládají jen na tomto zařízení.'; }
+  else { el.className='sync-modal-state ok'; el.textContent='Token je nastaven. Klepni na „Synchronizovat" pro ověření.'; }
+}
+async function saveTokenFromModal(){
+  const inp=document.getElementById('gh-tok-modal');
+  const v=(inp?.value||'').trim();
+  if(!v){ showToast('Vlož token'); return; }
   localStorage.setItem('gh_token', v);
   localStorage.removeItem('gh_sha_poz');
-  showToast('Token uložen — synchronizuji…');
-  loadPromise = ghSync().then(()=>renderList());
+  const ok=await ghSync();
+  renderList();
+  refreshSyncModalState();
+  if(ok){ showToast('Token uložen — synchronizováno ✓'); closeSyncModal(); }
+}
+async function syncNowFromModal(){
+  const ok=await ghSync();
+  renderList();
+  refreshSyncModalState();
+  if(ok){ showToast('Synchronizováno ✓'); closeSyncModal(); }
 }
 
 async function syncNow(){
-  await ghSync();
+  const ok=await ghSync();
   renderList();
-  showToast('Synchronizováno ✓');
+  if(ok) showToast('Synchronizováno ✓');
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────
