@@ -679,5 +679,15 @@
     "date": "2026-06-03",
     "shared": true,
     "mimoradny": false
+  },
+  {
+    "id": "1780555139018",
+    "amount": 1290,
+    "catKey": "pece",
+    "subcat": "Kadeřník",
+    "note": "",
+    "date": "2026-06-04",
+    "shared": false,
+    "mimoradny": false
   }
 ]
