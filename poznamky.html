@@ -657,7 +657,7 @@ let quickSaving=false;
 function saveLocal(){ try{ localStorage.setItem('lk_poz',JSON.stringify(notes)); }catch(e){} }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function today(){ return new Date().toISOString().slice(0,10); }
-function fmtDate(d){ return new Date(d+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtDate(d){ if(!d) return ''; const dt=(String(d).length>10)?new Date(d):new Date(d+'T12:00:00'); return dt.toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'}); }
 
 function showToast(m){
   let t=document.getElementById('toast');
@@ -885,7 +885,7 @@ function closeCardMenu(){
 
 function confirmDelete(id){
   if(!confirm('Smazat poznámku?')) return;
-  const now=new Date().toISOString().slice(0,10);
+  const now=new Date().toISOString();
   notes=notes.map(n=>n.id===id?{...n,deleted:true,pinned:false,updatedAt:now}:n);
   ghSave();
   showToast('Smazáno');
@@ -1122,7 +1122,7 @@ async function saveNote(){
   const tags=parseTags(tagsRaw);
   if(!title && !content){ showToast('Zadej název nebo obsah'); return; }
   await loadPromise; // počkej na čerstvá data ze startu, ať nic nepřepíšeš
-  const now=new Date().toISOString().slice(0,10);
+  const now=new Date().toISOString();
   if(editId){
     notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
   } else {
@@ -1139,7 +1139,7 @@ async function saveNote(){
 
 function deleteNote(){
   if(!confirm('Smazat poznámku?')) return;
-  const now=new Date().toISOString().slice(0,10);
+  const now=new Date().toISOString();
   notes=notes.map(n=>n.id===editId?{...n,deleted:true,pinned:false,updatedAt:now}:n);
   ghSave();
   showToast('Smazáno');
@@ -1213,7 +1213,7 @@ let polishedContent='';
 
 function applyPolishToNote(){
   if(!currentPolishNoteId||!polishedContent) return;
-  const now=new Date().toISOString().slice(0,10);
+  const now=new Date().toISOString();
   notes=notes.map(n=>n.id===currentPolishNoteId?{...n,content:polishedContent,updatedAt:now}:n);
   ghSave();
   closePolish();
@@ -1528,7 +1528,7 @@ async function saveQuick(){
   if(btn){ btn.disabled=true; btn.textContent='Ukládám…'; }
   try{
     await loadPromise; // počkej na čerstvá data ze startu, ať nic nepřepíšeš
-    const now=today();
+    const now=new Date().toISOString();
     const firstLine=content.split('\n')[0].trim().replace(/^#+\s*/,'').replace(/^- \[.\]\s*/,'').replace(/^[-*]\s*/,'');
     const title=firstLine.slice(0,80) || ('Rychlá poznámka '+fmtDate(now));
     notes.unshift({id:uid(),title,content,type:'volna',tags:['rychlá'],pinned:false,createdAt:now,updatedAt:now});
