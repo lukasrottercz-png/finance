@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dnešek</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f2f2f7; --bg2: #ffffff; --bg3: #f2f2f7;
+  --text: #1c1c1e; --text2: #6c6c70; --text3: #aeaeb2;
+  --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+  --green: #34c759; --green-bg: #e8f8ed;
+  --red: #ff3b30; --red-bg: #fff0ef;
+  --blue: #007aff; --blue-bg: #e5f1ff;
+  --orange: #ff9500; --orange-bg: #fff3e0;
+  --accent: #7c3aed;
+  --r: 13px; --rl: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000; --bg2: #1c1c1e; --bg3: #000000;
+    --text: #ffffff; --text2: #aeaeb2; --text3: #636366;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+    --green: #34c759; --green-bg: #0d3320;
+    --red: #ff3b30; --red-bg: #3d0e0b;
+    --blue: #0a84ff; --blue-bg: #001f4d;
+    --orange: #ff9500; --orange-bg: #3d2a05;
+    --accent: #a78bfa;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.shell { max-width: 980px; margin: 0 auto; padding: 0 16px 60px; }
+.topbar { background: var(--bg2); border-bottom: 0.5px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.topbar-inner { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+header { padding: 14px 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 600; }
+header .hdate { font-size: 13px; color: var(--text3); margin-top: 2px; }
+.nav { display: flex; align-items: center; gap: 8px; }
+.nav a, .nav button { font-size: 13px; padding: 6px 12px; border-radius: var(--r); border: 0.5px solid var(--border2); color: var(--text2); text-decoration: none; white-space: nowrap; background: var(--bg); cursor: pointer; }
+.nav button { font-size: 18px; padding: 4px 8px; border: none; color: var(--text2); }
+
+/* Vícesloupcový layout */
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.dash-col { display: flex; flex-direction: column; gap: 12px; }
+.dash-col .sec { margin-bottom: 0; }
+
+.sec { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 16px 18px; margin-bottom: 12px; }
+.sec h3 { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.sec h3 .h-extra { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text2); font-size: 12px; }
+
+.row { display: flex; align-items: center; padding: 9px 0; border-bottom: 0.5px solid var(--border); gap: 10px; }
+.row:last-child { border-bottom: none; }
+.row-lbl { flex: 1; font-size: 14px; }
+.row-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.row-val { font-size: 14px; font-weight: 500; text-align: right; white-space: nowrap; }
+.pos { color: var(--green); } .neg { color: var(--red); } .danger { color: var(--red) !important; }
+
+/* Úkoly */
+.task { display: flex; align-items: flex-start; gap: 11px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+.task:last-child { border-bottom: none; }
+.task-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.dot-over { background: var(--red); } .dot-today { background: var(--orange); } .dot-soon { background: var(--blue); }
+.task-body { flex: 1; min-width: 0; }
+.task-name { font-size: 14px; line-height: 1.3; }
+.task-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.task-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.b-over { background: var(--red-bg); color: var(--red); }
+.b-today { background: var(--orange-bg); color: var(--orange); }
+.b-soon { background: var(--blue-bg); color: var(--blue); }
+.tagpill { display:inline-block; font-size:10px; padding:1px 7px; border-radius:20px; background:var(--bg3); color:var(--text2); margin-right:4px; margin-top:3px; }
+
+/* Připnuté poznámky */
+.note-item { display:block; padding:9px 0; border-bottom:0.5px solid var(--border); text-decoration:none; color:inherit; }
+.note-item:last-child { border-bottom:none; }
+.note-item:hover .note-title { color:var(--accent); }
+.note-title { font-size:14px; font-weight:500; }
+.note-preview { font-size:12px; color:var(--text3); margin-top:2px; line-height:1.4; }
+
+/* Události / countdown */
+.cd { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
+.cd-num { font-size: 34px; font-weight: 700; line-height: 1; min-width: 56px; text-align: center; }
+.cd-name { font-size: 15px; font-weight: 600; }
+.cd-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+/* Rozpočet */
+.budget-hero { text-align: center; padding: 8px 0 14px; }
+.budget-big { font-size: 38px; font-weight: 700; line-height: 1; }
+.budget-cap { font-size: 12px; color: var(--text2); margin-top: 6px; }
+.pbar-track { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; margin: 4px 0 6px; }
+.pbar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.minirow { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 0.5px solid var(--border); }
+.minirow:last-child { border-bottom: none; }
+.minirow .lbl { color: var(--text2); }
+
+/* Settings */
+.settings { display: none; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 16px 18px; margin-bottom: 12px; }
+.settings.open { display: block; }
+.set-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.set-row label { font-size: 13px; color: var(--text2); }
+.set-row input, .set-row select { font-size: 16px; padding: 9px 12px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); width: 100%; }
+.seg { display: flex; gap: 0; border: 0.5px solid var(--border2); border-radius: var(--r); overflow: hidden; }
+.seg button { flex: 1; padding: 9px; font-size: 13px; background: var(--bg); border: none; color: var(--text2); cursor: pointer; border-right: 0.5px solid var(--border); }
+.seg button:last-child { border-right: none; }
+.seg button.on { background: var(--text); color: var(--bg); font-weight: 500; }
+
+.btn { padding: 10px 18px; border-radius: var(--r); border: 0.5px solid var(--border2); background: var(--bg); cursor: pointer; font-size: 14px; color: var(--text); font-family: inherit; }
+.btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+.ai-text { font-size: 14px; line-height: 1.7; color: var(--text2); white-space: pre-wrap; }
+.bf-intro { font-size: 14px; line-height: 1.55; color: var(--text2); margin-bottom: 12px; }
+.bf-list { display: flex; flex-direction: column; gap: 2px; }
+.bf-item { display: flex; align-items: flex-start; gap: 11px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+.bf-item:last-child { border-bottom: none; }
+.bf-emoji { font-size: 16px; line-height: 1.45; flex-shrink: 0; width: 20px; text-align: center; }
+.bf-text { font-size: 14px; line-height: 1.45; color: var(--text); }
+.bf-focus { margin-top: 12px; padding: 12px 14px; background: var(--blue-bg); border-radius: var(--r); font-size: 14px; line-height: 1.5; color: var(--text); }
+.bf-focus-lbl { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--blue); margin-bottom: 3px; }
+.muted { font-size: 13px; color: var(--text3); }
+.empty-sm { font-size: 13px; color: var(--text3); padding: 4px 0; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 22px; border-radius: var(--r); font-size: 14px; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 999; }
+.toast.show { opacity: 1; }
+.setup { background: var(--orange-bg); border: 0.5px solid var(--orange); border-radius: var(--rl); padding: 14px 16px; margin-bottom: 12px; font-size: 13px; color: var(--text); }
+.setup input { width:100%; font-size:16px; padding:9px 12px; border-radius:var(--r); border:0.5px solid var(--border2); background:var(--bg); color:var(--text); margin-top:8px; }
+
+@media (max-width: 760px) {
+  .dash-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .shell, .topbar-inner { padding-left: 12px; padding-right: 12px; }
+  header h1 { font-size: 16px; }
+  .nav a { font-size: 12px; padding: 5px 10px; }
+  .budget-big { font-size: 32px; }
+  .cd-num { font-size: 30px; min-width: 48px; }
+}
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <header>
+      <div>
+        <h1>☀️ Dnešek <span style="font-size:10px;font-weight:700;color:#34c759;border:1px solid #34c759;border-radius:10px;padding:1px 5px;vertical-align:middle">DRIVE</span></h1>
+        <div class="hdate" id="hdate"></div>
+      </div>
+      <div class="nav">
+        <button onclick="syncAll()" id="sync-btn" title="Synchronizovat">↻</button>
+        <button onclick="toggleSettings()" title="Nastavení">⚙️</button>
+        <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html">💰</a>
+        <a href="https://lukasrottercz-png.github.io/vydaje/utrate_lukas.html">🧾</a>
+        <a href="https://lukasrottercz-png.github.io/finance/ukoly.html">📋</a>
+        <a href="https://lukasrottercz-png.github.io/finance/poznamky.html">📝</a>
+      </div>
+    </header>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- Nastavení -->
+  <div class="settings" id="settings">
+    <div class="set-row">
+      <label>Google Drive</label>
+      <button class="btn btn-primary" id="g-connect-btn" onclick="connectGoogle()" type="button">Přihlásit se Googlem</button>
+      <button class="btn" id="g-disconnect-btn" onclick="disconnectGoogle()" type="button" style="display:none">Odhlásit</button>
+    </div>
+    <div class="set-row">
+      <label>Anthropic API klíč (pro ranní brífink)</label>
+      <input type="password" id="ai-inp" placeholder="sk-ant-…">
+    </div>
+    <button class="btn btn-primary" onclick="saveKeys()">Uložit</button>
+  </div>
+
+  <div id="setup-banner"></div>
+
+  <!-- AI brífink — přes celou šířku, nahoře -->
+  <div class="sec" id="ai-sec">
+    <h3>☀️ Brífink na dnešek</h3>
+    <div id="ai-content"></div>
+  </div>
+
+  <div class="dash-grid">
+    <!-- LEVÝ SLOUPEC -->
+    <div class="dash-col">
+      <!-- Úkoly -->
+      <div class="sec">
+        <h3>Úkoly <span class="h-extra" id="tasks-extra"></span></h3>
+        <div id="tasks-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+    </div>
+
+    <!-- PRAVÝ SLOUPEC -->
+    <div class="dash-col">
+      <!-- Události -->
+      <div class="sec" id="events-sec">
+        <h3>Nejbližší události</h3>
+        <div id="events-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+
+      <!-- Připnuté poznámky -->
+      <div class="sec" id="notes-sec">
+        <h3>📌 Připnuté poznámky</h3>
+        <div id="notes-content"><div class="empty-sm">⏳ Načítám…</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── KONSTANTY ─────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID='549502284523-okg9u0p3almkgr1q2to17phr9fks270e.apps.googleusercontent.com';
+const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+let tokenClient=null, accessToken='', tokenExpiry=0;
+
+const EVENT_ICONS = { insurance:'🛡️', work:'💼', lease:'🏠', finance:'💳', anniv:'📅', other:'📄' };
+
+// ── STAV ──────────────────────────────────────────────────────────────
+let ukoly = [];     // tasks
+let udalosti = [];  // events
+let poznamky = [];  // notes
+let aiLog = [];     // historie AI brífinků [{date, text}]
+let dataLoaded = false;
+let aiGenerating = false;
+
+// ── HELPERY ─────────────────────────────────────────────────────────────
+function ghToken() { return localStorage.getItem('google_connected') ? 'google' : ''; }
+function isConnected() { return !!localStorage.getItem('google_connected'); }
+function gisReady(){ return typeof google!=='undefined' && google.accounts && google.accounts.oauth2; }
+function ensureTokenClient(){
+  if(tokenClient) return true;
+  if(!gisReady() || !GOOGLE_CLIENT_ID) return false;
+  tokenClient=google.accounts.oauth2.initTokenClient({ client_id:GOOGLE_CLIENT_ID, scope:DRIVE_SCOPE, callback:function(){} });
+  return true;
+}
+function getAccessToken(interactive){
+  return new Promise(function(resolve,reject){
+    if(accessToken && Date.now()<tokenExpiry-60000){ resolve(accessToken); return; }
+    if(!GOOGLE_CLIENT_ID){ reject(new Error('chybí client id')); return; }
+    if(!ensureTokenClient()){ reject(new Error('GIS not ready')); return; }
+    tokenClient.callback=function(resp){
+      if(resp && resp.error){ reject(new Error(resp.error)); return; }
+      accessToken=resp.access_token;
+      tokenExpiry=Date.now()+((resp.expires_in||3600)*1000);
+      localStorage.setItem('google_connected','1');
+      resolve(accessToken);
+    };
+    tokenClient.error_callback=function(err){ reject(new Error('oauth '+((err&&err.type)||'error'))); };
+    try{ tokenClient.requestAccessToken({prompt: interactive?'consent':''}); }
+    catch(e){ reject(e); }
+  });
+}
+async function driveApi(url,opts){
+  opts=opts||{};
+  let token=await getAccessToken(false);
+  opts.headers=Object.assign({},opts.headers,{'Authorization':'Bearer '+token});
+  let res=await fetch(url,opts);
+  if(res.status===401){
+    accessToken=''; tokenExpiry=0;
+    token=await getAccessToken(false);
+    opts.headers['Authorization']='Bearer '+token;
+    res=await fetch(url,opts);
+  }
+  return res;
+}
+function driveIdKey(f){ return 'drive_id_'+f; }
+async function driveFindFile(fname){
+  const ck=driveIdKey(fname);
+  let id=localStorage.getItem(ck)||'';
+  if(id){
+    const rr=await driveApi('https://www.googleapis.com/drive/v3/files/'+id+'?fields=id,trashed');
+    if(rr.ok){ const dd=await rr.json(); if(!dd.trashed) return id; }
+    localStorage.removeItem(ck);
+  }
+  const q=encodeURIComponent("name='"+fname+"' and trashed=false");
+  const r=await driveApi('https://www.googleapis.com/drive/v3/files?q='+q+'&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc');
+  if(!r.ok) throw new Error('FIND '+r.status);
+  const d=await r.json();
+  if(d.files && d.files.length){ localStorage.setItem(ck,d.files[0].id); return d.files[0].id; }
+  return '';
+}
+async function driveReadJSON(fname){
+  const id=await driveFindFile(fname);
+  if(!id) return {data:null, exists:false};
+  const r=await driveApi('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media');
+  if(!r.ok) throw new Error('READ '+r.status);
+  let j=null; try{ j=await r.json(); }catch(e){ j=null; }
+  return {data:j, exists:true};
+}
+async function driveWriteJSON(fname,obj){
+  const json=JSON.stringify(obj,null,2);
+  let id=localStorage.getItem(driveIdKey(fname)) || await driveFindFile(fname);
+  if(id){
+    const r=await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
+      {method:'PATCH',headers:{'Content-Type':'application/json'},body:json});
+    if(!r.ok) throw new Error('UPDATE '+r.status);
+    return id;
+  }
+  const boundary='dash'+Date.now();
+  const meta=JSON.stringify({name:fname,mimeType:'application/json'});
+  const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+
+             '\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+json+'\r\n--'+boundary+'--';
+  const r2=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body:body});
+  if(!r2.ok) throw new Error('CREATE '+r2.status);
+  const d=await r2.json(); localStorage.setItem(driveIdKey(fname),d.id);
+  return d.id;
+}
+function aiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function fmtDate(d) { return new Date(d + 'T12:00:00').toLocaleDateString('cs-CZ', { day:'numeric', month:'long' }); }
+function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
+
+function daysUntil(d) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const target = new Date(d + 'T00:00:00');
+  return Math.round((target - t) / 86400000);
+}
+
+// ── DRIVE ČTENÍ / ZÁPIS ───────────────────────────────────────────────
+async function ghFetch(file) {
+  if (!isConnected()) return null;
+  try { const r = await driveReadJSON(file); return r.exists ? r.data : null; }
+  catch(e) { console.error('driveFetch '+file+':', e); return null; }
+}
+
+async function ghPut(file, obj, shaKey) {
+  if (!isConnected()) return false;
+  try { await driveWriteJSON(file, obj); return true; }
+  catch(e) { console.error('drivePut '+file+':', e); return false; }
+}
+
+function updateSyncIcon(state){
+  const b=document.getElementById('sync-btn'); if(!b) return;
+  if(state==='syncing'){ b.textContent='↻'; b.style.opacity='0.3'; b.title='Synchronizuji…'; }
+  else if(state==='ok'){ b.textContent='↻'; b.style.opacity='1'; b.style.color='#34c759'; b.title='Připojeno k Google Drive ✓ — klepni pro sync'; }
+  else if(state==='local'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff9500'; b.title='Nepřihlášeno — klepni a přihlas se Googlem'; }
+  else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
+}
+
+async function connectGoogle(){
+  if(!GOOGLE_CLIENT_ID){ toast('V kódu chybí Google Client ID'); return; }
+  try{ await getAccessToken(true); }
+  catch(e){ console.error(e); toast('Přihlášení se nezdařilo'); return; }
+  updateSyncIcon('syncing');
+  await loadAll();
+  updateSyncIcon('ok'); toast('Připojeno k Google Drive ✓');
+}
+function disconnectGoogle(){
+  if(accessToken){ try{ google.accounts.oauth2.revoke(accessToken,function(){}); }catch(e){} }
+  accessToken=''; tokenExpiry=0; localStorage.removeItem('google_connected');
+  ukoly=[]; udalosti=[]; poznamky=[]; renderAll(); updateSyncIcon('local'); toast('Odhlášeno');
+}
+
+async function loadAll() {
+  try {
+    const [term, poz, log] = await Promise.all([
+      ghFetch('ukoly_data.json').catch(()=>null),
+      ghFetch('poznamky_data.json').catch(()=>null),
+      ghFetch('dashboard_ai_log.json').catch(()=>null),
+    ]);
+    ukoly   = (term && term.ukoly) ? term.ukoly : [];
+    udalosti= (term && term.events) ? term.events : [];
+    poznamky= Array.isArray(poz) ? poz : [];
+    aiLog   = Array.isArray(log) ? log : [];
+  } catch(e) { console.error('loadAll:', e); }
+  dataLoaded = true;
+  renderAll();
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────
+function renderAll() {
+  document.getElementById('hdate').textContent =
+    new Date().toLocaleDateString('cs-CZ', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  if (document.getElementById('sync-btn')) document.getElementById('sync-btn').style.opacity = '1';
+  renderSetupBanner();
+  renderTasks();
+  renderNotes();
+  renderEvents();
+  renderAiSection();
+}
+
+function renderSetupBanner() {
+  const el = document.getElementById('setup-banner');
+  if (!isConnected()) {
+    el.innerHTML = `<div class="setup" onclick="connectGoogle()" style="cursor:pointer">🔑 Pro načtení dat se přihlas Googlem (klepni sem). Bez přihlášení dashboard nevidí tvoje data.</div>`;
+  } else { el.innerHTML = ''; }
+}
+
+function renderTasks() {
+  const el = document.getElementById('tasks-content');
+  const open = ukoly.filter(u => !u.done);
+  // jen relevantní: po termínu, dnes, do 7 dní
+  const relevant = open.map(u => ({...u, d: daysUntil(u.date)}))
+    .filter(u => u.d <= 7)
+    .sort((a,b) => a.d - b.d);
+  const overdue = open.filter(u => daysUntil(u.date) < 0).length;
+  document.getElementById('tasks-extra').textContent =
+    open.length ? `${open.length} otevřených${overdue?` · ${overdue} po termínu`:''}` : '';
+
+  if (!relevant.length) {
+    el.innerHTML = open.length
+      ? `<div class="empty-sm">✅ Na dnes a nejbližší dny nic. ${open.length} úkolů má termín později.</div>`
+      : `<div class="empty-sm">✅ Žádné otevřené úkoly.</div>`;
+    return;
+  }
+  el.innerHTML = relevant.map(u => {
+    let dotCls, badgeCls, badgeTxt;
+    if (u.d < 0) { dotCls='dot-over'; badgeCls='b-over'; badgeTxt=`prošlo ${-u.d}d`; }
+    else if (u.d === 0) { dotCls='dot-today'; badgeCls='b-today'; badgeTxt='dnes'; }
+    else { dotCls='dot-soon'; badgeCls='b-soon'; badgeTxt=`za ${u.d}d`; }
+    const tags = (u.tags||[]).map(t=>`<span class="tagpill">${esc(t)}</span>`).join('');
+    return `<div class="task">
+      <div class="task-dot ${dotCls}"></div>
+      <div class="task-body">
+        <div class="task-name">${esc(u.name)}</div>
+        <div class="task-meta">${fmtDate(u.date)}${u.note?' · '+esc(u.note):''}${u.repeat?' · 🔄':''}</div>
+        ${tags?`<div>${tags}</div>`:''}
+      </div>
+      <span class="task-badge ${badgeCls}">${badgeTxt}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderNotes() {
+  const el = document.getElementById('notes-content');
+  const pinned = poznamky.filter(n => n.pinned && !n.deleted);
+  if (!pinned.length) {
+    el.innerHTML = `<div class="empty-sm">Žádné připnuté poznámky. Připni si je 📌 v appce Poznámky.</div>`;
+    return;
+  }
+  const stripMd = (s) => String(s||'')
+    .replace(/^#+\s*/gm,'').replace(/[*_`>#-]/g,'').replace(/\[[ x]\]/gi,'')
+    .replace(/\n+/g,' ').replace(/\s+/g,' ').trim();
+  const POZ_URL = 'https://lukasrottercz-png.github.io/finance/poznamky.html';
+  el.innerHTML = pinned.slice(0,5).map(n => {
+    const preview = stripMd(n.content);
+    const short = preview.length > 110 ? preview.slice(0,110) + '…' : preview;
+    return `<a href="${POZ_URL}" class="note-item">
+      <div class="note-title">${esc(n.title || '(bez názvu)')}</div>
+      ${short ? `<div class="note-preview">${esc(short)}</div>` : ''}
+    </a>`;
+  }).join('');
+}
+
+function renderEvents() {
+  const el = document.getElementById('events-content');
+  const upcoming = udalosti.map(e => ({...e, d: daysUntil(e.date)}))
+    .filter(e => e.d >= 0).sort((a,b)=>a.d-b.d).slice(0,3);
+  if (!upcoming.length) { el.innerHTML = `<div class="empty-sm">Žádné nadcházející události.</div>`; return; }
+  el.innerHTML = upcoming.map((e,i) => `
+    <div class="cd" style="${i?'border-top:0.5px solid var(--border)':''}">
+      <div class="cd-num">${e.d}</div>
+      <div>
+        <div class="cd-name">${EVENT_ICONS[e.cat]||'📄'} ${esc(e.name)}</div>
+        <div class="cd-sub">${e.d===0?'dnes':e.d===1?'zítra':`za ${e.d} dní`} · ${fmtDate(e.date)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── AI BRÍFINK ──────────────────────────────────────────────────────────
+function renderAiSection() {
+  const el = document.getElementById('ai-content');
+  if (!aiKey()) {
+    el.innerHTML = `<div class="muted">Pro ranní brífink zadej Anthropic API klíč v ⚙️ nastavení. Pak ti ho každé ráno připravím automaticky.</div>`;
+    return;
+  }
+  const todayEntry = aiLog.find(e => e.date === todayStr());
+  if (todayEntry && (todayEntry.data || todayEntry.text)) {
+    el.innerHTML = briefingHtml(todayEntry) +
+      `<div class="muted" style="margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>Brífink na ${fmtDate(todayEntry.date)}</span>
+        <button class="btn" style="padding:5px 12px;font-size:13px" onclick="runAi()">↻ Přegenerovat</button>
+      </div>`;
+    return;
+  }
+  if (aiGenerating) { el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`; return; }
+  if (dataLoaded && isConnected()) { // automaticky jednou denně
+    el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`;
+    runAi();
+    return;
+  }
+  el.innerHTML = `<button class="btn btn-primary" onclick="runAi()">✨ Vygenerovat brífink</button>`;
+}
+
+function briefingHtml(entry) {
+  const d = entry.data;
+  if (!d || !Array.isArray(d.body)) {
+    // starší/záložní formát — souvislý text
+    return `<div class="ai-text">${esc(entry.text||'')}</div>`;
+  }
+  let h = '';
+  if (d.uvod) h += `<div class="bf-intro">${esc(d.uvod)}</div>`;
+  if (d.body.length) {
+    h += `<div class="bf-list">` + d.body.map(it =>
+      `<div class="bf-item"><span class="bf-emoji">${esc(it.emoji||'•')}</span><span class="bf-text">${esc(it.text||'')}</span></div>`
+    ).join('') + `</div>`;
+  }
+  if (d.zaver) h += `<div class="bf-focus"><span class="bf-focus-lbl">Dnes se zaměř na</span> ${esc(d.zaver)}</div>`;
+  return h;
+}
+
+function buildAiContext() {
+  // Úkoly
+  const open = ukoly.filter(u=>!u.done).map(u=>({...u,d:daysUntil(u.date)})).sort((a,b)=>a.d-b.d);
+  const near = open.filter(u=>u.d<=14);
+  const taskLines = near.map(u => `- ${u.name} (${u.d<0?`prošlo ${-u.d}d`:u.d===0?'dnes':`za ${u.d}d`})${(u.tags&&u.tags.length)?` [${u.tags.join(', ')}]`:''}`).join('\n') || 'žádné v nejbližších 14 dnech';
+  const laterCount = open.length - near.length;
+  // Události
+  const evLines = udalosti.map(e=>({...e,d:daysUntil(e.date)})).filter(e=>e.d>=0).sort((a,b)=>a.d-b.d).slice(0,5)
+    .map(e=>`- ${e.name} za ${e.d} dní`).join('\n') || 'žádné';
+  // Připnuté poznámky
+  const pinLines = poznamky.filter(n=>n.pinned&&!n.deleted).slice(0,6).map(n => {
+    const c = String(n.content||'').replace(/\s+/g,' ').trim().slice(0,160);
+    return `- ${n.title||'(bez názvu)'}${c?`: ${c}`:''}`;
+  }).join('\n') || 'žádné';
+  // Nesplněné úkoly schované uvnitř poznámek
+  const noteTasks = [];
+  poznamky.filter(n=>!n.deleted).forEach(n => String(n.content||'').split('\n').forEach(line => {
+    const m = line.match(/^- \[ \] (.+)/);
+    if (m) noteTasks.push(`- ${m[1].trim()} (z poznámky „${n.title||'?'}")`);
+  }));
+  const noteTaskLines = noteTasks.slice(0,15).join('\n') || 'žádné';
+  const prevEntry = aiLog.filter(e=>e.date < todayStr()).sort((a,b)=>a.date.localeCompare(b.date)).pop();
+
+  return `Dnešní datum: ${new Date().toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}.
+
+ÚKOLY (do 14 dní)${laterCount>0?`, plus ${laterCount} dalších s pozdějším termínem`:''}:
+${taskLines}
+
+NESPLNĚNÉ ÚKOLY UVNITŘ POZNÁMEK:
+${noteTaskLines}
+
+PŘIPNUTÉ POZNÁMKY:
+${pinLines}
+
+NEJBLIŽŠÍ UDÁLOSTI:
+${evLines}
+
+${prevEntry?`VČEREJŠÍ BRÍFINK (${prevEntry.date}):\n${prevEntry.text}`:'(Předchozí brífink není k dispozici — tohle je první.)'}`;
+}
+
+async function runAi() {
+  const el = document.getElementById('ai-content');
+  const key = aiKey();
+  if (!key) { toggleSettings(); return; }
+  if (aiGenerating) return;
+  aiGenerating = true;
+  el.innerHTML = `<div class="muted">⏳ Připravuju ranní brífink…</div>`;
+
+  const prompt = `Jsi osobní asistent, který každé ráno připravuje krátký, dobře čitelný brífink. Z dat níže vytvoř strukturovaný přehled a vrať ho VÝHRADNĚ jako JSON, bez jakéhokoli dalšího textu, bez Markdownu a bez code fence.
+
+Formát:
+{
+  "uvod": "Jedna krátká věta, která navazuje na včerejší brífink (co se posunulo, co zůstalo viset). Pokud včerejší brífink není, nech prázdný řetězec.",
+  "body": [
+    { "emoji": "🔴", "text": "Krátká, konkrétní položka." }
+  ],
+  "zaver": "Jedna věta — na co se dnes hlavně zaměřit (1-2 věci)."
+}
+
+Pravidla pro 'body':
+- 3 až 6 položek, každá jedna stručná věta.
+- Seskup logicky a vyber vhodný emoji: 🔴 úkoly po termínu, 🟠 termín dnes/zítra, 📅 blížící se události, 📌 podstatné z poznámek (vč. nesplněných úkolů uvnitř poznámek).
+- Buď konkrétní (názvy, počty dní). Nevypisuj všechno — vyber to, co je opravdu důležité.
+- Žádné peníze ani finance (nemáš je k dispozici a ani je nezmiňuj).
+
+Mluv česky, věcně a lidsky, bez patosu.
+
+${buildAiContext()}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    if (!res.ok) {
+      if (res.status === 401) { localStorage.removeItem('anthropic_api_key'); aiGenerating=false; el.innerHTML = `<div class="muted">Neplatný API klíč.</div>`; return; }
+      throw new Error(res.status);
+    }
+    const data = await res.json();
+    let raw = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
+    raw = raw.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim(); // odstraň případný code fence
+
+    let parsed = null, flat = raw;
+    try {
+      const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      parsed = JSON.parse(raw.slice(s, e+1));
+      // ploché znění pro kontinuitu a fallback
+      flat = [parsed.uvod, ...(parsed.body||[]).map(b=>b.text), parsed.zaver?('Zaměř se na: '+parsed.zaver):'']
+        .filter(Boolean).join(' ');
+    } catch(err) { parsed = null; } // když se parsování nepovede, necháme raw jako text
+
+    const entry = { date: todayStr(), text: flat };
+    if (parsed && Array.isArray(parsed.body)) entry.data = parsed;
+    aiLog = aiLog.filter(e => e.date !== todayStr());
+    aiLog.push(entry);
+    aiLog.sort((a,b)=>a.date.localeCompare(b.date));
+    if (aiLog.length > 14) aiLog = aiLog.slice(-14);
+    aiGenerating = false;
+    renderAiSection();
+    ghPut('dashboard_ai_log.json', aiLog, 'gh_sha_ailog'); // zápis na pozadí
+  } catch(e) {
+    aiGenerating = false;
+    el.innerHTML = `<div class="muted" style="color:var(--red)">Chyba: ${e.message}</div>
+      <button class="btn" style="margin-top:12px" onclick="runAi()">Zkusit znovu</button>`;
+  }
+}
+
+// ── NASTAVENÍ ─────────────────────────────────────────────────────────
+function toggleSettings() {
+  const s = document.getElementById('settings');
+  s.classList.toggle('open');
+  if (s.classList.contains('open')) {
+    document.getElementById('ai-inp').value = aiKey();
+    const c=isConnected();
+    const cb=document.getElementById('g-connect-btn'), db=document.getElementById('g-disconnect-btn');
+    if(cb&&db){ cb.style.display=c?'none':''; db.style.display=c?'':'none'; }
+  }
+}
+function saveKeys() {
+  const ai = document.getElementById('ai-inp').value.trim();
+  if (ai) localStorage.setItem('anthropic_api_key', ai);
+  toast('Uloženo');
+}
+async function syncAll() {
+  if (!isConnected()) { await connectGoogle(); return; }
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.style.opacity = '0.3';
+  updateSyncIcon('syncing');
+  await loadAll();
+  toast('Synchronizováno ✓');
+  updateSyncIcon('ok');
+}
+
+// ── START ─────────────────────────────────────────────────────────────
+renderAll();
+(function startupSync(tries){
+  if (isConnected() && GOOGLE_CLIENT_ID) {
+    if (!gisReady()) { if((tries||0)<20){ setTimeout(function(){startupSync((tries||0)+1);},250); return; } updateSyncIcon('error'); return; }
+    updateSyncIcon('syncing');
+    loadAll().then(function(){ updateSyncIcon('ok'); });
+  } else {
+    updateSyncIcon('local');
+  }
+})(0);
+</script>
+</body>
+</html>
