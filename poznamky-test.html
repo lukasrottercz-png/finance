@@ -1368,7 +1368,7 @@ function saveAiKey(){
 
 // ── PIN ───────────────────────────────────────────────────────────────
 function togglePin(id){
-  notes=notes.map(n=>n.id===id?{...n,pinned:!n.pinned}:n);
+  notes=notes.map(n=>n.id===id?{...n,pinned:!n.pinned,updatedAt:new Date().toISOString()}:n);
   ghSave();
   const note=notes.find(n=>n.id===id);
   showToast(note.pinned?'Připnuto 📌':'Odepnuto');
