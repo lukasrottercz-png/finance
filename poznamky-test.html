@@ -894,8 +894,7 @@ function exportToTerminy(noteId){
   if(!note) return;
   const tasks=extractTasks(note.content);
   if(!tasks.length){ showToast('Žádné nesplněné úkoly'); return; }
-  showToast('Export do Úkolů je dočasně pozastaven (probíhá přechod na Google Drive)');
-  return;
+  if(!isConnected()){ showToast('Nejdřív se přihlas Googlem (↻ nahoře)'); return; }
 
   // Zobraz dialog s výběrem data
   const defaultDate=new Date(Date.now()+7*24*3600*1000).toISOString().slice(0,10);
@@ -914,38 +913,40 @@ function exportToTerminy(noteId){
   document.body.appendChild(overlay);
 }
 
-function doExport(noteId, date){
+async function doExport(noteId, date){
   const note=notes.find(n=>n.id===noteId);
   if(!note) return;
   const tasks=extractTasks(note.content);
-  const token=ghToken();
-
-  fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/ukoly_data.json`,{
-    headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}
-  }).then(r=>r.ok?r.json():null).then(data=>{
+  if(!isConnected()){ showToast('Nejdřív se přihlas Googlem'); return; }
+  try{
+    // najdi ukoly_data.json na Disku (stejné Client ID jako appka Úkoly)
+    const q=encodeURIComponent("name='ukoly_data.json' and trashed=false");
+    const fr=await driveApi('https://www.googleapis.com/drive/v3/files?q='+q+'&spaces=drive&fields=files(id)&orderBy=modifiedTime desc');
+    if(!fr.ok) throw new Error('FIND '+fr.status);
+    const fd=await fr.json();
+    let id=(fd.files&&fd.files.length)?fd.files[0].id:'';
     let termData={ukoly:[],events:[]};
-    if(data){
-      const b=atob(data.content.replace(/\n/g,''));
-      const byt=new Uint8Array(b.length);
-      for(let i=0;i<b.length;i++) byt[i]=b.charCodeAt(i);
-      termData=JSON.parse(new TextDecoder('utf-8').decode(byt));
+    if(id){
+      const rr=await driveApi('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media');
+      if(rr.ok){ let j=null; try{ j=await rr.json(); }catch(e){} if(j&&typeof j==='object'){ termData={ukoly:Array.isArray(j.ukoly)?j.ukoly:[], events:Array.isArray(j.events)?j.events:[]}; } }
     }
-    tasks.forEach(t=>{
-      termData.ukoly.push({id:uid(),name:t,date,note:`Z poznámky: ${note.title}`,done:false,repeat:''});
-    });
+    tasks.forEach(t=>{ termData.ukoly.push({id:uid(),name:t,date,note:`Z poznámky: ${note.title}`,done:false,repeat:''}); });
     const json=JSON.stringify(termData,null,2);
-    const bytes=new TextEncoder().encode(json);
-    let binary=''; bytes.forEach(b=>binary+=String.fromCharCode(b));
-    const content=btoa(binary);
-    const body={message:'Úkoly z poznámek '+today(),content};
-    if(data) body.sha=data.sha;
-    return fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/ukoly_data.json`,{
-      method:'PUT',
-      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-  }).then(()=>showToast(`${tasks.length} úkol${tasks.length>1?'y':''} přidáno do Úkolů ✓`))
-  .catch(()=>showToast('Chyba při exportu'));
+    if(id){
+      const wr=await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
+        {method:'PATCH',headers:{'Content-Type':'application/json'},body:json});
+      if(!wr.ok) throw new Error('UPDATE '+wr.status);
+    } else {
+      const boundary='ukx'+Date.now();
+      const meta=JSON.stringify({name:'ukoly_data.json',mimeType:'application/json'});
+      const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+
+                 '\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+json+'\r\n--'+boundary+'--';
+      const wr=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body:body});
+      if(!wr.ok) throw new Error('CREATE '+wr.status);
+    }
+    showToast(`${tasks.length} úkol${tasks.length>1?'y':''} přidáno do Úkolů ✓`);
+  }catch(e){ console.error('doExport→Drive:',e); showToast('Chyba při exportu'); }
 }
 
 // ── TAG HELPERS ───────────────────────────────────────────────────────
