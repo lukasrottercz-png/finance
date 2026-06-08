@@ -108,6 +108,8 @@
   .task-item.urg-gray  { border-left-color: var(--gray); }
   .task-item.overdue { background: rgba(255,59,48,0.06); border-left-color: var(--red); }
   .task-item.overdue .task-name { color: var(--red); }
+  .task-item.waiting { background: rgba(10,132,255,0.05); border-left-color: #0a84ff; }
+  .section-sep { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 16px 4px 6px; }
   .overdue-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: rgba(255,59,48,0.15); color: var(--red); white-space: nowrap; }
 
   .check {
@@ -653,6 +655,7 @@ function renderUkoly() {
     el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly.</div></div>`;
     return;
   }
+  let waitHeaderShown = false;
   el.innerHTML = list.map(u => {
     const days = daysUntil(u.date);
     const isWaiting = !u.done && !!u.waiting;
@@ -664,15 +667,16 @@ function renderUkoly() {
       const [bg, color] = tagColor(t);
       return `<span class="tag-pill" style="background:${bg};color:${color}">${t}</span>`;
     }).join('')}</div>` : '';
-    return `
-    <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''}">
+    const waitSep = (isWaiting && !waitHeaderShown) ? (waitHeaderShown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
+    return waitSep + `
+    <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}">
       <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
       <div class="task-body">
         <div class="task-name">${esc(u.name)}</div>
         <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}</div>
         ${tagsHtml}
       </div>
-      ${isWaiting ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(120,120,128,0.12);color:var(--muted);white-space:nowrap">⏳ čeká</span>` :
+      ${isWaiting ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(10,132,255,0.12);color:#0a84ff;white-space:nowrap">⏳ čeká</span>` :
         isOverdue ? `<span class="overdue-badge">prošlo ${Math.abs(days)}d</span>` : 
         u.done && isLate ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(255,149,0,0.1);color:#ff9500;white-space:nowrap">⚠️ po termínu</span>` :
         u.done && isOnTime ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(52,199,89,0.1);color:#34c759;white-space:nowrap">✅ včas</span>` :
