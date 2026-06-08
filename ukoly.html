@@ -625,6 +625,8 @@ function renderUkoly() {
 
   let list = ukoly.slice().sort((a,b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
+    const aw = !a.done && !!a.waiting, bw = !b.done && !!b.waiting;
+    if (aw !== bw) return aw ? 1 : -1;
     return daysUntil(a.date) - daysUntil(b.date);
   });
   if (uFilter === 'open') list = list.filter(u => !u.done);
@@ -653,8 +655,9 @@ function renderUkoly() {
   }
   el.innerHTML = list.map(u => {
     const days = daysUntil(u.date);
-    const u2 = u.done ? 'gray' : urg(days);
-    const isOverdue = !u.done && days < 0;
+    const isWaiting = !u.done && !!u.waiting;
+    const u2 = (u.done || isWaiting) ? 'gray' : urg(days);
+    const isOverdue = !u.done && !isWaiting && days < 0;
     const isLate = u.done && u.completedAt && u.completedAt > u.date;
     const isOnTime = u.done && u.completedAt && u.completedAt <= u.date;
     const tagsHtml = (u.tags||[]).length ? `<div class="task-tags">${(u.tags||[]).map(t => {
@@ -669,7 +672,8 @@ function renderUkoly() {
         <div class="task-date">${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}</div>
         ${tagsHtml}
       </div>
-      ${isOverdue ? `<span class="overdue-badge">prošlo ${Math.abs(days)}d</span>` : 
+      ${isWaiting ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(120,120,128,0.12);color:var(--muted);white-space:nowrap">⏳ čeká</span>` :
+        isOverdue ? `<span class="overdue-badge">prošlo ${Math.abs(days)}d</span>` : 
         u.done && isLate ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(255,149,0,0.1);color:#ff9500;white-space:nowrap">⚠️ po termínu</span>` :
         u.done && isOnTime ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(52,199,89,0.1);color:#34c759;white-space:nowrap">✅ včas</span>` :
         !u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
@@ -810,8 +814,10 @@ function showMenu(items, btn) {
 function closeMenu() { document.getElementById('card-menu')?.remove(); }
 
 function showUkolMenu(id, btn) {
+  const u = ukoly.find(x => x.id===id);
   showMenu([
     { label: '✏️ Upravit', action: `openUkolModal('${id}')` },
+    { label: (u && u.waiting) ? '↩︎ Vrátit mezi moje' : '⏳ Čeká na někoho', action: `toggleWaiting('${id}')` },
     { label: '🗑 Smazat', danger: true, action: `confirmDeleteUkol('${id}')` }
   ], btn);
 }
@@ -820,6 +826,13 @@ function showEventMenu(id, btn) {
     { label: '✏️ Upravit', action: `openEventModal('${id}')` },
     { label: '🗑 Smazat', danger: true, action: `confirmDeleteEvent('${id}')` }
   ], btn);
+}
+function toggleWaiting(id) {
+  ukoly = ukoly.map(u => u.id===id ? {...u, waiting: !u.waiting} : u);
+  save('tw_ukoly2', ukoly); ghSave();
+  const u = ukoly.find(x => x.id===id);
+  showToast(u && u.waiting ? 'Označeno: čeká ⏳' : 'Vráceno mezi tvoje');
+  renderUkoly();
 }
 function confirmDeleteUkol(id) {
   if (!confirm('Smazat úkol?')) return;
