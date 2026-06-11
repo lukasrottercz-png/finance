@@ -350,7 +350,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
     <div class="sheet-foot">
       <button class="btn btn-primary" onclick="saveNote()" style="flex:1">Uložit</button>
       <span class="autosave-indicator" id="autosave-indicator"></span>
-      <button class="btn btn-ghost" onclick="closeEdit()">Zrušit</button>
+      <button class="btn btn-ghost" onclick="closeEdit()">Hotovo</button>
       <button class="btn btn-danger" id="del-btn" onclick="deleteNote()" style="display:none">Smazat</button>
     </div>
   </div>
@@ -660,6 +660,8 @@ let editId=null;
 let curType='volna';
 let curLayout=localStorage.getItem('poz_layout')||'list';
 let autoSaveTimer=null;
+let driveSyncTimer=null;        // throttle zápisu na Drive při autosave
+let pendingDriveSync=false;     // čeká nedokončený zápis na Drive?
 let loadPromise=Promise.resolve(); // startovní načtení z GitHubu — uložení na něj počká
 let quickSaving=false;
 
@@ -990,23 +992,64 @@ function initAutosave(){
   const tg=document.getElementById('edit-tags');
   const ind=document.getElementById('autosave-indicator');
   const handler=()=>{
+    // Okamžitý koncept do localStorage — pojistka pro pád dřív než stihne tiknout plný autosave (do 2 s)
+    try{ localStorage.setItem('poz_draft',JSON.stringify({title:ti?.value||'',content:ta?.value||'',tags:tg?.value||'',type:curType,editId:editId})); }catch(e){}
     if(ind){ ind.textContent='Ukládám…'; ind.className='autosave-indicator saving'; }
     clearTimeout(autoSaveTimer);
-    autoSaveTimer=setTimeout(()=>{
-      // Uložit draft do localStorage
-      const draft={
-        title:ti?.value||'',
-        content:ta?.value||'',
-        tags:tg?.value||'',
-        type:curType,
-        editId:editId
-      };
-      localStorage.setItem('poz_draft',JSON.stringify(draft));
-      if(ind){ ind.textContent='Uloženo'; ind.className='autosave-indicator saved';
-        setTimeout(()=>{ if(ind) ind.textContent=''; },2000); }
-    },2000);
+    autoSaveTimer=setTimeout(autosaveTick,2000);
   };
   [ta,ti,tg].forEach(el=>el&&el.addEventListener('input',handler));
+}
+
+// Pravý autosave: zapíše rozepsanou poznámku rovnou do seznamu (a lokálně), ne jen do konceptu.
+// Vrací true, pokud bylo co uložit.
+function autoCommit(){
+  const ta=document.getElementById('edit-content');
+  if(!ta) return false; // editor zavřený
+  const ti=document.getElementById('edit-title');
+  const tg=document.getElementById('edit-tags');
+  const title=(ti?.value||'').trim();
+  const content=(ta?.value||'').trim();
+  if(!title && !content) return false; // ještě není co ukládat
+  const tags=parseTags(tg?.value||'');
+  const now=new Date().toISOString();
+  if(editId){
+    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
+  } else {
+    const id=uid();
+    notes.unshift({id,title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
+    editId=id; // od teď autosave updatuje TUTO poznámku, ne aby vytvářel duplikáty
+    const delBtn=document.getElementById('del-btn'); if(delBtn) delBtn.style.display='inline-block';
+    const st=document.getElementById('sheet-title'); if(st) st.textContent='Upravit poznámku';
+  }
+  saveLocal();   // okamžitá lokální trvanlivost — přežije ťuknutí mimo, refresh i pád appky
+  clearDraft();  // koncept už netřeba, poznámka je reálně v seznamu
+  return true;
+}
+
+function autosaveTick(){
+  const ind=document.getElementById('autosave-indicator');
+  const did=autoCommit();
+  if(did){
+    if(ind){ ind.textContent='Uloženo'; ind.className='autosave-indicator saved';
+      setTimeout(()=>{ if(ind && ind.textContent==='Uloženo') ind.textContent=''; },2000); }
+    scheduleDriveSync(); // na Disk dorovnáme se zpožděním, ať psaní neblokuje síť
+  } else {
+    if(ind){ ind.textContent=''; ind.className='autosave-indicator'; }
+  }
+}
+
+// Throttle zápisu na Drive: lokálně je uloženo hned, na Disk dorovnáme 4 s po dopsání (nebo při zavření).
+function scheduleDriveSync(){
+  pendingDriveSync=true;
+  clearTimeout(driveSyncTimer);
+  driveSyncTimer=setTimeout(flushDriveSync,4000);
+}
+function flushDriveSync(){
+  clearTimeout(driveSyncTimer);
+  if(!pendingDriveSync) return;
+  pendingDriveSync=false;
+  ghSave(); // ghSync: sloučí a zapíše na Drive na pozadí
 }
 
 function clearDraft(){ localStorage.removeItem('poz_draft'); }
@@ -1032,12 +1075,13 @@ function checkOrphanDraft(){
 function recoverDraft(){
   const d=getOrphanDraft();
   if(!d){ document.getElementById('recover-banner').style.display='none'; return; }
-  // Otevři editor předvyplněný draftem, ať si ho můžeš zkontrolovat a uložit
-  editId = d.editId || null;
+  // Pokud draft odkazuje na poznámku, která už neexistuje, ber ho jako novou poznámku
+  const existing = d.editId ? notes.find(n=>n.id===d.editId) : null;
+  editId = existing ? d.editId : null;
   curType = d.type || 'volna';
   document.getElementById('sheet-title').textContent = editId?'Upravit poznámku':'Obnovená poznámka';
   document.getElementById('del-btn').style.display = editId?'inline-block':'none';
-  buildEditSheet(editId ? (notes.find(n=>n.id===editId)||null) : null);
+  buildEditSheet(existing || null);
   setTimeout(()=>{
     const ti=document.getElementById('edit-title'); if(ti) ti.value=d.title||'';
     const tg=document.getElementById('edit-tags'); if(tg) tg.value=d.tags||'';
@@ -1075,15 +1119,18 @@ function openEdit(id){
   document.getElementById('edit-overlay').classList.add('on');
 }
 
-function closeEdit(){
+function closeEdit(skipCommit){
   clearTimeout(autoSaveTimer);
-  // POZN: draft schválně NEMAŽEME při zavření — jinak se ztratí při ťuknutí mimo okno.
-  // Draft se maže jen po úspěšném uložení (saveNote / recoverDraft / dismissRecover).
+  // Při zavření (i ťuknutí mimo okno) zapíšeme poslední stav do seznamu — práce se neztratí.
+  if(!skipCommit) autoCommit();
+  clearDraft();      // poznámka je v seznamu, koncept netřeba
+  flushDriveSync();  // dorovnej Drive hned
   const sheet=document.querySelector('#edit-overlay .sheet');
   const overlay=document.getElementById('edit-overlay');
   overlay.classList.remove('on');
   if(sheet){ sheet.classList.remove('fullscreen'); overlay.style.alignItems='flex-end'; }
   editId=null;
+  renderList();
 }
 
 function buildEditSheet(note){
@@ -1169,6 +1216,9 @@ function selectType(type){
 }
 
 async function saveNote(){
+  clearTimeout(autoSaveTimer);
+  clearTimeout(driveSyncTimer);
+  pendingDriveSync=false;
   const title=(document.getElementById('edit-title').value||'').trim();
   const content=(document.getElementById('edit-content').value||'').trim();
   const tagsRaw=(document.getElementById('edit-tags')?.value||'').trim();
@@ -1176,27 +1226,32 @@ async function saveNote(){
   if(!title && !content){ showToast('Zadej název nebo obsah'); return; }
   await loadPromise; // počkej na čerstvá data ze startu, ať nic nepřepíšeš
   const now=new Date().toISOString();
+  let savedId;
   if(editId){
+    savedId=editId;
     notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
   } else {
-    notes.unshift({id:uid(),title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
+    savedId=uid();
+    notes.unshift({id:savedId,title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
   }
   await ghSave();
   clearDraft();
   showToast('Uloženo ✓');
-  closeEdit();
-  const savedId = editId || notes[0]?.id;
+  closeEdit(true); // už uloženo — nepřepisuj znovu
   if(savedId) showDetail(savedId);
   else renderList();
 }
 
 function deleteNote(){
   if(!confirm('Smazat poznámku?')) return;
+  clearTimeout(autoSaveTimer);
+  clearTimeout(driveSyncTimer);
+  pendingDriveSync=false;
   const now=new Date().toISOString();
   notes=notes.map(n=>n.id===editId?{...n,deleted:true,pinned:false,updatedAt:now}:n);
   ghSave();
   showToast('Smazáno');
-  closeEdit();
+  closeEdit(true); // neukládej obsah formuláře zpět nad smazanou poznámku
   backToList();
 }
 
