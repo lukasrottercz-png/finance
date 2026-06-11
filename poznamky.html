@@ -287,6 +287,15 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
 <div class="main" id="main-view">
   <!-- LIST VIEW -->
   <div id="list-view">
+    <div id="recover-banner" style="display:none;background:rgba(255,149,0,0.12);border:0.5px solid rgba(255,149,0,0.4);border-radius:var(--r);padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600;color:#ff9500;margin-bottom:4px">⚠ Našel jsem rozepsanou poznámku</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px">Tahle poznámka se neuložila do seznamu — zůstala jen jako rozepsaný koncept. Můžeš ji obnovit nebo zahodit.</div>
+      <div id="recover-preview" style="background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;white-space:pre-wrap;max-height:180px;overflow:auto;margin-bottom:10px;color:var(--text)"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="recoverDraft()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">✓ Obnovit do editoru</button>
+        <button onclick="dismissRecover()" style="padding:8px 16px;background:var(--bg);color:var(--text2);border:0.5px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Zahodit</button>
+      </div>
+    </div>
     <div class="quick-note" id="quick-note">
       <textarea id="quick-inp" class="quick-inp" placeholder="✏️ Rychlá poznámka — napiš a ulož…" rows="2" oninput="quickAutosave()" onkeydown="quickKey(event)"></textarea>
       <div class="quick-actions">
@@ -1002,6 +1011,49 @@ function initAutosave(){
 
 function clearDraft(){ localStorage.removeItem('poz_draft'); }
 
+// ── OBNOVA ZTRACENÉHO KONCEPTU ────────────────────────────────────────
+function getOrphanDraft(){
+  try{
+    const raw=localStorage.getItem('poz_draft');
+    if(!raw) return null;
+    const d=JSON.parse(raw);
+    const hasText=((d.title||'').trim()+(d.content||'').trim()).length>0;
+    return hasText?d:null;
+  }catch(e){ return null; }
+}
+function checkOrphanDraft(){
+  const d=getOrphanDraft();
+  const banner=document.getElementById('recover-banner');
+  if(!d||!banner) return;
+  const prev=document.getElementById('recover-preview');
+  if(prev) prev.textContent=((d.title||'').trim()? '# '+d.title.trim()+'\n\n':'')+(d.content||'');
+  banner.style.display='block';
+}
+function recoverDraft(){
+  const d=getOrphanDraft();
+  if(!d){ document.getElementById('recover-banner').style.display='none'; return; }
+  // Otevři editor předvyplněný draftem, ať si ho můžeš zkontrolovat a uložit
+  editId = d.editId || null;
+  curType = d.type || 'volna';
+  document.getElementById('sheet-title').textContent = editId?'Upravit poznámku':'Obnovená poznámka';
+  document.getElementById('del-btn').style.display = editId?'inline-block':'none';
+  buildEditSheet(editId ? (notes.find(n=>n.id===editId)||null) : null);
+  setTimeout(()=>{
+    const ti=document.getElementById('edit-title'); if(ti) ti.value=d.title||'';
+    const tg=document.getElementById('edit-tags'); if(tg) tg.value=d.tags||'';
+    const ta=document.getElementById('edit-content'); if(ta) ta.value=d.content||'';
+  },80);
+  document.getElementById('edit-overlay').classList.add('on');
+  document.getElementById('recover-banner').style.display='none';
+  showToast('Obnoveno — zkontroluj a klepni na Uložit');
+}
+function dismissRecover(){
+  if(!confirm('Opravdu zahodit rozepsanou poznámku? Tahle akce smaže koncept natrvalo.')) return;
+  clearDraft();
+  document.getElementById('recover-banner').style.display='none';
+  showToast('Koncept zahozen');
+}
+
 // ── EDIT SHEET ────────────────────────────────────────────────────────
 function openNew(){
   editId=null;
@@ -1025,7 +1077,8 @@ function openEdit(id){
 
 function closeEdit(){
   clearTimeout(autoSaveTimer);
-  clearDraft();
+  // POZN: draft schválně NEMAŽEME při zavření — jinak se ztratí při ťuknutí mimo okno.
+  // Draft se maže jen po úspěšném uložení (saveNote / recoverDraft / dismissRecover).
   const sheet=document.querySelector('#edit-overlay .sheet');
   const overlay=document.getElementById('edit-overlay');
   overlay.classList.remove('on');
@@ -1572,6 +1625,7 @@ function startupSync(tries){
   }
 }
 startupSync(0);
+checkOrphanDraft();
 </script>
 </body>
 </html>
