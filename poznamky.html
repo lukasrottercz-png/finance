@@ -55,18 +55,7 @@ body.quick-only .list-toolbar,
 body.quick-only #note-list{display:none!important}
 body.quick-only .quick-note{padding:16px}
 body.quick-only .quick-inp{min-height:62vh;font-size:17px}
-.sync-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:flex-start;justify-content:center;padding:80px 16px 16px}
-.sync-overlay.on{display:flex}
-.sync-modal{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:420px}
-.sync-modal-title{font-size:17px;font-weight:700;margin-bottom:10px}
-.sync-modal-state{font-size:13px;padding:8px 12px;border-radius:10px;margin-bottom:14px}
-.sync-modal-state.ok{background:rgba(52,199,89,0.15);color:#34c759}
-.sync-modal-state.local,.sync-modal-state.err{background:rgba(255,149,0,0.15);color:#ff9500}
-.sync-modal-inp{width:100%;font-size:16px;padding:10px 12px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text)}
-.sync-modal-hint{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.5}
-.sync-modal-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:flex-end}
-.sync-modal-btn{padding:9px 16px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-.sync-modal-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
 
 /* FILTERS */
@@ -275,7 +264,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
   <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
     <a href="https://lukasrottercz-png.github.io/finance/dashboard.html" class="home-link hdr-title" title="Zpět na hlavní stranu" style="text-decoration:none;color:inherit;cursor:pointer">📝 Poznámky</a>
     <div class="hdr-actions">
-      <button class="hdr-btn" onclick="syncTap()" id="sync-btn" title="Synchronizovat">↻</button>
+      <button class="hdr-btn" onclick="syncNow()" id="sync-btn" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
       <a href="https://lukasrottercz-png.github.io/finance/vydaje_lukas.html" class="hdr-link">🧾</a>
       <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
@@ -395,31 +384,6 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
 
 <div class="toast" id="toast"></div>
 
-<div class="sync-overlay" id="sync-overlay">
-  <div class="sync-modal">
-    <div class="sync-modal-title">↻ Synchronizace s Google Drive</div>
-    <div class="sync-modal-state" id="sync-modal-state"></div>
-    <div class="sync-modal-hint">Poznámky se ukládají do souboru <b>poznamky_data.json</b> na tvém Google Disku. Appka vidí jen soubory, které sama vytvořila (scope <b>drive.file</b>) — ke zbytku Disku přístup nemá.</div>
-    <div class="sync-modal-actions">
-      <button class="sync-modal-btn" onclick="closeSyncModal()">Zavřít</button>
-      <button class="sync-modal-btn" id="g-sync-btn" onclick="syncNowFromModal()">Synchronizovat</button>
-      <button class="sync-modal-btn primary" id="g-connect-btn" onclick="connectGoogle()">Přihlásit se Googlem</button>
-      <button class="sync-modal-btn" id="g-disconnect-btn" onclick="disconnectGoogle()" style="display:none">Odhlásit</button>
-    </div>
-    <details style="margin-top:14px">
-      <summary style="font-size:12px;color:var(--text3);cursor:pointer">Jednorázový import dat z GitHubu (nepovinné)</summary>
-      <div style="margin-top:10px">
-        <input type="password" id="gh-import-tok" class="sync-modal-inp" placeholder="GitHub token (ghp_…) — jen pro import" autocomplete="off">
-        <div class="sync-modal-hint">Použij jen pokud testuješ na zařízení, kde ještě nemáš poznámky lokálně. Stáhne data z GitHubu a nahraje je na Drive. Token se nikam neukládá.</div>
-        <div class="sync-modal-actions">
-          <button class="sync-modal-btn" onclick="importFromGitHub()">Importovat z GitHubu</button>
-        </div>
-      </div>
-    </details>
-  
-  </div>
-</div>
-
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────
 const TYPES = {
@@ -441,11 +405,6 @@ const TEMPLATES = {
 const GOOGLE_CLIENT_ID = '549502284523-okg9u0p3almkgr1q2to17phr9fks270e.apps.googleusercontent.com';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILENAME = 'poznamky_data.json';
-
-// (ponecháno jen pro nepovinný jednorázový import starých dat z GitHubu)
-const GH_USER = 'lukasrottercz-png';
-const GH_REPO = 'finance';
-const GH_FILE = 'poznamky_data.json';
 
 let tokenClient=null;
 let accessToken=localStorage.getItem('g_access_token')||'';
@@ -601,54 +560,17 @@ function updateSync(state){
   else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
 }
 
-function syncTap(){ openSyncModal(); }
-function openSyncModal(){ refreshSyncModalState(); document.getElementById('sync-overlay').classList.add('on'); }
-function closeSyncModal(){ document.getElementById('sync-overlay').classList.remove('on'); }
-function refreshSyncModalState(){
-  const el=document.getElementById('sync-modal-state');
-  const cb=document.getElementById('g-connect-btn'), db=document.getElementById('g-disconnect-btn');
-  if(el){
-    if(!GOOGLE_CLIENT_ID){ el.className='sync-modal-state err'; el.textContent='⚠ V kódu zatím chybí Google Client ID.'; }
-    else if(!isConnected()){ el.className='sync-modal-state local'; el.textContent='⚠ Nepřihlášeno — poznámky jsou jen na tomto zařízení.'; }
-    else { el.className='sync-modal-state ok'; el.textContent='Připojeno k Google Drive ✓'; }
-  }
-  if(cb&&db){ const c=isConnected(); cb.style.display=c?'none':''; db.style.display=c?'':'none'; }
+// Klepnutí na ↻ — stejně jako ostatní appky: když nejsi přihlášen, přihlásí Googlem; jinak rovnou synchronizuje.
+async function syncNow(){
+  if(!isConnected()){ await connectGoogle(); return; }
+  const ok=await ghSync(); renderList(); if(ok) showToast('Synchronizováno ✓');
 }
 async function connectGoogle(){
   if(!GOOGLE_CLIENT_ID){ showToast('Nejdřív vlož Client ID do kódu'); return; }
   try{ await getAccessToken(true); }
-  catch(e){ console.error(e); showToast('Přihlášení se nezdařilo'); refreshSyncModalState(); return; }
-  const ok=await ghSync(); renderList(); refreshSyncModalState();
-  if(ok){ showToast('Připojeno — synchronizováno ✓'); closeSyncModal(); }
-}
-function disconnectGoogle(){
-  if(accessToken){ try{ google.accounts.oauth2.revoke(accessToken,()=>{}); }catch(e){} }
-  accessToken=''; tokenExpiry=0; localStorage.removeItem('google_connected'); localStorage.removeItem('g_access_token'); localStorage.removeItem('g_token_expiry');
-  updateSync('local'); refreshSyncModalState(); renderList();
-  showToast('Odhlášeno — data zůstávají lokálně i na Disku');
-}
-async function syncNowFromModal(){ const ok=await ghSync(); renderList(); refreshSyncModalState(); if(ok){ showToast('Synchronizováno ✓'); closeSyncModal(); } }
-async function syncNow(){ const ok=await ghSync(); renderList(); if(ok) showToast('Synchronizováno ✓'); }
-
-// Nepovinný jednorázový import starých poznámek z GitHubu na Drive
-async function importFromGitHub(){
-  const inp=document.getElementById('gh-import-tok'); const tok=(inp&&inp.value||'').trim();
-  if(!tok){ showToast('Vlož GitHub token pro import'); return; }
-  if(!isConnected()){ showToast('Nejdřív se přihlas Googlem'); return; }
-  try{
-    const r=await fetch('https://api.github.com/repos/'+GH_USER+'/'+GH_REPO+'/contents/'+GH_FILE,
-      {headers:{'Authorization':'token '+tok,'Accept':'application/vnd.github.v3+json'}});
-    if(r.status===404){ showToast('Na GitHubu nejsou žádná data'); return; }
-    if(!r.ok) throw new Error('GH '+r.status);
-    const data=await r.json();
-    const bin=atob(data.content.replace(/\n/g,'')); const bytes=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    const arr=JSON.parse(new TextDecoder('utf-8').decode(bytes));
-    notes=mergeNotes(notes, Array.isArray(arr)?arr:[]); saveLocal();
-    if(inp) inp.value='';
-    const ok=await ghSync(); renderList();
-    if(ok) showToast('Import hotov — nahráno na Drive ✓');
-  }catch(e){ console.error(e); showToast('Import selhal — zkontroluj token'); }
+  catch(e){ console.error(e); showToast('Přihlášení se nezdařilo'); return; }
+  const ok=await ghSync(); renderList();
+  if(ok) showToast('Připojeno — synchronizováno ✓');
 }
 
 
