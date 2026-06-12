@@ -555,7 +555,7 @@ async function ghSave(){ await ghSync(); }
 function updateSync(state){
   const b=document.getElementById('sync-btn'); if(!b) return;
   if(state==='syncing'){ b.textContent='↻'; b.style.opacity='0.35'; b.style.color=''; b.title='Synchronizuji…'; }
-  else if(state==='ok'){ b.textContent='↻'; b.style.opacity='1'; b.style.color=''; b.title='Synchronizováno ✓ — klepni pro ruční sync'; }
+  else if(state==='ok'){ b.textContent='↻'; b.style.opacity='1'; b.style.color='#34c759'; b.title='Připojeno k Google Drive ✓ — klepni pro sync'; }
   else if(state==='local'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff9500'; b.title='Jen lokálně — klepni a přihlas se Googlem'; }
   else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
 }
