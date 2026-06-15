@@ -611,7 +611,7 @@ function render(){
 
   el.innerHTML=list.map(it=>{
     const thumb=it.thumb?('<img class="item-thumb" src="'+it.thumb+'">'):('<div class="item-thumb-ph">🔧</div>');
-    return '<div class="item-card" onclick="openDetail('+JSON.stringify(it.id)+')">'+
+    return '<div class="item-card" onclick="openDetail('+JSON.stringify(it.id).replace(/"/g,'&quot;')+')">'+
       thumb+
       '<div class="item-body">'+
         '<div class="item-name">'+esc(it.name)+'</div>'+
