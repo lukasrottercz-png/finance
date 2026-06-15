@@ -103,6 +103,9 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .btn-ghost{background:var(--bg);color:var(--text2);border:0.5px solid var(--border)}
 .btn-danger{background:none;color:var(--red);border:0.5px solid var(--red)}
 .btn:active{opacity:0.7}
+.regen-btn{background:var(--accent-bg);color:var(--accent);border:0.5px solid rgba(124,58,237,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap}
+.regen-btn:active{opacity:0.7}
+.regen-btn:disabled{opacity:0.5}
 
 /* DETAIL */
 .detail-thumb{width:100%;max-width:240px;border-radius:var(--r);display:block;margin:0 auto 16px;border:0.5px solid var(--border)}
@@ -441,6 +444,32 @@ Pokud na fotce vidíš víc kusů stejné věci, nastav qty na jejich počet. Po
   };
 }
 
+// ── CLAUDE TEXT: dogenerování popisu/kategorie/tagů z názvu ────────────
+async function regenerateFromName(name){
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey) throw new Error('NOKEY');
+  const existing=Object.keys(categories());
+  const prompt=`Mám v inventáři věc s názvem: "${name}".
+Existující kategorie v inventáři: ${existing.length?JSON.stringify(existing):'(zatím žádné)'}.
+Na základě názvu navrhni popis, kategorii a tagy. Pokud sedí některá existující kategorie, použij ji (kvůli konzistenci); jinak navrhni novou. Vrať POUZE validní JSON, bez markdownu:
+{"desc":"jedna stručná věta popisu","category":"kategorie v češtině","tags":["2-4","klíčová","slova"]}`;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:300,messages:[{role:'user',content:prompt}]})
+  });
+  if(res.status===401){ localStorage.removeItem('anthropic_api_key'); throw new Error('BADKEY'); }
+  if(!res.ok) throw new Error('API '+res.status);
+  const data=await res.json();
+  let txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').replace(/```json|```/g,'').trim();
+  let obj; try{ obj=JSON.parse(txt); }catch(e){ throw new Error('PARSE'); }
+  return {
+    desc: obj.desc||'',
+    category: obj.category||'Nezařazeno',
+    tags: Array.isArray(obj.tags)?obj.tags:[]
+  };
+}
+
 // ── ZPRACOVÁNÍ FRONTY ─────────────────────────────────────────────────
 async function handleFiles(fileList){
   const files=Array.from(fileList).filter(f=>f.type.startsWith('image/'));
@@ -692,7 +721,10 @@ function openDetail(id){
   const catOpts=cats.map(c=>'<option value="'+esc(c)+'"'+(c===it.category?' selected':'')+'>'+esc(c)+'</option>').join('');
   document.getElementById('detail-body').innerHTML=
     (it.thumb?'<img class="detail-thumb" src="'+it.thumb+'">':'')+
-    '<div class="field"><div class="field-label">Název</div><input class="field-inp" id="ed-name" value="'+esc(it.name)+'"></div>'+
+    '<div class="field"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'+
+      '<div class="field-label" style="margin:0">Název</div>'+
+      '<button id="regen-btn" class="regen-btn" onclick="doRegen()">✨ Dogenerovat z názvu</button></div>'+
+      '<input class="field-inp" id="ed-name" value="'+esc(it.name)+'"></div>'+
     '<div class="field"><div class="field-label">Popis</div><textarea class="field-ta" id="ed-desc">'+esc(it.desc||'')+'</textarea></div>'+
     '<div class="field"><div class="field-label">Kategorie</div><input class="field-inp" id="ed-cat" list="cat-list" value="'+esc(it.category||'')+'">'+
       '<datalist id="cat-list">'+catOpts+'</datalist></div>'+
@@ -705,6 +737,28 @@ function openDetail(id){
   document.getElementById('detail-overlay').classList.add('on');
 }
 function closeDetail(){ document.getElementById('detail-overlay').classList.remove('on'); editId=null; }
+
+async function doRegen(){
+  const name=(document.getElementById('ed-name').value||'').trim();
+  if(!name){ showToast('Nejdřív zadej název'); return; }
+  if(!localStorage.getItem('anthropic_api_key')){ showToast('Chybí API klíč — přidej ho při nahrávání fotek'); return; }
+  const btn=document.getElementById('regen-btn');
+  const orig=btn.innerHTML; btn.innerHTML='<span class="spin"></span>'; btn.disabled=true;
+  try{
+    const r=await regenerateFromName(name);
+    document.getElementById('ed-desc').value=r.desc;
+    document.getElementById('ed-cat').value=r.category;
+    document.getElementById('ed-tags').value=r.tags.join(', ');
+    showToast('Dogenerováno z názvu — zkontroluj a ulož');
+  }catch(e){
+    console.error('regen:',e);
+    if(e.message==='BADKEY'||e.message==='NOKEY') showToast('Neplatný API klíč');
+    else if(e.message==='PARSE') showToast('AI vrátila nečitelná data, zkus znovu');
+    else showToast('Chyba: '+e.message);
+  }finally{
+    btn.innerHTML=orig; btn.disabled=false;
+  }
+}
 
 async function saveDetail(){
   const it=items.find(x=>x.id===editId); if(!it) return;
