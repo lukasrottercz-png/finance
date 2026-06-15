@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Inventář</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f2f2f7;--surface:#fff;--border:rgba(0,0,0,0.1);
+  --text:#1c1c1e;--text2:#6c6c70;--text3:#aeaeb2;
+  --accent:#7c3aed;--accent-bg:rgba(124,58,237,0.08);
+  --green:#34c759;--red:#ff3b30;--orange:#ff9500;--r:13px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#000;--surface:#1c1c1e;--border:rgba(255,255,255,0.1);
+  --text:#fff;--text2:#aeaeb2;--text3:#636366;
+  --accent-bg:rgba(124,58,237,0.15);
+}}
+html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text)}
+
+/* HEADER */
+.hdr{background:var(--surface);border-bottom:0.5px solid var(--border);padding:14px 0;position:sticky;top:0;z-index:10}
+.hdr-row{max-width:700px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hdr-title{font-size:17px;font-weight:700;color:var(--text)}
+.hdr-actions{display:flex;align-items:center;gap:8px}
+.hdr-btn{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px}
+.hdr-link{font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--text2);text-decoration:none}
+.hdr-new{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+
+/* MAIN */
+.main{max-width:700px;margin:0 auto;padding:16px}
+
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:14px}
+.search-inp{width:100%;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 14px 10px 36px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
+.search-inp::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px;pointer-events:none}
+
+/* FILTERS */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.f-btn{padding:5px 14px;border-radius:20px;border:0.5px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-family:inherit;cursor:pointer}
+.f-btn.on{background:var(--accent-bg);color:var(--accent);border-color:rgba(124,58,237,0.3);font-weight:600}
+
+/* STATS BAR */
+.statsbar{display:flex;gap:8px;margin-bottom:14px}
+.stat{flex:1;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;text-align:center}
+.stat-num{font-size:20px;font-weight:700;color:var(--text)}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ITEM CARDS */
+.item-card{background:var(--surface);border-radius:var(--r);border:0.5px solid var(--border);padding:12px;margin-bottom:10px;cursor:pointer;transition:opacity 0.15s;display:flex;gap:12px;align-items:center}
+.item-card:active{opacity:0.7}
+.item-thumb{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--bg);flex-shrink:0;border:0.5px solid var(--border)}
+.item-thumb-ph{width:56px;height:56px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
+.item-body{flex:1;min-width:0}
+.item-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-desc{font-size:13px;color:var(--text2);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;margin-top:1px}
+.item-meta{display:flex;gap:8px;align-items:center;margin-top:5px;flex-wrap:wrap}
+.item-cat{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-bg);color:var(--accent);white-space:nowrap}
+.item-qty{font-size:11px;color:var(--text3)}
+.item-loc{font-size:11px;color:var(--orange)}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:17px;font-weight:500;margin-bottom:8px}
+.empty-sub{font-size:14px;color:var(--text3);line-height:1.5}
+
+/* OVERLAY / SHEET */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;align-items:flex-end;justify-content:center}
+.overlay.on{display:flex}
+.sheet{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:700px;max-height:95vh;display:flex;flex-direction:column}
+.sheet-hdr{padding:16px 16px 12px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sheet-title{font-size:17px;font-weight:600}
+.sheet-close{background:none;border:none;cursor:pointer;font-size:24px;color:var(--text2);line-height:1}
+.sheet-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.sheet-foot{padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+
+/* FIELDS */
+.field{margin-bottom:14px}
+.field-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
+.field-inp{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none}
+.field-inp:focus{border-color:var(--accent)}
+.field-ta{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none;resize:none;min-height:80px;line-height:1.5}
+.field-ta:focus{border-color:var(--accent)}
+.field-sel{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:15px;color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none}
+
+/* BUTTONS */
+.btn{padding:11px 16px;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;border:none}
+.btn-primary{background:var(--accent);color:#fff;flex:1}
+.btn-ghost{background:var(--bg);color:var(--text2);border:0.5px solid var(--border)}
+.btn-danger{background:none;color:var(--red);border:0.5px solid var(--red)}
+.btn:active{opacity:0.7}
+
+/* DETAIL */
+.detail-thumb{width:100%;max-width:240px;border-radius:var(--r);display:block;margin:0 auto 16px;border:0.5px solid var(--border)}
+.detail-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:12px;padding:3px 10px;border-radius:10px;background:var(--bg);color:var(--text2);border:0.5px solid var(--border)}
+
+/* PROCESS / QUEUE */
+.proc-drop{border:1.5px dashed var(--border);border-radius:var(--r);padding:28px 16px;text-align:center;cursor:pointer;background:var(--bg);margin-bottom:14px}
+.proc-drop:active{opacity:0.7}
+.proc-drop-icon{font-size:36px;margin-bottom:8px}
+.proc-drop-txt{font-size:15px;font-weight:600;color:var(--text)}
+.proc-drop-sub{font-size:13px;color:var(--text3);margin-top:4px}
+.proc-progress{background:var(--bg);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.proc-bar-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin:8px 0}
+.proc-bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 0.3s}
+.proc-status{font-size:13px;color:var(--text2);text-align:center}
+.proc-queue{display:flex;flex-direction:column;gap:8px}
+.proc-q-item{display:flex;gap:10px;align-items:center;background:var(--bg);border-radius:10px;padding:8px 10px}
+.proc-q-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;flex-shrink:0;border:0.5px solid var(--border)}
+.proc-q-body{flex:1;min-width:0}
+.proc-q-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proc-q-cat{font-size:12px;color:var(--text2)}
+.proc-q-state{font-size:18px;flex-shrink:0}
+
+/* TOAST */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(0,0,0,0.85);color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;z-index:300;opacity:0;transition:all 0.3s;pointer-events:none;max-width:90%;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+@media(prefers-color-scheme:dark){#toast{background:rgba(255,255,255,0.15);backdrop-filter:blur(10px)}}
+
+/* SPINNER */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 0.7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* CONSOLIDATE */
+.cons-cat{background:var(--bg);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.cons-cat-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.cons-cat-items{font-size:13px;color:var(--text2);line-height:1.4}
+.cons-merge{font-size:12px;color:var(--accent);margin-top:4px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-row">
+    <a href="https://lukasrottercz-png.github.io/finance/dashboard.html" class="hdr-title" style="text-decoration:none;color:inherit">📦 Inventář</a>
+    <div class="hdr-actions">
+      <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
+      <a href="https://lukasrottercz-png.github.io/finance/vydaje_lukas.html" class="hdr-link">🧾</a>
+      <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
+      <a href="https://lukasrottercz-png.github.io/finance/poznamky.html" class="hdr-link">📝</a>
+      <button class="hdr-btn" onclick="manualSync()" title="Synchronizovat">↻</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="statsbar" id="statsbar"></div>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-inp" id="search" placeholder="Hledat ve věcech…" oninput="render()">
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="hdr-new" style="flex:1" onclick="openProcess()">📸 Nafotit / nahrát</button>
+    <button class="btn btn-ghost" onclick="openConsolidate()">🗂 Kategorie</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<!-- PROCESS OVERLAY -->
+<div class="overlay" id="process-overlay">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <div class="sheet-title">📸 Zpracovat fotky</div>
+      <button class="sheet-close" onclick="closeProcess()">×</button>
+    </div>
+    <div class="sheet-body" id="process-body"></div>
+    <div class="sheet-foot" id="process-foot"></div>
+  </div>
+</div>
+
+<!-- DETAIL/EDIT OVERLAY -->
+<div class="overlay" id="detail-overlay">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <div class="sheet-title" id="detail-title">Položka</div>
+      <button class="sheet-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="sheet-body" id="detail-body"></div>
+    <div class="sheet-foot" id="detail-foot"></div>
+  </div>
+</div>
+
+<!-- CONSOLIDATE OVERLAY -->
+<div class="overlay" id="consolidate-overlay">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <div class="sheet-title">🗂 Sjednotit kategorie</div>
+      <button class="sheet-close" onclick="closeConsolidate()">×</button>
+    </div>
+    <div class="sheet-body" id="consolidate-body"></div>
+    <div class="sheet-foot" id="consolidate-foot"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<input type="file" id="file-input" accept="image/*" multiple style="display:none">
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// ── KONFIGURACE ───────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '549502284523-okg9u0p3almkgr1q2to17phr9fks270e.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILENAME = 'inventar_data.json';
+
+const THUMB_SIZE = 160;   // uložený náhled (do JSON)
+const VISION_SIZE = 640;  // co se posílá Claude na rozpoznání (větší = čitelnější texty)
+
+// ── STAV ──────────────────────────────────────────────────────────────
+let items = [];                 // {id, name, desc, category, tags[], qty, location, thumb, createdAt, updatedAt}
+let driveFileId = localStorage.getItem('drive_file_id_inv') || '';
+let activeFilter = 'all';
+let queue = [];                 // [{id, thumbSmall, thumbVision, status, result}]
+let processing = false;
+
+// ── GOOGLE DRIVE OAUTH ────────────────────────────────────────────────
+let tokenClient = null;
+let accessToken = localStorage.getItem('g_access_token') || '';
+let tokenExpiry = parseInt(localStorage.getItem('g_token_expiry') || '0', 10);
+
+function isConnected(){ return !!localStorage.getItem('google_connected'); }
+function gisReady(){ return typeof google !== 'undefined' && google.accounts && google.accounts.oauth2; }
+
+function ensureTokenClient(){
+  if(tokenClient) return true;
+  if(!gisReady() || !GOOGLE_CLIENT_ID) return false;
+  tokenClient = google.accounts.oauth2.initTokenClient({ client_id:GOOGLE_CLIENT_ID, scope:DRIVE_SCOPE, callback:()=>{} });
+  return true;
+}
+
+function getAccessToken(interactive){
+  return new Promise((resolve,reject)=>{
+    if(accessToken && Date.now() < tokenExpiry-60000){ resolve(accessToken); return; }
+    if(!GOOGLE_CLIENT_ID){ reject(new Error('chybí client id')); return; }
+    if(!ensureTokenClient()){ reject(new Error('GIS not ready')); return; }
+    tokenClient.callback=(resp)=>{
+      if(resp && resp.error){ reject(new Error(resp.error)); return; }
+      accessToken = resp.access_token;
+      tokenExpiry = Date.now() + ((resp.expires_in||3600)*1000);
+      localStorage.setItem('google_connected','1');
+      localStorage.setItem('g_access_token',accessToken);
+      localStorage.setItem('g_token_expiry',String(tokenExpiry));
+      resolve(accessToken);
+    };
+    tokenClient.error_callback=(err)=>{ reject(new Error('oauth '+((err&&err.type)||'error'))); };
+    try{ tokenClient.requestAccessToken({prompt: interactive?'consent':''}); }
+    catch(e){ reject(e); }
+  });
+}
+
+async function driveApi(url,opts){
+  opts=opts||{};
+  let token=await getAccessToken(false);
+  opts.headers=Object.assign({},opts.headers,{'Authorization':'Bearer '+token});
+  let res=await fetch(url,opts);
+  if(res.status===401){
+    accessToken=''; tokenExpiry=0;
+    token=await getAccessToken(false);
+    opts.headers['Authorization']='Bearer '+token;
+    res=await fetch(url,opts);
+  }
+  return res;
+}
+
+async function driveFindFile(){
+  if(driveFileId){
+    const r=await driveApi('https://www.googleapis.com/drive/v3/files/'+driveFileId+'?fields=id,trashed');
+    if(r.ok){ const d=await r.json(); if(!d.trashed) return driveFileId; }
+    driveFileId=''; localStorage.removeItem('drive_file_id_inv');
+  }
+  const q=encodeURIComponent("name='"+DRIVE_FILENAME+"' and trashed=false");
+  const r=await driveApi('https://www.googleapis.com/drive/v3/files?q='+q+'&spaces=drive&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc');
+  if(!r.ok) throw new Error('FIND '+r.status);
+  const d=await r.json();
+  if(d.files && d.files.length){ driveFileId=d.files[0].id; localStorage.setItem('drive_file_id_inv',driveFileId); return driveFileId; }
+  return '';
+}
+
+async function driveReadData(){
+  const id=await driveFindFile();
+  if(!id) return {items:[],exists:false};
+  const r=await driveApi('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media');
+  if(!r.ok) throw new Error('READ '+r.status);
+  let arr=[]; try{ arr=await r.json(); }catch(e){ arr=[]; }
+  return {items:Array.isArray(arr)?arr:[], exists:true};
+}
+
+async function driveWriteData(arr){
+  const json=JSON.stringify(arr);
+  const id=driveFileId||await driveFindFile();
+  if(id){
+    const r=await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
+      {method:'PATCH',headers:{'Content-Type':'application/json'},body:json});
+    if(!r.ok) throw new Error('UPDATE '+r.status);
+    return id;
+  }
+  const boundary='inv'+Date.now();
+  const meta=JSON.stringify({name:DRIVE_FILENAME,mimeType:'application/json'});
+  const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+
+             '\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+json+'\r\n--'+boundary+'--';
+  const r=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+    {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});
+  if(!r.ok) throw new Error('CREATE '+r.status);
+  const d=await r.json(); driveFileId=d.id; localStorage.setItem('drive_file_id_inv',driveFileId);
+  return driveFileId;
+}
+
+// Merge podle id, novější updatedAt vyhraje
+function mergeItems(a,b){
+  const map={};
+  const pick=(ex,n)=>{
+    const au=ex.updatedAt||ex.createdAt||'';
+    const bu=n.updatedAt||n.createdAt||'';
+    return bu>=au?n:ex;
+  };
+  (a||[]).forEach(it=>{ if(it&&it.id) map[it.id]=it; });
+  (b||[]).forEach(it=>{ if(it&&it.id){ map[it.id]=map[it.id]?pick(map[it.id],it):it; } });
+  return Object.values(map);
+}
+
+async function syncDrive(){
+  if(!isConnected() || !GOOGLE_CLIENT_ID) return false;
+  try{
+    const remote=await driveReadData();
+    items=mergeItems(remote.items, items);
+    saveLocal();
+    await driveWriteData(items);
+    return true;
+  }catch(e){
+    console.error('syncDrive:',e);
+    const m=(e.message||'').toLowerCase();
+    if(m.includes('oauth')||m.includes('401')||m.includes('access_denied')) showToast('⚠ Přihlas se Googlem (↻ nahoře)');
+    else showToast('⚠ Drive nedostupný — uloženo jen lokálně');
+    return false;
+  }
+}
+
+async function manualSync(){
+  if(!GOOGLE_CLIENT_ID){ showToast('Chybí Client ID'); return; }
+  try{ await getAccessToken(true); }
+  catch(e){ console.error(e); showToast('Přihlášení se nezdařilo'); return; }
+  const ok=await syncDrive(); render(); if(ok) showToast('Synchronizováno ✓');
+}
+
+// ── LOKÁLNÍ ÚLOŽIŠTĚ ──────────────────────────────────────────────────
+function saveLocal(){ try{ localStorage.setItem('inv_data_cache', JSON.stringify(items)); }catch(e){ console.warn('local cache full',e); } }
+function loadLocal(){ try{ const c=localStorage.getItem('inv_data_cache'); if(c) items=JSON.parse(c)||[]; }catch(e){ items=[]; } }
+
+// ── OBRÁZKY: zmenšení ─────────────────────────────────────────────────
+function fileToResizedDataURL(file, maxSize, quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=img.width, h=img.height;
+      if(w>h){ if(w>maxSize){ h=Math.round(h*maxSize/w); w=maxSize; } }
+      else { if(h>maxSize){ w=Math.round(w*maxSize/h); h=maxSize; } }
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      const ctx=cv.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      resolve(cv.toDataURL('image/jpeg', quality));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('Nelze načíst obrázek')); };
+    img.src=url;
+  });
+}
+
+// ── CLAUDE VISION: rozpoznání jedné věci ──────────────────────────────
+async function recognizeItem(visionDataURL){
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey) throw new Error('NOKEY');
+  const base64=visionDataURL.split(',')[1];
+  const prompt=`Na fotce je jeden předmět (nářadí, vybavení nebo domácí věc). Rozpoznej ho a vrať POUZE validní JSON objekt, bez markdownu, bez komentáře, v tomto formátu:
+{"name":"krátký konkrétní název v češtině","desc":"jedna stručná věta popisu (značka, typ, materiál pokud vidět)","category":"navržená kategorie v češtině, např. Elektronářadí, Ruční nářadí, Měření, Zahrada, Spojovací materiál","tags":["2-4","klíčová","slova"],"qty":1}
+Pokud na fotce vidíš víc kusů stejné věci, nastav qty na jejich počet. Pokud nejde nic rozpoznat, name nastav na "Nerozpoznáno".`;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body:JSON.stringify({
+      model:'claude-sonnet-4-5',
+      max_tokens:400,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:base64}},
+        {type:'text',text:prompt}
+      ]}]
+    })
+  });
+  if(res.status===401){ localStorage.removeItem('anthropic_api_key'); throw new Error('BADKEY'); }
+  if(!res.ok) throw new Error('API '+res.status);
+  const data=await res.json();
+  let txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+  txt=txt.replace(/```json|```/g,'').trim();
+  let obj; try{ obj=JSON.parse(txt); }catch(e){ obj={name:'Nerozpoznáno',desc:'',category:'Nezařazeno',tags:[],qty:1}; }
+  return {
+    name: obj.name||'Nerozpoznáno',
+    desc: obj.desc||'',
+    category: obj.category||'Nezařazeno',
+    tags: Array.isArray(obj.tags)?obj.tags:[],
+    qty: parseInt(obj.qty,10)||1
+  };
+}
+
+// ── ZPRACOVÁNÍ FRONTY ─────────────────────────────────────────────────
+async function handleFiles(fileList){
+  const files=Array.from(fileList).filter(f=>f.type.startsWith('image/'));
+  if(!files.length) return;
+  if(!localStorage.getItem('anthropic_api_key')){
+    promptApiKey(()=>handleFiles(fileList));
+    return;
+  }
+  // Připrav frontu: zmenši na náhled + vision verzi
+  showToast('Připravuji '+files.length+' fotek…');
+  for(const f of files){
+    try{
+      const small=await fileToResizedDataURL(f, THUMB_SIZE, 0.6);
+      const vision=await fileToResizedDataURL(f, VISION_SIZE, 0.7);
+      queue.push({ id:'q'+Date.now()+Math.random().toString(36).slice(2,6), thumbSmall:small, thumbVision:vision, status:'pending', result:null });
+    }catch(e){ console.warn('resize fail',e); }
+  }
+  renderProcess();
+  runQueue();
+}
+
+async function runQueue(){
+  if(processing) return;
+  processing=true;
+  for(const q of queue){
+    if(q.status!=='pending') continue;
+    q.status='working'; renderProcess();
+    try{
+      const r=await recognizeItem(q.thumbVision);
+      q.result=r; q.status='done';
+    }catch(e){
+      if(e.message==='NOKEY'||e.message==='BADKEY'){ q.status='pending'; processing=false; promptApiKey(()=>runQueue()); return; }
+      console.error('recognize:',e); q.status='error';
+    }
+    renderProcess();
+  }
+  processing=false;
+  renderProcess();
+}
+
+// Přidat všechny hotové do inventáře + jeden zápis na Drive
+async function commitQueue(){
+  const done=queue.filter(q=>q.status==='done' && q.result);
+  if(!done.length){ showToast('Nic k uložení'); return; }
+  const now=new Date().toISOString();
+  done.forEach(q=>{
+    items.push({
+      id:'i'+Date.now()+Math.random().toString(36).slice(2,6),
+      name:q.result.name, desc:q.result.desc, category:q.result.category,
+      tags:q.result.tags, qty:q.result.qty, location:'',
+      thumb:q.thumbSmall, createdAt:now, updatedAt:now
+    });
+  });
+  saveLocal();
+  const foot=document.getElementById('process-foot');
+  foot.innerHTML='<button class="btn btn-primary"><span class="spin"></span> Ukládám na Drive…</button>';
+  await syncDrive();
+  queue=[]; closeProcess(); render();
+  showToast(done.length+' věcí přidáno ✓');
+}
+
+// ── RENDER: PROCESS SHEET ─────────────────────────────────────────────
+function renderProcess(){
+  const body=document.getElementById('process-body');
+  const foot=document.getElementById('process-foot');
+  const total=queue.length;
+  const done=queue.filter(q=>q.status==='done').length;
+  const err=queue.filter(q=>q.status==='error').length;
+  let h='';
+  if(!total){
+    h+='<div class="proc-drop" onclick="document.getElementById(\'file-input\').click()">'+
+       '<div class="proc-drop-icon">📸</div>'+
+       '<div class="proc-drop-txt">Nahrát fotky</div>'+
+       '<div class="proc-drop-sub">Vyber všechny fotky věcí najednou.<br>AI je rozpozná po jedné.</div></div>'+
+       '<div class="empty-sub" style="text-align:center;padding:0 8px">Tip: nafoť věci nativním foťákem (stativ, jen cvakej), pak je sem nahraj v jedné dávce.</div>';
+  } else {
+    const pct=total?Math.round(done/total*100):0;
+    h+='<div class="proc-progress">';
+    h+='<div class="proc-status">'+(processing?'Rozpoznávám… ':'')+done+' / '+total+' hotovo'+(err?(' · '+err+' chyb'):'')+'</div>';
+    h+='<div class="proc-bar-track"><div class="proc-bar-fill" style="width:'+pct+'%"></div></div>';
+    h+='</div>';
+    h+='<div class="proc-queue">';
+    queue.forEach(q=>{
+      const state = q.status==='done'?'✅' : q.status==='working'?'<span class="spin"></span>' : q.status==='error'?'⚠️' : '⏳';
+      const name = q.result?q.result.name : (q.status==='working'?'Rozpoznávám…':'Čeká');
+      const cat = q.result?q.result.category:'';
+      h+='<div class="proc-q-item">'+
+         '<img class="proc-q-thumb" src="'+q.thumbSmall+'">'+
+         '<div class="proc-q-body"><div class="proc-q-name">'+esc(name)+'</div>'+
+         (cat?'<div class="proc-q-cat">'+esc(cat)+(q.result&&q.result.qty>1?(' · '+q.result.qty+'×'):'')+'</div>':'')+'</div>'+
+         '<div class="proc-q-state">'+state+'</div></div>';
+    });
+    h+='</div>';
+  }
+  body.innerHTML=h;
+
+  if(!total){
+    foot.innerHTML='<button class="btn btn-ghost" onclick="closeProcess()">Zavřít</button>';
+  } else if(processing){
+    foot.innerHTML='<button class="btn btn-ghost" onclick="addMoreFiles()">+ Přidat fotky</button>';
+  } else {
+    foot.innerHTML='<button class="btn btn-ghost" onclick="addMoreFiles()">+ Další</button>'+
+      '<button class="btn btn-primary" onclick="commitQueue()">Uložit '+done+' věcí</button>';
+  }
+}
+
+function addMoreFiles(){ document.getElementById('file-input').click(); }
+
+// ── API KLÍČ PROMPT ───────────────────────────────────────────────────
+let pendingApiCb=null;
+function promptApiKey(cb){
+  pendingApiCb=cb||null;
+  const body=document.getElementById('process-body');
+  const foot=document.getElementById('process-foot');
+  document.getElementById('process-overlay').classList.add('on');
+  body.innerHTML='<div class="field"><div class="field-label">Anthropic API klíč</div>'+
+    '<input type="password" class="field-inp" id="apikey-inp" placeholder="sk-ant-…" autocomplete="off">'+
+    '<div class="empty-sub" style="text-align:left;margin-top:8px">Potřeba pro rozpoznávání fotek. Uloží se jen lokálně do tohoto zařízení.</div></div>';
+  foot.innerHTML='<button class="btn btn-ghost" onclick="closeProcess()">Zrušit</button>'+
+    '<button class="btn btn-primary" onclick="saveApiKey()">Uložit klíč</button>';
+}
+function saveApiKey(){
+  const v=document.getElementById('apikey-inp').value.trim();
+  if(!v){ showToast('Zadej klíč'); return; }
+  localStorage.setItem('anthropic_api_key',v);
+  const cb=pendingApiCb; pendingApiCb=null;
+  renderProcess();
+  if(cb) cb();
+}
+
+// ── PROCESS OVERLAY OPEN/CLOSE ────────────────────────────────────────
+function openProcess(){
+  document.getElementById('process-overlay').classList.add('on');
+  renderProcess();
+}
+function closeProcess(){
+  if(processing){ if(!confirm('Rozpoznávání běží. Opravdu zavřít? Nehotové se ztratí.')) return; }
+  document.getElementById('process-overlay').classList.remove('on');
+}
+
+// ── HLAVNÍ RENDER ─────────────────────────────────────────────────────
+function categories(){
+  const set={};
+  items.forEach(it=>{ const c=it.category||'Nezařazeno'; set[c]=(set[c]||0)+1; });
+  return set;
+}
+
+function render(){
+  // stats
+  const totalItems=items.length;
+  const totalQty=items.reduce((s,it)=>s+(it.qty||1),0);
+  const catCount=Object.keys(categories()).length;
+  document.getElementById('statsbar').innerHTML=
+    '<div class="stat"><div class="stat-num">'+totalItems+'</div><div class="stat-lbl">položek</div></div>'+
+    '<div class="stat"><div class="stat-num">'+totalQty+'</div><div class="stat-lbl">kusů</div></div>'+
+    '<div class="stat"><div class="stat-num">'+catCount+'</div><div class="stat-lbl">kategorií</div></div>';
+
+  // filters
+  const cats=categories();
+  let fh='<button class="f-btn '+(activeFilter==='all'?'on':'')+'" onclick="setFilter(\'all\')">Vše</button>';
+  Object.keys(cats).sort().forEach(c=>{
+    fh+='<button class="f-btn '+(activeFilter===c?'on':'')+'" onclick="setFilter('+JSON.stringify(c).replace(/"/g,'&quot;')+')">'+esc(c)+' '+cats[c]+'</button>';
+  });
+  document.getElementById('filters').innerHTML=fh;
+
+  // list
+  const q=(document.getElementById('search').value||'').toLowerCase().trim();
+  let list=items.slice();
+  if(activeFilter!=='all') list=list.filter(it=>(it.category||'Nezařazeno')===activeFilter);
+  if(q) list=list.filter(it=>(it.name+' '+it.desc+' '+(it.tags||[]).join(' ')+' '+(it.location||'')).toLowerCase().includes(q));
+  list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+
+  const el=document.getElementById('list');
+  if(!items.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Zatím prázdno</div>'+
+      '<div class="empty-sub">Nafoť své věci a nech AI vytvořit inventář.<br>Klepni na <b>📸 Nafotit / nahrát</b>.</div></div>';
+    return;
+  }
+  if(!list.length){ el.innerHTML='<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Nic nenalezeno</div></div>'; return; }
+
+  el.innerHTML=list.map(it=>{
+    const thumb=it.thumb?('<img class="item-thumb" src="'+it.thumb+'">'):('<div class="item-thumb-ph">🔧</div>');
+    return '<div class="item-card" onclick="openDetail('+JSON.stringify(it.id)+')">'+
+      thumb+
+      '<div class="item-body">'+
+        '<div class="item-name">'+esc(it.name)+'</div>'+
+        (it.desc?'<div class="item-desc">'+esc(it.desc)+'</div>':'')+
+        '<div class="item-meta">'+
+          '<span class="item-cat">'+esc(it.category||'Nezařazeno')+'</span>'+
+          ((it.qty||1)>1?'<span class="item-qty">'+it.qty+'×</span>':'')+
+          (it.location?'<span class="item-loc">📍 '+esc(it.location)+'</span>':'')+
+        '</div>'+
+      '</div></div>';
+  }).join('');
+}
+
+function setFilter(f){ activeFilter=f; render(); }
+
+// ── DETAIL / EDIT ─────────────────────────────────────────────────────
+let editId=null;
+function openDetail(id){
+  const it=items.find(x=>x.id===id); if(!it) return;
+  editId=id;
+  document.getElementById('detail-title').textContent='Upravit položku';
+  const cats=Object.keys(categories()).sort();
+  const catOpts=cats.map(c=>'<option value="'+esc(c)+'"'+(c===it.category?' selected':'')+'>'+esc(c)+'</option>').join('');
+  document.getElementById('detail-body').innerHTML=
+    (it.thumb?'<img class="detail-thumb" src="'+it.thumb+'">':'')+
+    '<div class="field"><div class="field-label">Název</div><input class="field-inp" id="ed-name" value="'+esc(it.name)+'"></div>'+
+    '<div class="field"><div class="field-label">Popis</div><textarea class="field-ta" id="ed-desc">'+esc(it.desc||'')+'</textarea></div>'+
+    '<div class="field"><div class="field-label">Kategorie</div><input class="field-inp" id="ed-cat" list="cat-list" value="'+esc(it.category||'')+'">'+
+      '<datalist id="cat-list">'+catOpts+'</datalist></div>'+
+    '<div class="field"><div class="field-label">Umístění</div><input class="field-inp" id="ed-loc" value="'+esc(it.location||'')+'" placeholder="kde to je uložené"></div>'+
+    '<div class="field"><div class="field-label">Počet kusů</div><input class="field-inp" type="number" id="ed-qty" value="'+(it.qty||1)+'" min="1"></div>'+
+    '<div class="field"><div class="field-label">Tagy (oddělené čárkou)</div><input class="field-inp" id="ed-tags" value="'+esc((it.tags||[]).join(', '))+'"></div>';
+  document.getElementById('detail-foot').innerHTML=
+    '<button class="btn btn-danger" onclick="deleteItem()">Smazat</button>'+
+    '<button class="btn btn-primary" onclick="saveDetail()">Uložit</button>';
+  document.getElementById('detail-overlay').classList.add('on');
+}
+function closeDetail(){ document.getElementById('detail-overlay').classList.remove('on'); editId=null; }
+
+async function saveDetail(){
+  const it=items.find(x=>x.id===editId); if(!it) return;
+  it.name=document.getElementById('ed-name').value.trim()||it.name;
+  it.desc=document.getElementById('ed-desc').value.trim();
+  it.category=document.getElementById('ed-cat').value.trim()||'Nezařazeno';
+  it.location=document.getElementById('ed-loc').value.trim();
+  it.qty=parseInt(document.getElementById('ed-qty').value,10)||1;
+  it.tags=document.getElementById('ed-tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  it.updatedAt=new Date().toISOString();
+  saveLocal(); closeDetail(); render();
+  showToast('Uloženo ✓');
+  await syncDrive();
+}
+
+async function deleteItem(){
+  if(!confirm('Smazat tuto položku?')) return;
+  items=items.filter(x=>x.id!==editId);
+  saveLocal(); closeDetail(); render();
+  showToast('Smazáno');
+  await syncDrive();
+}
+
+// ── KONSOLIDACE KATEGORIÍ ─────────────────────────────────────────────
+async function openConsolidate(){
+  document.getElementById('consolidate-overlay').classList.add('on');
+  const body=document.getElementById('consolidate-body');
+  const foot=document.getElementById('consolidate-foot');
+  if(!items.length){ body.innerHTML='<div class="empty-sub">Nejdřív přidej nějaké věci.</div>'; foot.innerHTML='<button class="btn btn-ghost" onclick="closeConsolidate()">Zavřít</button>'; return; }
+  const cats=categories();
+  let h='<div class="empty-sub" style="text-align:left;margin-bottom:12px">Aktuální kategorie. Nech AI navrhnout sjednocení podobných.</div>';
+  Object.keys(cats).sort().forEach(c=>{ h+='<div class="cons-cat"><div class="cons-cat-name">'+esc(c)+' · '+cats[c]+'</div></div>'; });
+  body.innerHTML=h;
+  foot.innerHTML='<button class="btn btn-ghost" onclick="closeConsolidate()">Zavřít</button>'+
+    '<button class="btn btn-primary" onclick="runConsolidate()">✨ Navrhnout sjednocení</button>';
+}
+function closeConsolidate(){ document.getElementById('consolidate-overlay').classList.remove('on'); }
+
+let consolidatePlan=null;
+async function runConsolidate(){
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey){ showToast('Chybí API klíč — přidej ho při nahrávání fotek'); return; }
+  const body=document.getElementById('consolidate-body');
+  const foot=document.getElementById('consolidate-foot');
+  foot.innerHTML='<button class="btn btn-primary"><span class="spin"></span> Analyzuji…</button>';
+
+  const inv=items.map(it=>({name:it.name, category:it.category||'Nezařazeno'}));
+  const prompt=`Mám inventář věcí (hlavně nářadí a vybavení). Tady je seznam s aktuálními kategoriemi:
+${JSON.stringify(inv)}
+
+Navrhni čistou, sjednocenou sadu kategorií. Slož podobné kategorie dohromady, použij konzistentní názvy v češtině. Vrať POUZE validní JSON, bez markdownu:
+{"mapping":{"stará kategorie":"nová kategorie", ...}}
+Zahrň každou existující kategorii v mapping (i když se nemění, namapuj ji na sebe).`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+    });
+    if(res.status===401){ localStorage.removeItem('anthropic_api_key'); showToast('Neplatný API klíč'); return; }
+    if(!res.ok) throw new Error('API '+res.status);
+    const data=await res.json();
+    let txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').replace(/```json|```/g,'').trim();
+    const obj=JSON.parse(txt);
+    consolidatePlan=obj.mapping||{};
+
+    // Zobraz návrh: sloučení = víc starých → jedna nová
+    const grouped={};
+    Object.keys(consolidatePlan).forEach(old=>{ const n=consolidatePlan[old]; (grouped[n]=grouped[n]||[]).push(old); });
+    let h='<div class="empty-sub" style="text-align:left;margin-bottom:12px">Navržené kategorie. Zkontroluj a potvrď.</div>';
+    Object.keys(grouped).sort().forEach(n=>{
+      const olds=grouped[n].filter(o=>o!==n);
+      h+='<div class="cons-cat"><div class="cons-cat-name">'+esc(n)+'</div>';
+      if(olds.length) h+='<div class="cons-merge">← sloučí: '+olds.map(esc).join(', ')+'</div>';
+      h+='</div>';
+    });
+    body.innerHTML=h;
+    foot.innerHTML='<button class="btn btn-ghost" onclick="openConsolidate()">Zpět</button>'+
+      '<button class="btn btn-primary" onclick="applyConsolidate()">Použít</button>';
+  }catch(e){
+    console.error('consolidate:',e);
+    body.innerHTML='<div class="empty-sub">Chyba: '+esc(e.message)+'</div>';
+    foot.innerHTML='<button class="btn btn-ghost" onclick="closeConsolidate()">Zavřít</button>';
+  }
+}
+
+async function applyConsolidate(){
+  if(!consolidatePlan) return;
+  const now=new Date().toISOString();
+  items.forEach(it=>{
+    const c=it.category||'Nezařazeno';
+    if(consolidatePlan[c] && consolidatePlan[c]!==c){ it.category=consolidatePlan[c]; it.updatedAt=now; }
+  });
+  consolidatePlan=null;
+  saveLocal(); closeConsolidate(); activeFilter='all'; render();
+  showToast('Kategorie sjednoceny ✓');
+  await syncDrive();
+}
+
+// ── UTIL ──────────────────────────────────────────────────────────────
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastT=null;
+function showToast(m){
+  const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change',function(e){
+  handleFiles(e.target.files); e.target.value='';
+});
+
+(async function init(){
+  loadLocal();
+  render();
+  if(isConnected() && GOOGLE_CLIENT_ID){
+    // počkej na GIS
+    let tries=0;
+    const wait=setInterval(async()=>{
+      if(gisReady() || tries++>20){
+        clearInterval(wait);
+        const ok=await syncDrive(); render(); if(ok) showToast('Synchronizováno ✓');
+      }
+    },200);
+  } else if(!GOOGLE_CLIENT_ID){
+    setTimeout(()=>showToast('⚠ V kódu chybí Google Client ID'),600);
+  }
+})();
+
+</script>
+</body>
+</html>
