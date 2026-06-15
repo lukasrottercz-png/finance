@@ -331,12 +331,16 @@ function mergeItems(a,b){
   const pick=(ex,n)=>{
     const au=ex.updatedAt||ex.createdAt||'';
     const bu=n.updatedAt||n.createdAt||'';
-    return bu>=au?n:ex;
+    if(bu===au) return (n.deleted||ex.deleted)?(n.deleted?n:ex):n; // při shodě vyhrává smazaný
+    return bu>au?n:ex;
   };
   (a||[]).forEach(it=>{ if(it&&it.id) map[it.id]=it; });
   (b||[]).forEach(it=>{ if(it&&it.id){ map[it.id]=map[it.id]?pick(map[it.id],it):it; } });
   return Object.values(map);
 }
+
+// Jen živé položky (bez náhrobků) — pro zobrazení a výpočty
+function liveItems(){ return items.filter(it=>!it.deleted); }
 
 // Barva/stav ↻ tlačítka — stejné jako ostatní appky
 function updateSync(state){
@@ -580,14 +584,15 @@ function closeProcess(){
 // ── HLAVNÍ RENDER ─────────────────────────────────────────────────────
 function categories(){
   const set={};
-  items.forEach(it=>{ const c=it.category||'Nezařazeno'; set[c]=(set[c]||0)+1; });
+  liveItems().forEach(it=>{ const c=it.category||'Nezařazeno'; set[c]=(set[c]||0)+1; });
   return set;
 }
 
 function render(){
+  const live=liveItems();
   // stats
-  const totalItems=items.length;
-  const totalQty=items.reduce((s,it)=>s+(it.qty||1),0);
+  const totalItems=live.length;
+  const totalQty=live.reduce((s,it)=>s+(it.qty||1),0);
   const catCount=Object.keys(categories()).length;
   document.getElementById('statsbar').innerHTML=
     '<div class="stat"><div class="stat-num">'+totalItems+'</div><div class="stat-lbl">položek</div></div>'+
@@ -604,13 +609,13 @@ function render(){
 
   // list
   const q=(document.getElementById('search').value||'').toLowerCase().trim();
-  let list=items.slice();
+  let list=live.slice();
   if(activeFilter!=='all') list=list.filter(it=>(it.category||'Nezařazeno')===activeFilter);
   if(q) list=list.filter(it=>(it.name+' '+it.desc+' '+(it.tags||[]).join(' ')+' '+(it.location||'')).toLowerCase().includes(q));
   list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
 
   const el=document.getElementById('list');
-  if(!items.length){
+  if(!live.length){
     el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Zatím prázdno</div>'+
       '<div class="empty-sub">Nafoť své věci a nech AI vytvořit inventář.<br>Klepni na <b>📸 Nafotit / nahrát</b>.</div></div>';
     return;
@@ -660,9 +665,18 @@ function showItemMenu(id, btn){
   ], btn);
 }
 
+// Soft delete — položku nezahodíme, označíme náhrobkem, ať se merge z Disku nevrátí
+function softDelete(id){
+  const it=items.find(x=>x.id===id); if(!it) return false;
+  it.deleted=true;
+  it.thumb='';          // uvolni base64 náhled, náhrobek nemusí nést data
+  it.updatedAt=new Date().toISOString();
+  return true;
+}
+
 async function confirmDeleteItem(id){
   if(!confirm('Smazat tuto položku?')) return;
-  items=items.filter(x=>x.id!==id);
+  if(!softDelete(id)) return;
   saveLocal(); render();
   showToast('Smazáno');
   await syncDrive();
@@ -708,7 +722,7 @@ async function saveDetail(){
 
 async function deleteItem(){
   if(!confirm('Smazat tuto položku?')) return;
-  items=items.filter(x=>x.id!==editId);
+  if(!softDelete(editId)){ closeDetail(); return; }
   saveLocal(); closeDetail(); render();
   showToast('Smazáno');
   await syncDrive();
@@ -719,7 +733,7 @@ async function openConsolidate(){
   document.getElementById('consolidate-overlay').classList.add('on');
   const body=document.getElementById('consolidate-body');
   const foot=document.getElementById('consolidate-foot');
-  if(!items.length){ body.innerHTML='<div class="empty-sub">Nejdřív přidej nějaké věci.</div>'; foot.innerHTML='<button class="btn btn-ghost" onclick="closeConsolidate()">Zavřít</button>'; return; }
+  if(!liveItems().length){ body.innerHTML='<div class="empty-sub">Nejdřív přidej nějaké věci.</div>'; foot.innerHTML='<button class="btn btn-ghost" onclick="closeConsolidate()">Zavřít</button>'; return; }
   const cats=categories();
   let h='<div class="empty-sub" style="text-align:left;margin-bottom:12px">Aktuální kategorie. Nech AI navrhnout sjednocení podobných.</div>';
   Object.keys(cats).sort().forEach(c=>{ h+='<div class="cons-cat"><div class="cons-cat-name">'+esc(c)+' · '+cats[c]+'</div></div>'; });
@@ -737,7 +751,7 @@ async function runConsolidate(){
   const foot=document.getElementById('consolidate-foot');
   foot.innerHTML='<button class="btn btn-primary"><span class="spin"></span> Analyzuji…</button>';
 
-  const inv=items.map(it=>({name:it.name, category:it.category||'Nezařazeno'}));
+  const inv=liveItems().map(it=>({name:it.name, category:it.category||'Nezařazeno'}));
   const prompt=`Mám inventář věcí (hlavně nářadí a vybavení). Tady je seznam s aktuálními kategoriemi:
 ${JSON.stringify(inv)}
 
@@ -782,6 +796,7 @@ async function applyConsolidate(){
   if(!consolidatePlan) return;
   const now=new Date().toISOString();
   items.forEach(it=>{
+    if(it.deleted) return;
     const c=it.category||'Nezařazeno';
     if(consolidatePlan[c] && consolidatePlan[c]!==c){ it.category=consolidatePlan[c]; it.updatedAt=now; }
   });
