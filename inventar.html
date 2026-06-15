@@ -63,6 +63,14 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .item-cat{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-bg);color:var(--accent);white-space:nowrap}
 .item-qty{font-size:11px;color:var(--text3)}
 .item-loc{font-size:11px;color:var(--orange)}
+.item-menu-btn{background:none;border:none;cursor:pointer;font-size:20px;color:var(--text3);padding:4px 8px;flex-shrink:0;align-self:flex-start;line-height:1}
+
+/* CARD MENU (plovoucí ··· menu) */
+.card-menu{position:fixed;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:160px;overflow:hidden}
+.card-menu-item{display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:var(--text);cursor:pointer;border-bottom:0.5px solid var(--border)}
+.card-menu-item:last-child{border-bottom:none}
+.card-menu-item:active{background:var(--bg)}
+.card-menu-item.danger{color:var(--red)}
 
 /* EMPTY */
 .empty{text-align:center;padding:60px 20px;color:var(--text2)}
@@ -621,11 +629,44 @@ function render(){
           ((it.qty||1)>1?'<span class="item-qty">'+it.qty+'×</span>':'')+
           (it.location?'<span class="item-loc">📍 '+esc(it.location)+'</span>':'')+
         '</div>'+
-      '</div></div>';
+      '</div>'+
+      '<button class="item-menu-btn" onclick="event.stopPropagation();showItemMenu('+JSON.stringify(it.id).replace(/"/g,'&quot;')+',this)">···</button>'+
+      '</div>';
   }).join('');
 }
 
 function setFilter(f){ activeFilter=f; render(); }
+
+// ── CARD MENU (··· na kartě) ──────────────────────────────────────────
+function showMenu(menuItems, btn){
+  document.getElementById('card-menu')?.remove();
+  const rect=btn.getBoundingClientRect();
+  const menu=document.createElement('div');
+  menu.className='card-menu'; menu.id='card-menu';
+  menu.innerHTML=menuItems.map(i=>
+    '<button class="card-menu-item'+(i.danger?' danger':'')+'" onclick="closeMenu();'+i.action+'">'+i.label+'</button>'
+  ).join('');
+  menu.style.top=(rect.bottom+6)+'px';
+  menu.style.right=(window.innerWidth-rect.right)+'px';
+  document.body.appendChild(menu);
+  setTimeout(()=>document.addEventListener('click',closeMenu,{once:true}),10);
+}
+function closeMenu(){ document.getElementById('card-menu')?.remove(); }
+
+function showItemMenu(id, btn){
+  showMenu([
+    { label:'✏️ Upravit', action:"openDetail('"+id+"')" },
+    { label:'🗑 Smazat', danger:true, action:"confirmDeleteItem('"+id+"')" }
+  ], btn);
+}
+
+async function confirmDeleteItem(id){
+  if(!confirm('Smazat tuto položku?')) return;
+  items=items.filter(x=>x.id!==id);
+  saveLocal(); render();
+  showToast('Smazáno');
+  await syncDrive();
+}
 
 // ── DETAIL / EDIT ─────────────────────────────────────────────────────
 let editId=null;
