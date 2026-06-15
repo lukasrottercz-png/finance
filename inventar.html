@@ -145,7 +145,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
       <a href="https://lukasrottercz-png.github.io/finance/vydaje_lukas.html" class="hdr-link">🧾</a>
       <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
       <a href="https://lukasrottercz-png.github.io/finance/poznamky.html" class="hdr-link">📝</a>
-      <button class="hdr-btn" onclick="manualSync()" title="Synchronizovat">↻</button>
+      <button class="hdr-btn" id="sync-btn" onclick="manualSync()" title="Synchronizovat">↻</button>
     </div>
   </div>
 </div>
@@ -330,19 +330,30 @@ function mergeItems(a,b){
   return Object.values(map);
 }
 
+// Barva/stav ↻ tlačítka — stejné jako ostatní appky
+function updateSync(state){
+  const b=document.getElementById('sync-btn'); if(!b) return;
+  if(state==='syncing'){ b.textContent='↻'; b.style.opacity='0.35'; b.style.color=''; b.title='Synchronizuji…'; }
+  else if(state==='ok'){ b.textContent='↻'; b.style.opacity='1'; b.style.color='#34c759'; b.title='Připojeno k Google Drive ✓ — klepni pro sync'; }
+  else if(state==='local'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff9500'; b.title='Jen lokálně — klepni a přihlas se Googlem'; }
+  else if(state==='error'){ b.textContent='⚠'; b.style.opacity='1'; b.style.color='#ff3b30'; b.title='Chyba synchronizace — klepni a zkus znovu'; }
+}
+
 async function syncDrive(){
-  if(!isConnected() || !GOOGLE_CLIENT_ID) return false;
+  if(!isConnected() || !GOOGLE_CLIENT_ID){ updateSync('local'); return false; }
+  updateSync('syncing');
   try{
     const remote=await driveReadData();
     items=mergeItems(remote.items, items);
     saveLocal();
     await driveWriteData(items);
+    updateSync('ok');
     return true;
   }catch(e){
     console.error('syncDrive:',e);
     const m=(e.message||'').toLowerCase();
-    if(m.includes('oauth')||m.includes('401')||m.includes('access_denied')) showToast('⚠ Přihlas se Googlem (↻ nahoře)');
-    else showToast('⚠ Drive nedostupný — uloženo jen lokálně');
+    if(m.includes('oauth')||m.includes('401')||m.includes('access_denied')){ updateSync('local'); showToast('⚠ Přihlas se Googlem (↻ nahoře)'); }
+    else { updateSync('error'); showToast('⚠ Drive nedostupný — uloženo jen lokálně'); }
     return false;
   }
 }
@@ -756,6 +767,7 @@ document.getElementById('file-input').addEventListener('change',function(e){
   loadLocal();
   render();
   if(isConnected() && GOOGLE_CLIENT_ID){
+    updateSync('syncing');
     // počkej na GIS
     let tries=0;
     const wait=setInterval(async()=>{
@@ -764,8 +776,9 @@ document.getElementById('file-input').addEventListener('change',function(e){
         const ok=await syncDrive(); render(); if(ok) showToast('Synchronizováno ✓');
       }
     },200);
-  } else if(!GOOGLE_CLIENT_ID){
-    setTimeout(()=>showToast('⚠ V kódu chybí Google Client ID'),600);
+  } else {
+    updateSync('local');
+    if(!GOOGLE_CLIENT_ID) setTimeout(()=>showToast('⚠ V kódu chybí Google Client ID'),600);
   }
 })();
 
