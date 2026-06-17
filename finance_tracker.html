@@ -528,17 +528,36 @@ async function loadAiComment() {
     }
   } catch(e) { console.error('AI trvale load:', e); }
 
+  // Načti investiční portfolio pro AI kontext
+  let invInfo = '';
+  try {
+    const inv = loadInv();
+    const transe = inv.transe || [];
+    const aktualni = inv.aktualni || [];
+    if (transe.length) {
+      const investovano = transe.reduce((s,t) => s + (t.castka||0), 0);
+      const aktHodnota = aktualni.length ? aktualni[aktualni.length-1].hodnota : null;
+      const zhodn = aktHodnota != null ? aktHodnota - investovano : null;
+      invInfo = `\n\nInvestiční portfolio (XTB) — DŮLEŽITÉ: přesun peněz z účtů do investic NENÍ výdaj, jde jen o přesun aktiv. Pokles "dostupných financí" způsobený investiční tranší proto nikdy nehodnoť jako utrácení:\n` +
+        `- Investováno celkem: ${Math.round(investovano).toLocaleString('cs-CZ')} Kč\n` +
+        (aktHodnota != null ? `- Aktuální hodnota: ${Math.round(aktHodnota).toLocaleString('cs-CZ')} Kč${zhodn != null ? ` (zhodnocení ${zhodn >= 0 ? '+' : ''}${Math.round(zhodn).toLocaleString('cs-CZ')} Kč)` : ''}\n` : '') +
+        `- Tranše (datum a investovaná částka):\n` +
+        transe.map(t => `  - ${t.datum}: ${t.nazev || 'Tranše'} — ${Math.round(t.castka||0).toLocaleString('cs-CZ')} Kč`).join('\n');
+    }
+  } catch(e) { console.error('AI inv load:', e); }
+
   const prompt = `Jsi osobní finanční poradce. Analyzuj tato data osobních financí Lukáše a napiš konkrétní komentář (4–6 vět) v češtině.
 
 Důležité vysvětlení struktury dat:
 - "Dostupné finance bez investic" = součet všech peněz na bankovních účtech, spořících účtech, penzijním spoření a stavebním spoření. Jsou to reálně dostupné prostředky (bez investičního portfolia).
 - "Bez hypotéky" = hypotetický čistý majetek v případě okamžitého splacení hypotéky (Dostupné finance bez investic mínus hypotéka). Jde o informativní číslo, ne reálný stav.
 - Hypotéka je dlouhodobý závazek — nesouvisí přímo s každodenní likviditou.
+- "Investiční portfolio" = peníze investované přes XTB (samostatné od dostupných financí). Když Lukáš přesune peníze z účtu do investic, "Dostupné finance bez investic" klesnou, ale NEJDE o výdaj — peníze se jen přesunuly do portfolia a stále je má. Vždy zkontroluj, zda v období poklesu dostupných financí proběhla investiční tranše, a o tuto částku ponižuj domnělé "utrácení".
 
 Data (chronologicky):
-${history}${trvaleInfo}
+${history}${trvaleInfo}${invInfo}
 
-Zaměř se na: vývoj dostupných prostředků (Dostupné finance bez investic), tempo splácení hypotéky, finanční zdraví a konkrétní doporučení. Zohledni trvalé platby jako měsíční zátěž. Zohledni zaznamenané události. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
+Zaměř se na: vývoj dostupných prostředků (Dostupné finance bez investic), tempo splácení hypotéky, finanční zdraví a konkrétní doporučení. Rozlišuj mezi skutečnými výdaji a přesunem peněz do investic (tranše) — investice nezahrnuj do utrácení. Zohledni trvalé platby jako měsíční zátěž. Zohledni zaznamenané události. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
