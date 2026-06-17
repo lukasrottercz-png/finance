@@ -58,6 +58,8 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Helvetica Neue',s
 .item-thumb-ph{width:56px;height:56px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
 .item-body{flex:1;min-width:0}
 .item-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.new-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#0a84ff;margin-right:7px;vertical-align:middle;flex-shrink:0}
+.item-card.is-new{border-left:2.5px solid #0a84ff}
 .item-desc{font-size:13px;color:var(--text2);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;margin-top:1px}
 .item-meta{display:flex;gap:8px;align-items:center;margin-top:5px;flex-wrap:wrap}
 .item-cat{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-bg);color:var(--accent);white-space:nowrap}
@@ -514,13 +516,15 @@ async function runQueue(){
 async function commitQueue(){
   const done=queue.filter(q=>q.status==='done' && q.result);
   if(!done.length){ showToast('Nic k uložení'); return; }
-  const now=new Date().toISOString();
-  done.forEach(q=>{
+  const base=Date.now();
+  done.forEach((q,i)=>{
+    // unikátní rostoucí createdAt podle pořadí nafocení → stabilní řazení v rámci dávky
+    const ts=new Date(base+i).toISOString();
     items.push({
-      id:'i'+Date.now()+Math.random().toString(36).slice(2,6),
+      id:'i'+base+i+Math.random().toString(36).slice(2,6),
       name:q.result.name, desc:q.result.desc, category:q.result.category,
       tags:q.result.tags, qty:q.result.qty, location:'',
-      thumb:q.thumbSmall, createdAt:now, updatedAt:now
+      thumb:q.thumbSmall, createdAt:ts, updatedAt:ts
     });
   });
   saveLocal();
@@ -641,7 +645,8 @@ function render(){
   let list=live.slice();
   if(activeFilter!=='all') list=list.filter(it=>(it.category||'Nezařazeno')===activeFilter);
   if(q) list=list.filter(it=>(it.name+' '+it.desc+' '+(it.tags||[]).join(' ')+' '+(it.location||'')).toLowerCase().includes(q));
-  list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+  // řazení podle createdAt (pořadí nahrání) — editace pozicí nehne, neztratíš místo
+  list.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
 
   const el=document.getElementById('list');
   if(!live.length){
@@ -653,10 +658,11 @@ function render(){
 
   el.innerHTML=list.map(it=>{
     const thumb=it.thumb?('<img class="item-thumb" src="'+it.thumb+'">'):('<div class="item-thumb-ph">🔧</div>');
-    return '<div class="item-card" onclick="openDetail('+JSON.stringify(it.id).replace(/"/g,'&quot;')+')">'+
+    const isNew=(it.createdAt && it.createdAt===it.updatedAt); // nedotčeno ručně = čerstvé z AI
+    return '<div class="item-card'+(isNew?' is-new':'')+'" onclick="openDetail('+JSON.stringify(it.id).replace(/"/g,'&quot;')+')">'+
       thumb+
       '<div class="item-body">'+
-        '<div class="item-name">'+esc(it.name)+'</div>'+
+        '<div class="item-name">'+(isNew?'<span class="new-dot"></span>':'')+esc(it.name)+'</div>'+
         (it.desc?'<div class="item-desc">'+esc(it.desc)+'</div>':'')+
         '<div class="item-meta">'+
           '<span class="item-cat">'+esc(it.category||'Nezařazeno')+'</span>'+
