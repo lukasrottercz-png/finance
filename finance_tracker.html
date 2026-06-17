@@ -16,6 +16,7 @@
   --blue: #007aff; --blue-bg: #e5f1ff;
   --orange: #ff9500;
   --accent: #7c3aed;
+  --tint-asset: #eef3fb; --tint-liab: #fbeef0; --tint-flow: #f4f0fb;
   --r: 13px; --rl: 16px;
 }
 @media (prefers-color-scheme: dark) {
@@ -28,6 +29,7 @@
     --blue: #0a84ff; --blue-bg: #001f4d;
     --orange: #ff9500;
     --accent: #a78bfa;
+    --tint-asset: #15233a; --tint-liab: #2e1619; --tint-flow: #211a33;
   }
 }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -44,6 +46,9 @@ header .hdate { font-size: 13px; color: var(--text3); }
 .card-lbl { font-size: 12px; color: var(--text2); margin-bottom: 5px; line-height: 1.3; min-height: 2.6em; }
 .card-val { font-size: 18px; font-weight: 500; }
 .card-diff { font-size: 12px; margin-top: 4px; }
+.card.c-asset { background: var(--tint-asset); }
+.card.c-liab { background: var(--tint-liab); }
+.card.c-flow { background: var(--tint-flow); }
 .pos { color: var(--green); } .neg { color: var(--red); }
 .sec { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--rl); padding: 16px 18px; margin-bottom: 12px; }
 .sec h3 { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
@@ -881,19 +886,20 @@ function renderDashboard() {
   return `
     <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK${isConnected() ? ' &nbsp;·&nbsp; <span style="color:var(--green)">● Google Drive sync</span>' : ''}</div>
     <div class="cards">
-      <div class="card"><div class="card-lbl">Dostupné finance bez investic</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
+      <div class="card c-asset"><div class="card-lbl">Dostupné finance bez investic</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
       ${(() => {
         const inv = loadInv();
         const trCel = (inv.transe||[]).reduce((s,t) => s+(t.castka||0), 0);
         const ak = inv.aktualni || [];
         const pv = ak.length ? ak[ak.length-1].hodnota : trCel;
         if (!pv) return '';
-        return `<div class="card"><div class="card-lbl">Celková aktiva</div><div class="card-val">${fmt(cel + pv)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">vč. portfolia</div></div>`;
+        return `<div class="card c-asset"><div class="card-lbl">Celková aktiva</div><div class="card-val">${fmt(cel + pv)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">vč. portfolia</div></div>`
+          + `<div class="card c-asset"><div class="card-lbl">Čisté jmění</div><div class="card-val ${(cel+pv-hyp)>=0?'pos':'neg'}">${fmt(cel + pv - hyp)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">aktiva − hypotéka</div></div>`;
       })()}
-      <div class="card"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div></div>
-      <div class="card"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
-      <div class="card"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
-      ${p.mzda ? `<div class="card"><div class="card-lbl">Čistá mzda / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
+      <div class="card c-asset"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div></div>
+      <div class="card c-liab"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
+      <div class="card c-flow"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
+      ${p.mzda ? `<div class="card c-flow"><div class="card-lbl">Čistá mzda / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
     </div>
     ${(() => {
       const inv = loadInv();
