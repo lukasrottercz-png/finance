@@ -856,7 +856,7 @@ function renderDashboard() {
   const pCel = prev ? calcCelkem(prev) : null;
   const pBez = prev ? calcBez(prev) : null;
   const pHyp = prev ? calcHyp(prev) : null;
-  const dif = prev ? bez - pBez : null;
+  const dif = prev ? cel - pCel : null;
 
   // Graf vývoje
   const rows = periods.map((pd, i) => ({
@@ -905,19 +905,18 @@ function renderDashboard() {
   return `
     <div style="font-size:13px;color:var(--text3);margin-bottom:12px">Poslední aktualizace: ${fmtDate(p.date)} &nbsp;·&nbsp; kurz EUR: ${p.eur_kurz} CZK${isConnected() ? ' &nbsp;·&nbsp; <span style="color:var(--green)">● Google Drive sync</span>' : ''}</div>
     <div class="cards">
-      <div class="card c-asset"><div class="card-lbl">Dostupné finance bez investic</div><div class="card-val">${fmt(cel)}</div>${diff(cel,pCel,false,true)}</div>
+      <div class="card c-asset"><div class="card-lbl">Dostupné finance</div><div class="card-val">${fmt(cel)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">účty, spoření, penzijko (bez investic)</div></div>
       ${(() => {
         const inv = loadInv();
         const trCel = (inv.transe||[]).reduce((s,t) => s+(t.castka||0), 0);
         const ak = inv.aktualni || [];
         const pv = ak.length ? ak[ak.length-1].hodnota : trCel;
         if (!pv) return '';
-        return `<div class="card c-asset"><div class="card-lbl">Celková aktiva</div><div class="card-val">${fmt(cel + pv)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">vč. portfolia</div></div>`
-          + `<div class="card c-asset"><div class="card-lbl">Čisté jmění</div><div class="card-val ${(cel+pv-hyp)>=0?'pos':'neg'}">${fmt(cel + pv - hyp)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">aktiva − hypotéka</div></div>`;
+        return `<div class="card c-asset"><div class="card-lbl">Celková aktiva</div><div class="card-val">${fmt(cel + pv)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">dostupné finance + investice</div></div>`
+          + `<div class="card c-asset"><div class="card-lbl">Čisté jmění</div><div class="card-val ${(cel+pv-hyp)>=0?'pos':'neg'}">${fmt(cel + pv - hyp)}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">celková aktiva − hypotéka</div></div>`;
       })()}
-      <div class="card c-asset"><div class="card-lbl">Bez hypotéky</div><div class="card-val">${fmt(bez)}</div></div>
-      <div class="card c-liab"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}</div>
-      <div class="card c-flow"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div></div>
+      <div class="card c-liab"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}<div style="font-size:13px;margin-top:4px;color:var(--text3)">zbývá splatit</div></div>
+      <div class="card c-flow"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">dostupné finance vs. minule</div></div>
       ${p.mzda ? `<div class="card c-flow"><div class="card-lbl">Čistá mzda / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
     </div>
     ${(() => {
