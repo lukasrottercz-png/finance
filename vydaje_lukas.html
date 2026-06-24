@@ -1095,9 +1095,11 @@ function renderJitka(){
     var unpaidItems=items.filter(function(e){return !e.jitkaSettled});
     var paidItems=items.filter(function(e){return e.jitkaSettled});
     var unpaidTotal=unpaidItems.reduce(function(s,e){return s+(e.amount||0)},0);
-    var claimM=jitkaClaims[m]||0;            // co po mně za tento měsíc chce Jitka
-    var netM=unpaidTotal/2 - claimM/2;       // + = Jitka platí mně, − = platím Jitce
     var isSettled=unpaidItems.length===0;
+    var claimM=jitkaClaims[m]||0;            // co po mně za tento měsíc chce Jitka
+    // otevřený měsíc počítá z toho, co zbývá; vyúčtovaný z celého měsíce
+    var baseHalf=(isSettled?monthTotal:unpaidTotal)/2;
+    var netM=baseHalf - claimM/2;            // + = Jitka platí mně, − = platím Jitce
     var sectionId='jm-'+m.replace('-','');
 
     // Hlavička měsíce
@@ -1108,9 +1110,7 @@ function renderJitka(){
       +(isSettled?'<span style="background:#34c759;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">VYÚČTOVÁNO</span>':'')
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
-      +(isSettled
-        ?'<span style="font-size:13px;color:#34c759;font-weight:600">'+fmt(monthTotal/2)+'</span>'
-        :'<span style="font-size:13px;color:'+(netM>=0?'#ff2d78':'#34c759')+';font-weight:600">'+fmt(Math.abs(netM))+'</span>')
+      +'<span style="font-size:13px;color:'+(isSettled?'#34c759':(netM>=0?'#ff2d78':'#1c1c1e'))+';font-weight:600">'+fmt(Math.abs(netM))+'</span>'
       +'<button onclick="printMonth(\''+m+'\')" title="Tisknout / PDF" style="background:none;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'
       +'<span onclick="toggleJitkaMonth(\''+sectionId+'\')" id="chev-'+sectionId+'" style="font-size:12px;color:#aeaeb2;transition:transform .2s;display:inline-block;cursor:pointer">'+(isSettled?'▶':'▼')+'</span>'
       +'</div>'
@@ -1140,29 +1140,34 @@ function renderJitka(){
           +'</div>';
       });
       h+='</div>';
+    }
 
-      // Pole: kolik po mně za tento měsíc chce Jitka + netto výpočet
-      h+='<div class="card" style="margin-bottom:8px;padding:12px 14px">'
-        +'<div style="font-size:14px;font-weight:500;color:#1c1c1e;margin-bottom:8px">👜 Co po mně chce Jitka (její nákupy)</div>'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
-        +'<input type="number" inputmode="decimal" value="'+(claimM||'')+'" placeholder="0" onchange="setJitkaClaim(\''+m+'\', this.value)" style="flex:1;min-width:0;padding:9px 12px;border:1px solid #e0e0e0;border-radius:10px;font-size:16px;font-family:inherit;-webkit-appearance:none;background:#fff">'
-        +'<span style="font-size:14px;color:#6c6c70;flex-shrink:0">Kč</span>'
-        +'</div>'
-        +'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>Jitka ti dluží (tvé sdílené ÷ 2)</span><span style="font-weight:500;color:#1c1c1e">'+fmt(unpaidTotal/2)+'</span></div>'
-        +(claimM>0?'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>Tvá spoluúčast (její nákup ÷ 2)</span><span style="font-weight:500;color:#1c1c1e">− '+fmt(claimM/2)+'</span></div>':'')
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;font-size:15px;font-weight:700">'
-        +(netM>=0
-           ?'<span style="color:#1c1c1e">Jitka ti dluží</span><span style="color:#ff2d78">'+fmt(netM)+'</span>'
-           :'<span style="color:#1c1c1e">Máš zaplatit Jitce</span><span style="color:#34c759">'+fmt(Math.abs(netM))+'</span>')
-        +'</div>'
-        +'</div>';
+    // Pole: kolik po mně za tento měsíc chce Jitka + netto výpočet (i u vyúčtovaného — kvůli opravě)
+    h+='<div class="card" style="margin-bottom:8px;padding:12px 14px">'
+      +'<div style="font-size:14px;font-weight:500;color:#1c1c1e;margin-bottom:8px">👜 Co po mně chce Jitka (její nákupy)</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+      +'<input type="number" inputmode="decimal" value="'+(claimM||'')+'" placeholder="0" onchange="setJitkaClaim(\''+m+'\', this.value)" style="flex:1;min-width:0;padding:9px 12px;border:1px solid #e0e0e0;border-radius:10px;font-size:16px;font-family:inherit;-webkit-appearance:none;background:#fff">'
+      +'<span style="font-size:14px;color:#6c6c70;flex-shrink:0">Kč</span>'
+      +'</div>'
+      +'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>'+(isSettled?'Jitka zaplatila':'Jitka ti dluží')+' (tvé sdílené ÷ 2)</span><span style="font-weight:500;color:#1c1c1e">'+fmt(baseHalf)+'</span></div>'
+      +(claimM>0?'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>Tvá spoluúčast (její nákup ÷ 2)</span><span style="font-weight:500;color:#1c1c1e">− '+fmt(claimM/2)+'</span></div>':'')
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;font-size:15px;font-weight:700">'
+      +(netM>=0
+         ?'<span style="color:#1c1c1e">'+(isSettled?'Vyrovnáno — Jitka zaplatila':'Jitka ti dluží')+'</span><span style="color:'+(isSettled?'#34c759':'#ff2d78')+'">'+fmt(netM)+'</span>'
+         :'<span style="color:#1c1c1e">'+(isSettled?'Vyrovnáno — zaplatil jsi Jitce':'Máš zaplatit Jitce')+'</span><span style="color:#34c759">'+fmt(Math.abs(netM))+'</span>')
+      +'</div>'
+      +'</div>';
 
+    if(!isSettled){
       // Tlačítko vyúčtovat měsíc
       h+='<button onclick="settleMonth(\''+m+'\')" style="width:100%;padding:13px;background:#ff2d78;color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:4px">'
         +(netM>=0
            ?'Vyúčtovat '+monthLbl+' — Jitka platí '+fmt(netM)
            :'Vyúčtovat '+monthLbl+' — zaplať Jitce '+fmt(Math.abs(netM)))
         +'</button>';
+    }else{
+      // Oprava: znovu otevřít celý měsíc
+      h+='<button onclick="unsettleMonth(\''+m+'\')" style="width:100%;padding:11px;background:#fff;color:#6c6c70;border:1px solid #e0e0e0;border-radius:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:4px">↩ Znovu otevřít '+monthLbl+' (opravit)</button>';
     }
 
     // Vyúčtované položky tohoto měsíce (šedě)
@@ -1231,11 +1236,20 @@ function printMonth(m){
     :'<span style="background:#ff2d78;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;margin-left:10px">K VYÚČTOVÁNÍ</span>';
 
   var claim=jitkaClaims[m]||0;
-  var net=totalUnpaid/2 - claim/2;
   var summaryLine;
   if(isSettled){
-    summaryLine='<p style="color:#34c759;font-size:15px;margin:0">✓ Vyúčtováno — Jitka zaplatila <strong>'+fmt(totalAll/2)+'</strong></p>';
+    var netS=totalAll/2 - claim/2;
+    summaryLine='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Jitka zaplatila (sdílené výdaje ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">'+fmt(totalAll/2)+'</span></div>';
+    if(claim>0){
+      summaryLine+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Tvá spoluúčast z nákupů Jitky ('+fmt(claim)+' ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">− '+fmt(claim/2)+'</span></div>';
+    }
+    summaryLine+='<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:6px;border-top:1px solid #e0e0e0;font-size:17px;font-weight:700;color:#1c8a3a">'
+      +(netS>=0
+         ?'<span>✓ Vyrovnáno — Jitka zaplatila</span><span>'+fmt(netS)+'</span>'
+         :'<span>✓ Vyrovnáno — zaplatil jsi Jitce</span><span>'+fmt(Math.abs(netS))+'</span>')
+      +'</div>';
   }else{
+    var net=totalUnpaid/2 - claim/2;
     summaryLine='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Jitka ti dluží (sdílené výdaje ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">'+fmt(totalUnpaid/2)+'</span></div>';
     if(claim>0){
       summaryLine+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Tvá spoluúčast z nákupů Jitky ('+fmt(claim)+' ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">− '+fmt(claim/2)+'</span></div>';
@@ -1320,6 +1334,16 @@ function settleMonth(m){
     return (e.shared&&!e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:true,settledDate:today()}):e;
   });
   ghSave();renderHome();showToast(lbl+' vyúčtováno ✓');
+}
+
+function unsettleMonth(m){
+  var dt=new Date(m+'-01T12:00:00');
+  var lbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  if(!confirm('Znovu otevřít '+lbl+'?\nVšechny položky se vrátí mezi nevyúčtované, abys mohl vyúčtování opravit.'))return;
+  exps=exps.map(function(e){
+    return (e.shared&&e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:false,settledDate:''}):e;
+  });
+  ghSave();renderHome();showToast(lbl+' znovu otevřeno');
 }
 
 function setJitkaClaim(m,val){
