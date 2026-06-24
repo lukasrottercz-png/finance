@@ -992,8 +992,9 @@ function renderKat(){
     if(!byCat[e.catKey])byCat[e.catKey]={total:0,subs:{}};
     byCat[e.catKey].total+=e.amount||0;
     var sub=e.subcat||'(bez podkategorie)';
-    if(!byCat[e.catKey].subs[sub])byCat[e.catKey].subs[sub]=0;
-    byCat[e.catKey].subs[sub]+=e.amount||0;
+    if(!byCat[e.catKey].subs[sub])byCat[e.catKey].subs[sub]={total:0,items:[]};
+    byCat[e.catKey].subs[sub].total+=e.amount||0;
+    byCat[e.catKey].subs[sub].items.push(e);
   });
   var total=Object.values(byCat).reduce(function(s,v){return s+v.total},0);
   var entries=Object.entries(byCat).sort(function(a,b){return b[1].total-a[1].total});
@@ -1013,7 +1014,7 @@ function renderKat(){
     var k=pair[0],v=pair[1];
     var cat=catByKey(k);
     var pct=total>0?Math.round(v.total/total*100):0;
-    var subEntries=Object.entries(v.subs).sort(function(a,b){return b[1]-a[1]});
+    var subEntries=Object.entries(v.subs).sort(function(a,b){return b[1].total-a[1].total});
     var catId='cat-sub-'+k;
     h+='<div class="card" style="margin-bottom:8px">'
       +'<div class="exp-row" onclick="toggleKatSubs(\''+catId+'\')" style="cursor:pointer">'
@@ -1030,7 +1031,7 @@ function renderKat(){
       // Podkategorie — defaultně skryté
       +'<div id="'+catId+'" style="display:none;border-top:0.5px solid #f0f0f0">';
     subEntries.forEach(function(sp){
-      var sk=sp[0],sv=sp[1];
+      var sk=sp[0],sd=sp[1],sv=sd.total;
       var spct=v.total>0?Math.round(sv/v.total*100):0;
       h+='<div class="exp-row" style="padding-left:48px;background:#f9f9f9">'
         +'<div class="exp-info"><div class="exp-cat" style="font-size:13px;color:#3c3c3c">'+sk+'</div></div>'
@@ -1039,6 +1040,15 @@ function renderKat(){
         +'<div style="font-size:11px;color:#8e8e93">'+spct+' %</div>'
         +'</div>'
         +'</div>';
+      // Výdaje s poznámkou v této podkategorii
+      [].concat(sd.items).filter(function(e){return e.note;}).sort(function(a,b){return b.date.localeCompare(a.date)}).forEach(function(e){
+        var dt2=new Date(e.date+'T12:00:00');
+        var dayLbl=dt2.toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+        h+='<div class="exp-row" style="padding-left:60px;background:#fcfcfc">'
+          +'<div class="exp-info"><div class="exp-sub" style="white-space:normal;color:#6c6c70">📝 '+e.note+' <span style="color:#aeaeb2">· '+dayLbl+'</span></div></div>'
+          +'<div style="font-size:12px;color:#8e8e93;flex-shrink:0">'+fmt(e.amount)+'</div>'
+          +'</div>';
+      });
     });
     h+='</div></div>';
   });
