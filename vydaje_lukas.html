@@ -831,6 +831,16 @@ function pickSub(s){
 
 var editExpId = null;
 
+function toggleRodinnyInline(id){
+  var nowOn=false;
+  exps=exps.map(function(e){
+    if(e.id===id){var v=!e.rodinny;nowOn=v;return Object.assign({},e,{rodinny:v});}
+    return e;
+  });
+  ghSave();renderHome();
+  showToast(nowOn?'Označeno jako rodinný 👪':'Rodinný zrušen');
+}
+
 function showExpMenu(id, btn) {
   document.getElementById('card-menu') && document.getElementById('card-menu').remove();
   var rect = btn.getBoundingClientRect();
@@ -987,10 +997,11 @@ function renderPrehled(){
       h+='<div class="exp-row">'
         +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
         +'<div class="exp-info">'
-        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka</span>':'')+(e.rodinny?'<span class="badge-rodinny">👪 Rodina</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
+        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
         +'<div class="exp-sub">'+(e.subcat||'')+(e.note?' · '+e.note:'')+'</div>'
         +'</div>'
         +'<div class="exp-amt">'+fmt(e.amount)+'</div>'
+        +'<button onclick="event.stopPropagation();toggleRodinnyInline(\''+e.id+'\')" title="Rodinný výdaj" style="background:'+(e.rodinny?'#ff9500':'#f2f2f7')+';border:1px solid '+(e.rodinny?'#ff9500':'#e0e0e0')+';border-radius:8px;cursor:pointer;font-size:14px;padding:4px 7px;flex-shrink:0;line-height:1;margin-left:2px;opacity:'+(e.rodinny?'1':'.4')+'">👪</button>'
         +'<button onclick="event.stopPropagation();showExpMenu(\''+e.id+'\',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
         +'</div>';
     });
