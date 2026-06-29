@@ -85,6 +85,16 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .mimoradny-hint{font-size:11px;font-weight:400;color:#8e8e93}
 .mimoradny-toggle .toggle-sw.on{background:#7c3aed}
 .badge-mimoradny{display:inline-flex;align-items:center;gap:3px;background:#7c3aed;color:#fff;border-radius:6px;font-size:10px;font-weight:600;padding:2px 6px;margin-left:6px;flex-shrink:0}
+.rodinny-toggle{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:13px;padding:14px 16px;margin-bottom:16px;border:1px solid #e0e0e0;cursor:pointer}
+.rodinny-toggle.on{border-color:#ff9500;background:#fff7ed}
+.rodinny-label{font-size:16px;font-weight:500;color:#1c1c1e;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rodinny-toggle.on .rodinny-label{color:#ff9500}
+.rodinny-hint{font-size:11px;font-weight:400;color:#8e8e93}
+.rodinny-toggle .toggle-sw.on{background:#ff9500}
+.badge-rodinny{display:inline-flex;align-items:center;gap:3px;background:#ff9500;color:#fff;border-radius:6px;font-size:10px;font-weight:600;padding:2px 6px;margin-left:6px;flex-shrink:0}
+.rod-bar{height:14px;border-radius:7px;overflow:hidden;display:flex;background:#f0f0f3}
+.rod-catbar{height:5px;background:#f0f0f3;border-radius:3px;margin-top:5px;overflow:hidden}
+.rod-catfill{height:100%;background:#ff9500;border-radius:3px}
 .budget-banner{background:#fff;border-radius:16px;padding:18px 16px;margin-bottom:14px;text-align:center;border:1px solid #e8e8ed}
 .bb-big{font-size:34px;font-weight:700;line-height:1}
 .bb-cap{font-size:13px;color:#6c6c70;margin-top:6px}
@@ -122,6 +132,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
     <button class="tbi" id="tab2" onclick="tab(2)"><span class="tbi-icon">📅</span><span class="tbi-label">Trvalé</span></button>
     <button class="tbi" id="tab3" onclick="tab(3)"><span class="tbi-icon">👫</span><span class="tbi-label">Jitka</span></button>
     <button class="tbi" id="tab4" onclick="tab(4)"><span class="tbi-icon">⬇️</span><span class="tbi-label">Export</span></button>
+    <button class="tbi" id="tab5" onclick="tab(5)"><span class="tbi-icon">👪</span><span class="tbi-label">Rodina</span></button>
   </div>
 </div>
 
@@ -174,6 +185,7 @@ var selCat='';
 var selSub='';
 var selShared=false;
 var selMimoradny=false;
+var selRodinny=false;
 
 function toggleShared(){
   selShared=!selShared;
@@ -189,6 +201,14 @@ function toggleMimoradny(){
   var sw=document.getElementById('mimoradny-sw');
   if(tog)tog.className='mimoradny-toggle'+(selMimoradny?' on':'');
   if(sw)sw.className='toggle-sw'+(selMimoradny?' on':'');
+}
+
+function toggleRodinny(){
+  selRodinny=!selRodinny;
+  var tog=document.getElementById('rodinny-toggle');
+  var sw=document.getElementById('rodinny-sw');
+  if(tog)tog.className='rodinny-toggle'+(selRodinny?' on':'');
+  if(sw)sw.className='toggle-sw'+(selRodinny?' on':'');
 }
 
 var trvale=[];
@@ -496,7 +516,7 @@ function showToast(m){
 
 function tab(i){
   curTab=i;
-  for(var j=0;j<5;j++){
+  for(var j=0;j<6;j++){
     var el=document.getElementById('tab'+j);
     if(el)el.className='tbi'+(i===j?' on':'');
   }
@@ -529,7 +549,7 @@ function renderTrvale(){
   aktivni.forEach(function(t){
     var idx=trvale.indexOf(t);
     h+='<div class="exp-row" onclick="openEditTrvala('+idx+')">'
-      +'<div class="exp-info"><div class="exp-cat">'+t.nazev+'</div>'
+      +'<div class="exp-info"><div class="exp-cat">'+t.nazev+(t.rodinne?' <span class="badge-rodinny">👪 Rodina</span>':'')+'</div>'
       +'<div class="exp-sub">'+t.kat+(t.od?' · od '+t.od:'')+(t.do?' · do '+t.do:' · neomezeně')+'</div></div>'
       +'<div class="exp-amt">'+fmt(t.castka)+'</div>'
       +'</div>';
@@ -564,6 +584,7 @@ function buildTrvalaForm(t){
   var kat=t?t.kat:'Bydlení';
   var od=t?(t.od||''):new Date().toISOString().slice(0,10);
   var doc=t?(t.do||''):'';
+  var rodinne=t?(t.rodinne||false):false;
   var cats=['Bydlení','Doprava','Rodina','Pojištění','Spoření','Předplatné','Ostatní'];
   var html='<div class="amount-box">'
     +'<input id="t_castka" class="amt-inp" type="number" inputmode="decimal" placeholder="0" value="'+(castka||'')+'">'
@@ -589,6 +610,10 @@ function buildTrvalaForm(t){
     +'<input id="t_do" type="date" value="'+doc+'" style="font-size:17px;border:none;outline:none;color:#1c1c1e;background:none;width:100%">'
     +'<div style="font-size:12px;color:#8e8e93;margin-top:4px">Prázdné = neomezeně</div>'
     +'</div>'
+    +'</div>'
+    +'<div class="rodinny-toggle'+(rodinne?' on':'')+'" id="t_rodinne" onclick="toggleTrvalaRodinne()">'
+    +'<span class="rodinny-label"><span>👪</span> Rodinná platba <span class="rodinny-hint">(zobrazí se ve vyúčtování s Jitkou)</span></span>'
+    +'<div class="toggle-sw'+(rodinne?' on':'')+'" id="t_rodinne_sw"><div class="toggle-knob"></div></div>'
     +'</div>';
   if(editTrvalaIdx>=0){
     html+='<button onclick="deleteTrvala('+editTrvalaIdx+')" style="width:100%;padding:14px;background:none;color:#ff3b30;border:1px solid #ff3b30;border-radius:13px;font-size:16px;cursor:pointer;font-family:inherit;margin-bottom:12px">Smazat platbu</button>';
@@ -601,15 +626,25 @@ function vymazatDo(){
   if(el)el.value='';
 }
 
+function toggleTrvalaRodinne(){
+  var tog=document.getElementById('t_rodinne');
+  var sw=document.getElementById('t_rodinne_sw');
+  var on=tog&&tog.classList.contains('on');
+  if(tog)tog.className='rodinny-toggle'+(on?'':' on');
+  if(sw)sw.className='toggle-sw'+(on?'':' on');
+}
+
 function saveTrvala(){
   var nazev=document.getElementById('t_nazev').value.trim();
   var castka=parseFloat(document.getElementById('t_castka').value)||0;
   var kat=document.getElementById('t_kat').value;
   var od=document.getElementById('t_od').value;
   var doc=document.getElementById('t_do').value;
+  var rodTog=document.getElementById('t_rodinne');
+  var rodinne=rodTog?rodTog.classList.contains('on'):false;
   if(!nazev){showToast('Zadej název');return;}
   if(castka<=0){showToast('Zadej částku');return;}
-  var entry={id:Date.now().toString(),nazev:nazev,castka:castka,kat:kat,od:od,do:doc};
+  var entry={id:Date.now().toString(),nazev:nazev,castka:castka,kat:kat,od:od,do:doc,rodinne:rodinne};
   if(editTrvalaIdx>=0){trvale[editTrvalaIdx]=entry;}
   else{trvale.push(entry);}
   ghSaveTrvale();
@@ -653,7 +688,7 @@ function goHome(){
 }
 
 function openAdd(){
-  selCat='';selSub='';selShared=false;selMimoradny=false;
+  selCat='';selSub='';selShared=false;selMimoradny=false;selRodinny=false;
   document.getElementById('home-page').style.display='none';
   document.getElementById('add-page').style.display='block';
   buildAddForm();
@@ -687,6 +722,10 @@ function buildAddForm(){
     +'<div class="mimoradny-toggle" id="mimoradny-toggle" onclick="toggleMimoradny()">'
     +'<span class="mimoradny-label"><span>⭐</span> Mimořádný výdaj <span class="mimoradny-hint">(nepočítá se do rozpočtu)</span></span>'
     +'<div class="toggle-sw" id="mimoradny-sw"><div class="toggle-knob"></div></div>'
+    +'</div>'
+    +'<div class="rodinny-toggle" id="rodinny-toggle" onclick="toggleRodinny()">'
+    +'<span class="rodinny-label"><span>👪</span> Rodinný výdaj <span class="rodinny-hint">(počítá se do rodinného přehledu)</span></span>'
+    +'<div class="toggle-sw" id="rodinny-sw"><div class="toggle-knob"></div></div>'
     +'</div>'
     +'<button class="save-btn" onclick="doSave()">Uložit výdaj</button>';
   document.getElementById('add-content').innerHTML=html;
@@ -820,6 +859,7 @@ function openEditExp(id) {
   selSub = e.subcat || '';
   selShared = e.shared || false;
   selMimoradny = e.mimoradny || false;
+  selRodinny = e.rodinny || false;
   document.getElementById('home-page').style.display='none';
   document.getElementById('add-page').style.display='block';
   buildAddForm();
@@ -844,6 +884,12 @@ function openEditExp(id) {
       if(mtog)mtog.className='mimoradny-toggle on';
       if(msw)msw.className='toggle-sw on';
     }
+    if(selRodinny){
+      var rtog=document.getElementById('rodinny-toggle');
+      var rsw=document.getElementById('rodinny-sw');
+      if(rtog)rtog.className='rodinny-toggle on';
+      if(rsw)rsw.className='toggle-sw on';
+    }
     // Zvýrazni kategorii
     pickCat(e.catKey);
     setTimeout(function(){ if(e.subcat) pickSub(e.subcat); }, 50);
@@ -864,7 +910,7 @@ function doSave(){
   if (editExpId) {
     // Editace existujícího záznamu
     exps = exps.map(function(e){
-      return e.id===editExpId ? {id:e.id,amount:amount,catKey:selCat,subcat:selSub,note:noteEl?noteEl.value:'',date:dtEl?dtEl.value:today(),shared:selShared,mimoradny:selMimoradny} : e;
+      return e.id===editExpId ? {id:e.id,amount:amount,catKey:selCat,subcat:selSub,note:noteEl?noteEl.value:'',date:dtEl?dtEl.value:today(),shared:selShared,mimoradny:selMimoradny,rodinny:selRodinny} : e;
     });
     editExpId = null;
   } else {
@@ -876,7 +922,8 @@ function doSave(){
       note:noteEl?noteEl.value:'',
       date:dtEl?dtEl.value:today(),
       shared:selShared,
-      mimoradny:selMimoradny
+      mimoradny:selMimoradny,
+      rodinny:selRodinny
     };
     exps.push(entry);
   }
@@ -899,7 +946,8 @@ function renderHome(){
   else if(curTab===1)el.innerHTML=renderKat();
   else if(curTab===2)el.innerHTML=renderTrvale();
   else if(curTab===3)el.innerHTML=renderJitka();
-  else el.innerHTML=renderExport();
+  else if(curTab===4)el.innerHTML=renderExport();
+  else el.innerHTML=renderRodina();
 }
 
 function renderPrehled(){
@@ -939,7 +987,7 @@ function renderPrehled(){
       h+='<div class="exp-row">'
         +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
         +'<div class="exp-info">'
-        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
+        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka</span>':'')+(e.rodinny?'<span class="badge-rodinny">👪 Rodina</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
         +'<div class="exp-sub">'+(e.subcat||'')+(e.note?' · '+e.note:'')+'</div>'
         +'</div>'
         +'<div class="exp-amt">'+fmt(e.amount)+'</div>'
@@ -1062,6 +1110,25 @@ function toggleKatSubs(id) {
   var open=el.style.display!=='none';
   el.style.display=open?'none':'block';
   if(chev)chev.style.transform=open?'':'rotate(180deg)';
+}
+
+function trvalaActiveInMonth(t,m){
+  // m = 'YYYY-MM'; aktivní v daném měsíci, pokud se s ním platnost od/do překrývá
+  var om=t.od?t.od.slice(0,7):null;
+  var dm=t.do?t.do.slice(0,7):null;
+  if(om&&om>m)return false;
+  if(dm&&dm<m)return false;
+  return true;
+}
+
+function famForMonth(m){
+  // Rodinné výdaje, které Lukáš nese SÁM (nevstupují do vyrovnání) = rodinny && !shared + aktivní rodinné trvalé platby
+  var items=exps.filter(function(e){return e.rodinny&&!e.shared&&e.date.slice(0,7)===m;});
+  items.sort(function(a,b){return b.date.localeCompare(a.date);});
+  var recurItems=trvale.filter(function(t){return t.rodinne&&trvalaActiveInMonth(t,m);});
+  var solo=items.reduce(function(s,e){return s+(e.amount||0);},0);
+  var recur=recurItems.reduce(function(s,t){return s+(t.castka||0);},0);
+  return {items:items,recurItems:recurItems,solo:solo,recur:recur,total:solo+recur};
 }
 
 function renderJitka(){
@@ -1205,8 +1272,130 @@ function renderJitka(){
       h+='</div></div></div>';
     }
 
+    var famM=famForMonth(m);
+    if(famM.total>0){
+      h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#fff7ed;border-color:#ffd8a8">'
+        +'<div style="font-size:14px;font-weight:600;color:#ff9500;margin-bottom:8px">👪 Rodinné výdaje, které neseš sám <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní)</span></div>';
+      famM.items.forEach(function(e){
+        var cat=catByKey(e.catKey);
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+      });
+      famM.recurItems.forEach(function(t){
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500">'+fmt(t.castka)+'</span></div>';
+      });
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #ffe4c4;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem mimo sdílené</span><span style="color:#ff9500">'+fmt(famM.total)+'</span></div>'
+        +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání — jen ukazuje, kolik do rodiny dáváš nad rámec sdílených výdajů.</div>'
+        +'</div>';
+    }
+
     h+='</div></div>'; // close sectionId + month wrapper
   });
+
+  return h;
+}
+
+function renderRodina(){
+  // Rodinný výdaj = označený přepínačem "Rodinný výdaj" NEBO sdílený s Jitkou (sdílené je z podstaty rodinné)
+  var fam=exps.filter(function(e){return e.rodinny||e.shared;});
+  // Měsíce, kterých se to týká — vč. měsíců, kde má nákupy jen Jitka
+  var monthSet={};
+  fam.forEach(function(e){monthSet[e.date.slice(0,7)]=true;});
+  Object.keys(jitkaClaims).forEach(function(m){if((jitkaClaims[m]||0)>0)monthSet[m]=true;});
+  var months=Object.keys(monthSet).sort(function(a,b){return b.localeCompare(a);});
+
+  if(!fam.length && !months.length){
+    return '<div class="empty"><div class="empty-icon">👪</div>'
+      +'<div class="empty-title">Žádné rodinné výdaje</div>'
+      +'<div class="empty-sub">Při zadávání výdaje zapni přepínač „Rodinný výdaj" (nebo „Sdíleno s Jitkou")</div>'
+      +'</div>';
+  }
+
+  // Souhrnné částky
+  var soloTotal=0, sharedTotal=0, claimTotal=0;
+  fam.forEach(function(e){
+    if(e.shared) sharedTotal+=(e.amount||0);
+    else soloTotal+=(e.amount||0);   // rodinny && !shared → platíš celé
+  });
+  months.forEach(function(m){claimTotal+=(jitkaClaims[m]||0);});
+
+  var gross=soloTotal+sharedTotal+claimTotal;                 // celkové rodinné výdaje
+  var lukasShare=soloTotal+sharedTotal/2+claimTotal/2;        // reálný podíl Lukáše po vyrovnání
+  var jitkaShare=sharedTotal/2+claimTotal/2;                  // reálný podíl Jitky po vyrovnání
+  var lukasPct=gross>0?Math.round(lukasShare/gross*100):0;
+  var jitkaPct=gross>0?100-lukasPct:0;
+
+  // Headline
+  var h='<div class="jitka-sum">'
+    +'<div class="jitka-amt" style="color:#ff9500">'+fmt(gross)+'</div>'
+    +'<div class="jitka-lbl">Rodinné výdaje celkem (za sledované období)</div>'
+    +'</div>';
+
+  // Kdo kolik reálně platí — pruh + procenta
+  h+='<div class="card" style="padding:16px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-bottom:10px">'
+    +'<span style="color:#ff9500">Ty: '+fmt(lukasShare)+' · '+lukasPct+'%</span>'
+    +'<span style="color:#ff2d78">Jitka: '+fmt(jitkaShare)+' · '+jitkaPct+'%</span>'
+    +'</div>'
+    +'<div class="rod-bar">'
+    +'<div style="width:'+lukasPct+'%;background:#ff9500"></div>'
+    +'<div style="width:'+jitkaPct+'%;background:#ff2d78"></div>'
+    +'</div>'
+    +'<div style="font-size:12px;color:#8e8e93;margin-top:8px">Reálný podíl po vyrovnání: co platíš celé sám + půlka sdílených + půlka nákupů Jitky.</div>'
+    +'</div>';
+
+  // Z čeho se to skládá
+  h+='<div class="sec-hdr">Z čeho se to skládá</div><div class="card">';
+  h+='<div class="exp-row"><div class="exp-ico">🏠</div>'
+    +'<div class="exp-info"><div class="exp-cat">Platíš celé sám</div><div class="exp-sub">100 % nese tvůj rozpočet</div></div>'
+    +'<div class="exp-amt" style="color:#ff9500">'+fmt(soloTotal)+'</div></div>';
+  h+='<div class="exp-row"><div class="exp-ico">👫</div>'
+    +'<div class="exp-info"><div class="exp-cat">Sdílené s Jitkou</div><div class="exp-sub">dělíte 50/50 · tvá půlka '+fmt(sharedTotal/2)+'</div></div>'
+    +'<div class="exp-amt" style="color:#1c1c1e">'+fmt(sharedTotal)+'</div></div>';
+  h+='<div class="exp-row"><div class="exp-ico">👜</div>'
+    +'<div class="exp-info"><div class="exp-cat">Nákupy Jitky</div><div class="exp-sub">dělíte 50/50 · tvá půlka '+fmt(claimTotal/2)+'</div></div>'
+    +'<div class="exp-amt" style="color:#1c1c1e">'+fmt(claimTotal)+'</div></div>';
+  h+='</div>';
+
+  // Podle kategorie — ukazuje, že to není jen jídlo (jen tvé výdaje, Jitčiny nákupy nejsou kategorizované)
+  var byCat={};
+  fam.forEach(function(e){byCat[e.catKey]=(byCat[e.catKey]||0)+(e.amount||0);});
+  var catKeys=Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a];});
+  if(catKeys.length){
+    var maxCat=byCat[catKeys[0]]||1;
+    h+='<div class="sec-hdr">Rodinné výdaje podle kategorie</div><div class="card">';
+    catKeys.forEach(function(k){
+      var cat=catByKey(k);
+      var v=byCat[k];
+      var pct=Math.round(v/maxCat*100);
+      h+='<div class="exp-row">'
+        +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
+        +'<div class="exp-info"><div class="exp-cat">'+(cat?cat.l:k)+'</div>'
+        +'<div class="rod-catbar"><div class="rod-catfill" style="width:'+pct+'%"></div></div></div>'
+        +'<div class="exp-amt" style="color:#1c1c1e">'+fmt(v)+'</div>'
+        +'</div>';
+    });
+    h+='</div>';
+  }
+
+  // Podle měsíců
+  h+='<div class="sec-hdr">Podle měsíců</div><div class="card">';
+  months.forEach(function(m){
+    var mFam=fam.filter(function(e){return e.date.slice(0,7)===m;});
+    var mSolo=0, mShared=0;
+    mFam.forEach(function(e){ if(e.shared) mShared+=(e.amount||0); else mSolo+=(e.amount||0); });
+    var mClaim=jitkaClaims[m]||0;
+    var mGross=mSolo+mShared+mClaim;
+    var mLukas=mSolo+mShared/2+mClaim/2;
+    var mPct=mGross>0?Math.round(mLukas/mGross*100):0;
+    var dt=new Date(m+'-01T12:00:00');
+    var lbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+    h+='<div class="exp-row">'
+      +'<div class="exp-info"><div class="exp-cat">'+lbl+'</div>'
+      +'<div class="exp-sub">tvůj podíl '+fmt(mLukas)+' · '+mPct+'%</div></div>'
+      +'<div class="exp-amt" style="color:#ff9500">'+fmt(mGross)+'</div>'
+      +'</div>';
+  });
+  h+='</div>';
 
   return h;
 }
@@ -1272,6 +1461,24 @@ function printMonth(m){
       +(paid.length?'<p style="margin:8px 0 0;font-size:12px;color:#999">Z dřívějška již zaplaceno '+fmt((totalAll-totalUnpaid)/2)+'</p>':'');
   }
 
+  var famM=famForMonth(m);
+  var famHtml='';
+  if(famM.total>0){
+    var fr='';
+    famM.items.forEach(function(e){
+      var cat=catByKey(e.catKey);
+      var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+      fr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td><td style="padding:8px 6px;font-size:14px;color:#222">'+(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#ff9500">'+fmt(e.amount)+'</td></tr>';
+    });
+    famM.recurItems.forEach(function(t){
+      fr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">🔁 trvalé</td><td style="padding:8px 6px;font-size:14px;color:#222">'+t.nazev+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#ff9500">'+fmt(t.castka)+'</td></tr>';
+    });
+    famHtml='<h2 style="font-size:16px;font-weight:700;margin-top:28px;color:#ff9500">Rodinné výdaje, které nesu sám <span style="font-weight:400;font-size:12px;color:#888">(informativní — nevstupuje do vyrovnání)</span></h2>'
+      +'<table style="width:100%;border-collapse:collapse;margin-top:10px"><tbody>'+fr
+      +'<tr><td colspan="2" style="padding:10px 6px;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px">Celkem mimo sdílené</td><td style="padding:10px 6px;text-align:right;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px;color:#ff9500">'+fmt(famM.total)+'</td></tr>'
+      +'</tbody></table>';
+  }
+
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>Vyúčtování s Jitkou — '+monthLbl+'</title>'
     +'<style>'
@@ -1305,6 +1512,7 @@ function printMonth(m){
     +'</tr>'
     +'</tbody></table>'
     +'<div class="summary">'+summaryLine+'</div>'
+    +famHtml
     +'<p style="margin-top:24px;font-size:11px;color:#bbb;text-align:center">Vygenerováno '+new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})+'</p>'
     +'</body></html>';
 
@@ -1438,6 +1646,7 @@ function handleImport(input){
         var note=cols[4]?cols[4].trim():'';
         var shared=cols[5]?cols[5].trim()==='ano':false;
         var jitkaSettled=cols[6]?cols[6].trim()==='ano':false;
+        var rodinny=cols[7]?cols[7].trim()==='ano':false;
         if(!date||amount<=0)continue;
         var catKey='ostatni';
         for(var j=0;j<CATS.length;j++){
@@ -1448,7 +1657,7 @@ function handleImport(input){
           if(exps[k].date===date&&exps[k].amount===amount&&exps[k].catKey===catKey){dup=true;break}
         }
         if(!dup){
-          exps.push({id:Date.now().toString()+i,amount:amount,catKey:catKey,subcat:subcat,note:note,date:date,shared:shared,jitkaSettled:jitkaSettled});
+          exps.push({id:Date.now().toString()+i,amount:amount,catKey:catKey,subcat:subcat,note:note,date:date,shared:shared,jitkaSettled:jitkaSettled,rodinny:rodinny});
           imported++;
         }
       }
@@ -1466,11 +1675,11 @@ function handleImport(input){
 
 function exportCSV(){
   if(!exps.length){showToast('Žádná data');return}
-  var hdr=['datum','kategorie','podkategorie','castka','poznamka','sdileno_jitka','vyuctovano'];
+  var hdr=['datum','kategorie','podkategorie','castka','poznamka','sdileno_jitka','vyuctovano','rodinny'];
   var rows=[hdr.join(';')];
   [].concat(exps).sort(function(a,b){return a.date.localeCompare(b.date)}).forEach(function(e){
     var cat=catByKey(e.catKey);
-    rows.push([e.date,cat?cat.l:e.catKey,e.subcat||'',e.amount,e.note||'',e.shared?'ano':'ne',e.jitkaSettled?'ano':'ne'].join(';'));
+    rows.push([e.date,cat?cat.l:e.catKey,e.subcat||'',e.amount,e.note||'',e.shared?'ano':'ne',e.jitkaSettled?'ano':'ne',e.rodinny?'ano':'ne'].join(';'));
   });
   var blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
