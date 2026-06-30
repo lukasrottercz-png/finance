@@ -1318,9 +1318,9 @@ function printMonth(m){
     var cat=catByKey(e.catKey);
     var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
     var desc=(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.note?' — '+e.note:'');
-    var color=settled?'#aaa':'#222';
-    var halfColor=settled?'#34c759':'#e8003d';
-    var strike=settled?'text-decoration:line-through;':'';
+    var color='#222';
+    var halfColor='#222';
+    var strike='';
     return '<tr style="border-bottom:1px solid #f0f0f0">'
       +'<td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td>'
       +'<td style="padding:8px 6px;font-size:14px;color:'+color+';'+strike+'">'+desc+'</td>'
