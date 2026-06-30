@@ -130,9 +130,8 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
     <button class="tbi on" id="tab0" onclick="tab(0)"><span class="tbi-icon">🏠</span><span class="tbi-label">Přehled</span></button>
     <button class="tbi" id="tab1" onclick="tab(1)"><span class="tbi-icon">📊</span><span class="tbi-label">Kategorie</span></button>
     <button class="tbi" id="tab2" onclick="tab(2)"><span class="tbi-icon">📅</span><span class="tbi-label">Trvalé</span></button>
-    <button class="tbi" id="tab3" onclick="tab(3)"><span class="tbi-icon">👫</span><span class="tbi-label">Jitka</span></button>
+    <button class="tbi" id="tab3" onclick="tab(3)"><span class="tbi-icon">👫</span><span class="tbi-label">Jitka &amp; Lukáš</span></button>
     <button class="tbi" id="tab4" onclick="tab(4)"><span class="tbi-icon">⬇️</span><span class="tbi-label">Export</span></button>
-    <button class="tbi" id="tab5" onclick="tab(5)"><span class="tbi-icon">👪</span><span class="tbi-label">Rodina</span></button>
   </div>
 </div>
 
@@ -516,7 +515,7 @@ function showToast(m){
 
 function tab(i){
   curTab=i;
-  for(var j=0;j<6;j++){
+  for(var j=0;j<5;j++){
     var el=document.getElementById('tab'+j);
     if(el)el.className='tbi'+(i===j?' on':'');
   }
@@ -956,8 +955,7 @@ function renderHome(){
   else if(curTab===1)el.innerHTML=renderKat();
   else if(curTab===2)el.innerHTML=renderTrvale();
   else if(curTab===3)el.innerHTML=renderJitka();
-  else if(curTab===4)el.innerHTML=renderExport();
-  else el.innerHTML=renderRodina();
+  else el.innerHTML=renderExport();
 }
 
 function renderPrehled(){
@@ -997,7 +995,7 @@ function renderPrehled(){
       h+='<div class="exp-row">'
         +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
         +'<div class="exp-info">'
-        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
+        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka &amp; Lukáš</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
         +'<div class="exp-sub">'+(e.subcat||'')+(e.note?' · '+e.note:'')+'</div>'
         +'</div>'
         +'<div class="exp-amt">'+fmt(e.amount)+'</div>'
@@ -1305,112 +1303,6 @@ function renderJitka(){
   return h;
 }
 
-function renderRodina(){
-  // Rodinný výdaj = označený přepínačem "Rodinný výdaj" NEBO sdílený s Jitkou (sdílené je z podstaty rodinné)
-  var fam=exps.filter(function(e){return e.rodinny||e.shared;});
-  // Měsíce, kterých se to týká — vč. měsíců, kde má nákupy jen Jitka
-  var monthSet={};
-  fam.forEach(function(e){monthSet[e.date.slice(0,7)]=true;});
-  Object.keys(jitkaClaims).forEach(function(m){if((jitkaClaims[m]||0)>0)monthSet[m]=true;});
-  var months=Object.keys(monthSet).sort(function(a,b){return b.localeCompare(a);});
-
-  if(!fam.length && !months.length){
-    return '<div class="empty"><div class="empty-icon">👪</div>'
-      +'<div class="empty-title">Žádné rodinné výdaje</div>'
-      +'<div class="empty-sub">Při zadávání výdaje zapni přepínač „Rodinný výdaj" (nebo „Sdíleno s Jitkou")</div>'
-      +'</div>';
-  }
-
-  // Souhrnné částky
-  var soloTotal=0, sharedTotal=0, claimTotal=0;
-  fam.forEach(function(e){
-    if(e.shared) sharedTotal+=(e.amount||0);
-    else soloTotal+=(e.amount||0);   // rodinny && !shared → platíš celé
-  });
-  months.forEach(function(m){claimTotal+=(jitkaClaims[m]||0);});
-
-  var gross=soloTotal+sharedTotal+claimTotal;                 // celkové rodinné výdaje
-  var lukasShare=soloTotal+sharedTotal/2+claimTotal/2;        // reálný podíl Lukáše po vyrovnání
-  var jitkaShare=sharedTotal/2+claimTotal/2;                  // reálný podíl Jitky po vyrovnání
-  var lukasPct=gross>0?Math.round(lukasShare/gross*100):0;
-  var jitkaPct=gross>0?100-lukasPct:0;
-
-  // Headline
-  var h='<div class="jitka-sum">'
-    +'<div class="jitka-amt" style="color:#ff9500">'+fmt(gross)+'</div>'
-    +'<div class="jitka-lbl">Rodinné výdaje celkem (za sledované období)</div>'
-    +'</div>';
-
-  // Kdo kolik reálně platí — pruh + procenta
-  h+='<div class="card" style="padding:16px">'
-    +'<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-bottom:10px">'
-    +'<span style="color:#ff9500">Ty: '+fmt(lukasShare)+' · '+lukasPct+'%</span>'
-    +'<span style="color:#ff2d78">Jitka: '+fmt(jitkaShare)+' · '+jitkaPct+'%</span>'
-    +'</div>'
-    +'<div class="rod-bar">'
-    +'<div style="width:'+lukasPct+'%;background:#ff9500"></div>'
-    +'<div style="width:'+jitkaPct+'%;background:#ff2d78"></div>'
-    +'</div>'
-    +'<div style="font-size:12px;color:#8e8e93;margin-top:8px">Reálný podíl po vyrovnání: co platíš celé sám + půlka sdílených + půlka nákupů Jitky.</div>'
-    +'</div>';
-
-  // Z čeho se to skládá
-  h+='<div class="sec-hdr">Z čeho se to skládá</div><div class="card">';
-  h+='<div class="exp-row"><div class="exp-ico">🏠</div>'
-    +'<div class="exp-info"><div class="exp-cat">Platíš celé sám</div><div class="exp-sub">100 % nese tvůj rozpočet</div></div>'
-    +'<div class="exp-amt" style="color:#ff9500">'+fmt(soloTotal)+'</div></div>';
-  h+='<div class="exp-row"><div class="exp-ico">👫</div>'
-    +'<div class="exp-info"><div class="exp-cat">Sdílené s Jitkou</div><div class="exp-sub">dělíte 50/50 · tvá půlka '+fmt(sharedTotal/2)+'</div></div>'
-    +'<div class="exp-amt" style="color:#1c1c1e">'+fmt(sharedTotal)+'</div></div>';
-  h+='<div class="exp-row"><div class="exp-ico">👜</div>'
-    +'<div class="exp-info"><div class="exp-cat">Nákupy Jitky</div><div class="exp-sub">dělíte 50/50 · tvá půlka '+fmt(claimTotal/2)+'</div></div>'
-    +'<div class="exp-amt" style="color:#1c1c1e">'+fmt(claimTotal)+'</div></div>';
-  h+='</div>';
-
-  // Podle kategorie — ukazuje, že to není jen jídlo (jen tvé výdaje, Jitčiny nákupy nejsou kategorizované)
-  var byCat={};
-  fam.forEach(function(e){byCat[e.catKey]=(byCat[e.catKey]||0)+(e.amount||0);});
-  var catKeys=Object.keys(byCat).sort(function(a,b){return byCat[b]-byCat[a];});
-  if(catKeys.length){
-    var maxCat=byCat[catKeys[0]]||1;
-    h+='<div class="sec-hdr">Rodinné výdaje podle kategorie</div><div class="card">';
-    catKeys.forEach(function(k){
-      var cat=catByKey(k);
-      var v=byCat[k];
-      var pct=Math.round(v/maxCat*100);
-      h+='<div class="exp-row">'
-        +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
-        +'<div class="exp-info"><div class="exp-cat">'+(cat?cat.l:k)+'</div>'
-        +'<div class="rod-catbar"><div class="rod-catfill" style="width:'+pct+'%"></div></div></div>'
-        +'<div class="exp-amt" style="color:#1c1c1e">'+fmt(v)+'</div>'
-        +'</div>';
-    });
-    h+='</div>';
-  }
-
-  // Podle měsíců
-  h+='<div class="sec-hdr">Podle měsíců</div><div class="card">';
-  months.forEach(function(m){
-    var mFam=fam.filter(function(e){return e.date.slice(0,7)===m;});
-    var mSolo=0, mShared=0;
-    mFam.forEach(function(e){ if(e.shared) mShared+=(e.amount||0); else mSolo+=(e.amount||0); });
-    var mClaim=jitkaClaims[m]||0;
-    var mGross=mSolo+mShared+mClaim;
-    var mLukas=mSolo+mShared/2+mClaim/2;
-    var mPct=mGross>0?Math.round(mLukas/mGross*100):0;
-    var dt=new Date(m+'-01T12:00:00');
-    var lbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-    h+='<div class="exp-row">'
-      +'<div class="exp-info"><div class="exp-cat">'+lbl+'</div>'
-      +'<div class="exp-sub">tvůj podíl '+fmt(mLukas)+' · '+mPct+'%</div></div>'
-      +'<div class="exp-amt" style="color:#ff9500">'+fmt(mGross)+'</div>'
-      +'</div>';
-  });
-  h+='</div>';
-
-  return h;
-}
-
 function printMonth(m){
   var items=exps.filter(function(e){return e.shared&&e.date.slice(0,7)===m});
   if(!items.length)return;
@@ -1557,7 +1449,7 @@ function printMonth(m){
     +'</tr>'
     +'</tbody></table>'
     +'<div class="summary">'+summaryLine+'</div>'
-    +famHtml
+    +'<div class="keep-together">'+famHtml+'</div>'
     +'<div class="keep-together">'+shareHtml+'</div>'
     +'<p style="margin-top:24px;font-size:11px;color:#bbb;text-align:center">Vygenerováno '+new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})+'</p>'
     +'</body></html>';
