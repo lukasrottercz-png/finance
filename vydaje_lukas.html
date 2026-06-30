@@ -1287,7 +1287,7 @@ function renderJitka(){
         +'<div style="font-size:14px;font-weight:600;color:#ff9500;margin-bottom:8px">👪 Rodinné výdaje, které neseš sám <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní)</span></div>';
       famM.items.forEach(function(e){
         var cat=catByKey(e.catKey);
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
       });
       famM.recurItems.forEach(function(t){
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500">'+fmt(t.castka)+'</span></div>';
@@ -1371,7 +1371,7 @@ function printMonth(m){
     famM.items.forEach(function(e){
       var cat=catByKey(e.catKey);
       var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
-      fr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td><td style="padding:8px 6px;font-size:14px;color:#222">'+(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#ff9500">'+fmt(e.amount)+'</td></tr>';
+      fr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td><td style="padding:8px 6px;font-size:14px;color:#222">'+(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.note?' — '+e.note:'')+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#ff9500">'+fmt(e.amount)+'</td></tr>';
     });
     famM.recurItems.forEach(function(t){
       fr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">🔁 trvalé</td><td style="padding:8px 6px;font-size:14px;color:#222">'+t.nazev+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#ff9500">'+fmt(t.castka)+'</td></tr>';
