@@ -547,10 +547,11 @@ function renderTrvale(){
   if(!aktivni.length)h+='<div style="padding:14px 16px;font-size:14px;color:#8e8e93">Žádné aktivní platby</div>';
   aktivni.forEach(function(t){
     var idx=trvale.indexOf(t);
-    h+='<div class="exp-row" onclick="openEditTrvala('+idx+')">'
+    h+='<div class="exp-row">'
       +'<div class="exp-info"><div class="exp-cat">'+t.nazev+(t.rodinne?' <span class="badge-rodinny">👪 Rodina</span>':'')+'</div>'
       +'<div class="exp-sub">'+t.kat+(t.od?' · od '+t.od:'')+(t.do?' · do '+t.do:' · neomezeně')+'</div></div>'
       +'<div class="exp-amt">'+fmt(t.castka)+'</div>'
+      +'<button onclick="event.stopPropagation();showTrvalaMenu('+idx+',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
       +'</div>';
   });
   h+='</div>';
@@ -558,10 +559,11 @@ function renderTrvale(){
     h+='<div class="sec-hdr">Neaktivní / skončené</div><div class="card">';
     neaktivni.forEach(function(t){
       var idx=trvale.indexOf(t);
-      h+='<div class="exp-row" onclick="openEditTrvala('+idx+')" style="opacity:.5">'
+      h+='<div class="exp-row" style="opacity:.5">'
         +'<div class="exp-info"><div class="exp-cat">'+t.nazev+'</div>'
         +'<div class="exp-sub">'+t.kat+(t.do?' · do '+t.do:'')+'</div></div>'
         +'<div class="exp-amt">'+fmt(t.castka)+'</div>'
+        +'<button onclick="event.stopPropagation();showTrvalaMenu('+idx+',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
         +'</div>';
     });
     h+='</div>';
@@ -854,6 +856,26 @@ function showExpMenu(id, btn) {
   delBtn.textContent = '🗑 Smazat';
   delBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:#ff3b30;cursor:pointer';
   delBtn.onclick = function(){ menu.remove(); delExp(id); };
+  menu.appendChild(editBtn);
+  menu.appendChild(delBtn);
+  document.body.appendChild(menu);
+  setTimeout(function(){ document.addEventListener('click', function h(){ menu.remove(); document.removeEventListener('click',h); }); }, 10);
+}
+
+function showTrvalaMenu(idx, btn) {
+  document.getElementById('card-menu') && document.getElementById('card-menu').remove();
+  var rect = btn.getBoundingClientRect();
+  var menu = document.createElement('div');
+  menu.id = 'card-menu';
+  menu.style.cssText = 'position:fixed;top:'+(rect.bottom+4)+'px;right:'+(window.innerWidth-rect.right)+'px;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:13px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:140px;overflow:hidden';
+  var editBtn = document.createElement('button');
+  editBtn.textContent = '✏️ Upravit';
+  editBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;border-bottom:0.5px solid #f0f0f0;text-align:left;font-size:15px;font-family:inherit;color:#1c1c1e;cursor:pointer';
+  editBtn.onclick = function(){ menu.remove(); openEditTrvala(idx); };
+  var delBtn = document.createElement('button');
+  delBtn.textContent = '🗑 Smazat';
+  delBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:#ff3b30;cursor:pointer';
+  delBtn.onclick = function(){ menu.remove(); deleteTrvala(idx); };
   menu.appendChild(editBtn);
   menu.appendChild(delBtn);
   document.body.appendChild(menu);
