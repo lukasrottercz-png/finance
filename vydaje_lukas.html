@@ -974,7 +974,10 @@ function renderPrehled(){
   });
   var total=thisM.reduce(function(s,e){return s+(e.amount||0)},0);
   var byDay={};
-  var sorted=[].concat(exps).sort(function(a,b){return b.date.localeCompare(a.date)});
+  var sorted=[].concat(exps).sort(function(a,b){
+    var d=b.date.localeCompare(a.date);
+    return d!==0 ? d : (Number(b.id)||0)-(Number(a.id)||0);
+  });
   sorted.forEach(function(e){
     if(!byDay[e.date])byDay[e.date]=[];
     byDay[e.date].push(e);
