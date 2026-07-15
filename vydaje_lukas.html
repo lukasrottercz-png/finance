@@ -102,6 +102,11 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .bb-bar{height:8px;background:#f0f0f3;border-radius:4px;overflow:hidden;margin:12px 0 8px}
 .bb-bar-fill{height:100%;border-radius:4px;transition:width .3s}
 .bb-sub{font-size:12px;color:#8e8e93}
+.bb-pace{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f3}
+.bb-pace-bar{position:relative;height:8px;background:#f0f0f3;border-radius:4px;overflow:visible;margin:7px 0}
+.bb-pace-fill{height:100%;border-radius:4px;transition:width .3s}
+.bb-pace-mark{position:absolute;top:-3px;width:2px;height:14px;background:#1c1c1e;border-radius:1px}
+.bb-pace-txt{font-size:13px;font-weight:600}
 .bb-note{font-size:13px;color:#8e8e93;padding:4px 0}
 .jitka-sum{text-align:center;padding:20px 16px 4px}
 .jitka-amt{font-size:40px;font-weight:200;letter-spacing:-1px;color:#ff2d78}
@@ -447,7 +452,15 @@ function budgetInfo(){
   var zbyvaMesic=limit-bezne;
   var denni=zbyvaMesic/dny;
   var dnesZbyva=denni-todayTotal;
-  return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva};
+  // Tempo: kde bys měl být dnes (rovnoměrné utrácení přes měsíc)
+  var dnuVMesici=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  var denVMesici=now.getDate();
+  var pacePct=Math.round(denVMesici/dnuVMesici*100);          // kde má být ryska
+  var ocekavano=limit*denVMesici/dnuVMesici;
+  var paceDiff=ocekavano-bezne;                               // + = napřed, − = pozadu
+  var spentPct=limit>0?Math.round(bezne/limit*100):0;         // kolik z limitu projeto
+  return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
+          dnuVMesici:dnuVMesici,denVMesici:denVMesici,pacePct:pacePct,ocekavano:ocekavano,paceDiff:paceDiff,mesicSpentPct:spentPct};
 }
 function setSavingsRate(){
   var val=prompt('Kolik % čisté mzdy chceš měsíčně ušetřit?\n(z toho se počítá denní rozpočet)', savingsRate);
@@ -486,6 +499,23 @@ function budgetBannerHtml(){
       +' · <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div>'
     +'<div class="bb-bar"><div class="bb-bar-fill" style="width:'+spentPct+'%;background:'+barColor+'"></div></div>'
     +'<div class="bb-sub">Dnes '+fmt(b.todayTotal)+' z denního rozpočtu '+fmt(b.denni)+' · do konce měsíce zbývá '+fmt(b.zbyvaMesic)+'</div>'
+    +paceHtml(b)
+    +'</div>';
+}
+function paceHtml(b){
+  if(!(b.limit>0))return ''; // pojistka: bez kladného limitu tempo nedává smysl
+  var ahead=b.paceDiff>=0;
+  var pColor=ahead?'#34c759':'#ff3b30';
+  var fillPct=Math.min(100,Math.max(0,b.mesicSpentPct));
+  var markPct=Math.min(100,Math.max(0,b.pacePct));
+  var fillColor=b.mesicSpentPct>100?'#ff3b30':(ahead?'#34c759':'#ff9500');
+  return '<div class="bb-pace">'
+    +'<div class="bb-pace-txt" style="color:'+pColor+'">'+(ahead?'✓ ':'⚠ ')+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</div>'
+    +'<div class="bb-pace-bar">'
+      +'<div class="bb-pace-fill" style="width:'+fillPct+'%;background:'+fillColor+'"></div>'
+      +'<div class="bb-pace-mark" style="left:calc('+markPct+'% - 1px)"></div>'
+    +'</div>'
+    +'<div class="bb-sub">Utraceno '+fmt(b.bezne)+' z '+fmt(b.limit)+' · '+b.denVMesici+'. den z '+b.dnuVMesici+' (ryska = kde bys měl dnes být)</div>'
     +'</div>';
 }
 function fmt(n){return Math.round(n).toLocaleString('cs-CZ')+' Kč'}
