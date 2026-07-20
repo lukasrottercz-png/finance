@@ -755,6 +755,13 @@ let selUkolAgenda = 'osobni';
 let ukolProjekt = false;
 
 let activeTagFilter = '';
+let collapsedProjects = new Set(load('tw_collapsed_projects', []));
+
+function toggleProjectCollapse(id) {
+  if (collapsedProjects.has(id)) collapsedProjects.delete(id); else collapsedProjects.add(id);
+  save('tw_collapsed_projects', [...collapsedProjects]);
+  renderUkoly();
+}
 
 function renderUkoly() {
   const agendaUkoly = ukoly.filter(u => (u.agenda||'osobni') === activeAgenda);
@@ -798,7 +805,7 @@ function renderUkoly() {
   list.forEach(u => {
     if (u.projektId && parentIds.has(u.projektId)) return; // vykreslí se pod svým projektem
     grouped.push(u);
-    if (u.projekt) grouped.push(...(childrenMap[u.id] || []));
+    if (u.projekt && !collapsedProjects.has(u.id)) grouped.push(...(childrenMap[u.id] || []));
   });
   list = grouped;
 
@@ -835,12 +842,15 @@ function renderUkoly() {
       return `<span class="tag-pill" style="background:${bg};color:${color}">${t}</span>`;
     }).join('')}</div>` : '';
     const projParent = u.projektId ? ukoly.find(p => p.id === u.projektId) : null;
+    const hasKids = u.projekt && (childrenMap[u.id] || []).length > 0;
+    const isCollapsed = collapsedProjects.has(u.id);
+    const collapseBtn = hasKids ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-block;width:14px;color:var(--muted);font-size:11px">${isCollapsed?'▸':'▾'}</span>` : '';
     const waitSep = (isWaiting && !waitHeaderShown) ? (waitHeaderShown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
     return waitSep + `
     <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}" style="${u.projektId?'margin-left:18px;border-left-width:2px':''}">
       <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
       <div class="task-body">
-        <div class="task-name">${u.projekt ? '<span class="proj-badge">📊 projekt</span>' : ''}${esc(u.name)}</div>
+        <div class="task-name">${collapseBtn}${u.projekt ? '<span class="proj-badge">📊 projekt</span>' : ''}${esc(u.name)}${isCollapsed ? ` <span style="font-size:11px;color:var(--muted);font-weight:400">(${(childrenMap[u.id]||[]).length} sbaleno)</span>` : ''}</div>
         <div class="task-date">${u.projekt && u.start ? fmtDate(u.start)+' – ' : ''}${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}${u.zodpovida ? ' · <span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>' : ''}${projParent ? ' · <span class="resp-badge">📊 '+esc(projParent.name)+'</span>' : ''}</div>
         ${tagsHtml}
       </div>
