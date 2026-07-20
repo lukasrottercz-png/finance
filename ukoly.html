@@ -291,16 +291,32 @@
 .resp-badge { font-size: 11px; color: var(--muted); }
 
 /* GANTT */
-.gantt-wrap { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--r); padding: 16px 14px; overflow-x: auto; }
-.gantt-scale { position: relative; height: 18px; margin-bottom: 8px; font-size: 10px; color: var(--muted); border-bottom: 0.5px solid var(--border); min-width: 480px; }
-.gantt-scale span { position: absolute; transform: translateX(-50%); }
-.gantt-row { position: relative; height: 42px; min-width: 480px; }
-.gantt-label { font-size: 12px; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gantt-track { position: relative; height: 18px; background: var(--surface2); border-radius: 6px; }
-.gantt-bar { position: absolute; top: 0; height: 18px; border-radius: 6px; background: var(--accent); opacity: 0.85; }
+.gantt-wrap {
+  position: relative; left: 50%; right: 50%;
+  margin-left: -50vw; margin-right: -50vw;
+  width: 100vw; box-sizing: border-box;
+  padding: 14px 16px 18px;
+  background: var(--surface);
+  border-top: 0.5px solid var(--border);
+  border-bottom: 0.5px solid var(--border);
+}
+.gantt-body { display: flex; }
+.gantt-labels { flex-shrink: 0; width: 170px; padding-right: 10px; }
+.gantt-label-spacer { height: 28px; }
+.gantt-row-label { height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 1px; font-size: 12px; font-weight: 500; border-bottom: 0.5px solid var(--border); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.gantt-row-label .resp-badge { font-size: 10px; display: block; }
+.gantt-timeline { flex: 1; overflow-x: auto; min-width: 0; }
+.gantt-month-header { position: relative; height: 28px; border-bottom: 1px solid var(--border); }
+.gantt-month-header .gm { position: absolute; top: 0; height: 100%; box-sizing: border-box; border-left: 0.5px solid var(--border); font-size: 11px; color: var(--muted); padding: 4px 0 0 5px; white-space: nowrap; }
+.gantt-month-header .gm.year-start { border-left: 1.5px solid var(--text); font-weight: 700; color: var(--text); }
+.gantt-timeline-rows { position: relative; }
+.gantt-grid-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 0.5px solid var(--border); z-index: 0; }
+.gantt-grid-line.year-start { border-left: 1.5px solid var(--border); opacity: 0.6; }
+.gantt-today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--red); z-index: 5; }
+.gantt-track-row { position: relative; height: 44px; border-bottom: 0.5px solid var(--border); }
+.gantt-bar { position: absolute; top: 12px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--accent); opacity: 0.88; z-index: 2; }
 .gantt-bar.gantt-done { background: var(--green); }
 .gantt-bar.gantt-late { background: var(--red); }
-.gantt-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -821,40 +837,73 @@ function renderGantt() {
     return;
   }
 
-  const starts = items.map(i => +new Date(i.start));
-  const ends = items.map(i => +new Date(i.date));
-  const min = Math.min(...starts);
-  const max = Math.max(...ends);
-  const span = Math.max(max - min, 86400000);
+  const DAY = 86400000;
+  const PX_PER_DAY = 6;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todayD = new Date(); todayD.setHours(0,0,0,0);
 
-  const pct = (t) => ((t - min) / span) * 100;
+  const dates = items.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00')]);
+  dates.push(todayD);
+  const minD = new Date(Math.min(...dates));
+  const maxD = new Date(Math.max(...dates));
+  const rangeStart = new Date(minD.getFullYear(), minD.getMonth(), 1);
+  const rangeEnd = new Date(maxD.getFullYear(), maxD.getMonth()+1, 0);
+  const dayOffset = (d) => Math.round((d - rangeStart) / DAY);
+  const totalDays = dayOffset(rangeEnd) + 1;
+  const totalPx = totalDays * PX_PER_DAY;
 
-  // scale ticks (5 rovnoměrných bodů)
-  let ticks = '';
-  for (let i = 0; i <= 4; i++) {
-    const t = min + (span * i / 4);
-    const d = new Date(t);
-    ticks += `<span style="left:${i/4*100}%">${d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})}</span>`;
+  // měsíční sloupce
+  let months = [];
+  let cur = new Date(rangeStart);
+  while (cur <= rangeEnd) {
+    const monthStart = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    const monthDays = new Date(cur.getFullYear(), cur.getMonth()+1, 0).getDate();
+    months.push({ start: monthStart, days: monthDays, isYearStart: monthStart.getMonth()===0 });
+    cur.setMonth(cur.getMonth()+1);
   }
+  let monthHtml = '', gridHtml = '';
+  months.forEach(m => {
+    const left = dayOffset(m.start) * PX_PER_DAY;
+    const width = m.days * PX_PER_DAY;
+    const label = m.start.toLocaleDateString('cs-CZ', m.isYearStart ? {month:'short', year:'numeric'} : {month:'short'});
+    monthHtml += `<div class="gm${m.isYearStart?' year-start':''}" style="left:${left}px;width:${width}px">${esc(label)}</div>`;
+    gridHtml += `<div class="gantt-grid-line${m.isYearStart?' year-start':''}" style="left:${left}px"></div>`;
+  });
+  const todayLeft = dayOffset(todayD) * PX_PER_DAY;
 
-  let rows = '';
+  let labelsHtml = '', rowsHtml = '';
   items.forEach(u => {
-    const left = pct(+new Date(u.start));
-    const width = Math.max(pct(+new Date(u.date)) - left, 1.5);
-    const today = new Date().toISOString().slice(0,10);
-    const cls = u.done ? (u.completedAt && u.completedAt > u.date ? 'gantt-late' : 'gantt-done') : (u.date < today ? 'gantt-late' : '');
+    const left = dayOffset(new Date(u.start+'T00:00:00')) * PX_PER_DAY;
+    const width = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
+    const cls = u.done ? (u.completedAt && u.completedAt > u.date ? 'gantt-late' : 'gantt-done') : (u.date < todayStr ? 'gantt-late' : '');
     const subCount = ukoly.filter(x => x.projektId === u.id).length;
-    rows += `
-      <div class="gantt-row">
-        <div class="gantt-label">${esc(u.name)}${u.zodpovida ? ' · <span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>' : ''}</div>
-        <div class="gantt-track">
-          <div class="gantt-bar ${cls}" style="left:${left}%;width:${width}%" title="${fmtDate(u.start)} – ${fmtDate(u.date)}"></div>
-        </div>
-        <div class="gantt-meta">${fmtDate(u.start)} – ${fmtDate(u.date)}${u.done ? ' · ✅ splněno' : ''}${subCount ? ' · '+subCount+' dílčí(ch) úkol(ů)' : ''}</div>
-      </div>`;
+
+    labelsHtml += `<div class="gantt-row-label">${esc(u.name)}${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}${subCount ? `<span class="resp-badge">${subCount} dílčí(ch) úkol(ů)</span>` : ''}</div>`;
+    rowsHtml += `<div class="gantt-track-row"><div class="gantt-bar ${cls}" style="left:${left}px;width:${width}px" title="${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}"></div></div>`;
   });
 
-  el.innerHTML = `<div class="gantt-wrap"><div class="gantt-scale">${ticks}</div>${rows}</div>`;
+  el.innerHTML = `
+    <div class="gantt-wrap">
+      <div class="gantt-body">
+        <div class="gantt-labels">
+          <div class="gantt-label-spacer"></div>
+          ${labelsHtml}
+        </div>
+        <div class="gantt-timeline" id="ganttTimeline">
+          <div style="width:${totalPx}px;position:relative">
+            <div class="gantt-month-header" style="width:${totalPx}px">${monthHtml}</div>
+            <div class="gantt-timeline-rows" style="width:${totalPx}px">
+              ${gridHtml}
+              <div class="gantt-today-line" style="left:${todayLeft}px" title="Dnes"></div>
+              ${rowsHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  const tl = document.getElementById('ganttTimeline');
+  if (tl) tl.scrollLeft = Math.max(todayLeft - 160, 0);
 }
 
 function setTagFilter(tag) {
