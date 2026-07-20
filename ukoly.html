@@ -844,7 +844,7 @@ function renderUkoly() {
     const projParent = u.projektId ? ukoly.find(p => p.id === u.projektId) : null;
     const hasKids = u.projekt && (childrenMap[u.id] || []).length > 0;
     const isCollapsed = collapsedProjects.has(u.id);
-    const collapseBtn = hasKids ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-block;width:14px;color:var(--muted);font-size:11px">${isCollapsed?'▸':'▾'}</span>` : '';
+    const collapseBtn = hasKids ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-right:2px;color:var(--muted);font-size:18px;font-weight:700;vertical-align:middle;border-radius:6px">${isCollapsed?'▸':'▾'}</span>` : '';
     const waitSep = (isWaiting && !waitHeaderShown) ? (waitHeaderShown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
     return waitSep + `
     <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}" style="${u.projektId?'margin-left:18px;border-left-width:2px':''}">
