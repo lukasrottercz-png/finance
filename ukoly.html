@@ -301,13 +301,17 @@
   border-bottom: 0.5px solid var(--border);
 }
 .gantt-body { display: flex; }
-.gantt-labels { flex-shrink: 0; width: 230px; padding-right: 12px; box-sizing: border-box; }
-.gantt-label-spacer { height: 28px; }
-.gantt-row-label { height: 46px; display: flex; flex-direction: column; justify-content: center; gap: 2px; font-size: 13px; font-weight: 600; border-bottom: 0.5px solid var(--border); overflow: hidden; }
-.gantt-row-label .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gantt-row-label .gantt-when { font-size: 11px; font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gantt-row-label.sub { height: 36px; font-size: 12px; font-weight: 500; color: var(--text); padding-left: 14px; }
-.gantt-row-label.sub .gantt-when { font-size: 10px; }
+.gantt-labels { flex-shrink: 0; width: 360px; padding-right: 12px; box-sizing: border-box; }
+.gantt-label-header { height: 28px; display: flex; align-items: flex-end; gap: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); border-bottom: 1px solid var(--border); box-sizing: border-box; padding-bottom: 4px; }
+.gantt-label-header .col-name { flex: 1; min-width: 0; }
+.gantt-label-header .col-date { width: 50px; flex-shrink: 0; }
+.gantt-label-header .col-resp { width: 70px; flex-shrink: 0; }
+.gantt-row-label { height: 46px; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; border-bottom: 0.5px solid var(--border); }
+.gantt-row-label .col-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-row-label .col-date { width: 50px; flex-shrink: 0; font-size: 11px; font-weight: 400; color: var(--muted); }
+.gantt-row-label .col-resp { width: 70px; flex-shrink: 0; font-size: 11px; font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-row-label.sub { height: 36px; font-size: 11.5px; font-weight: 500; }
+.gantt-row-label.sub .col-name { padding-left: 14px; }
 .gantt-timeline { flex: 1; overflow-x: auto; min-width: 0; }
 .gantt-month-header { position: relative; height: 28px; border-bottom: 1px solid var(--border); }
 .gantt-month-header .gm { position: absolute; top: 0; height: 100%; box-sizing: border-box; border-left: 0.5px solid var(--border); font-size: 11px; color: var(--muted); padding: 4px 0 0 5px; white-space: nowrap; }
@@ -901,17 +905,25 @@ function renderGantt() {
   items.forEach(u => {
     const left = dayOffset(new Date(u.start+'T00:00:00')) * PX_PER_DAY;
     const width = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
-    const when = `${fmtDateShort(u.start)} – ${fmtDateShort(u.date)}${u.zodpovida ? ' · 👤 '+esc(u.zodpovida) : ''}`;
 
-    labelsHtml += `<div class="gantt-row-label"><div class="name">${esc(u.name)}</div><div class="gantt-when">${when}</div></div>`;
+    labelsHtml += `<div class="gantt-row-label">
+        <div class="col-name" title="${esc(u.name)}">${esc(u.name)}</div>
+        <div class="col-date">${fmtDateShort(u.start)}</div>
+        <div class="col-date">${fmtDateShort(u.date)}</div>
+        <div class="col-resp">${u.zodpovida ? esc(u.zodpovida) : '–'}</div>
+      </div>`;
     rowsHtml += `<div class="gantt-track-row"><div class="gantt-bar" style="left:${left}px;width:${width}px" title="${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}"></div></div>`;
 
     // dílčí úkoly — zjednodušeně jako značka na termínu
     kidsOf(u.id).slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(k => {
       const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
       const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-late' : 'gantt-done') : (k.date < todayStr ? 'gantt-late' : '');
-      const kWhen = `${fmtDateShort(k.date)}${k.zodpovida ? ' · 👤 '+esc(k.zodpovida) : ''}`;
-      labelsHtml += `<div class="gantt-row-label sub"><div class="name">↳ ${esc(k.name)}</div><div class="gantt-when">${kWhen}</div></div>`;
+      labelsHtml += `<div class="gantt-row-label sub">
+          <div class="col-name" title="${esc(k.name)}">↳ ${esc(k.name)}</div>
+          <div class="col-date">–</div>
+          <div class="col-date">${fmtDateShort(k.date)}</div>
+          <div class="col-resp">${k.zodpovida ? esc(k.zodpovida) : '–'}</div>
+        </div>`;
       rowsHtml += `<div class="gantt-track-row sub"><div class="gantt-marker ${kCls}" style="left:${kLeft}px" title="${esc(k.name)}: ${fmtDate(k.date)}"></div></div>`;
     });
   });
@@ -920,7 +932,12 @@ function renderGantt() {
     <div class="gantt-wrap">
       <div class="gantt-body">
         <div class="gantt-labels">
-          <div class="gantt-label-spacer"></div>
+          <div class="gantt-label-header">
+            <div class="col-name">Úkol</div>
+            <div class="col-date">Začátek</div>
+            <div class="col-date">Termín</div>
+            <div class="col-resp">Zodpovídá</div>
+          </div>
           ${labelsHtml}
         </div>
         <div class="gantt-timeline" id="ganttTimeline">
