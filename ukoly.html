@@ -314,6 +314,11 @@
 .gantt-grid-line.year-start { border-left: 1.5px solid var(--border); opacity: 0.6; }
 .gantt-today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--red); z-index: 5; }
 .gantt-track-row { position: relative; height: 44px; border-bottom: 0.5px solid var(--border); }
+.gantt-track-row.sub { height: 28px; }
+.gantt-row-label.sub { height: 28px; font-size: 11px; font-weight: 400; color: var(--muted); padding-left: 14px; border-bottom: 0.5px solid var(--border); }
+.gantt-marker { position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6px; margin-left: -6px; border-radius: 2px; transform: rotate(45deg); background: var(--accent); opacity: 0.85; z-index: 3; }
+.gantt-marker.gantt-done { background: var(--green); }
+.gantt-marker.gantt-late { background: var(--red); }
 .gantt-bar { position: absolute; top: 12px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--accent); opacity: 0.88; z-index: 2; }
 .gantt-bar.gantt-done { background: var(--green); }
 .gantt-bar.gantt-late { background: var(--red); }
@@ -857,7 +862,10 @@ function renderGantt() {
   const todayStr = new Date().toISOString().slice(0,10);
   const todayD = new Date(); todayD.setHours(0,0,0,0);
 
+  const kidsOf = (id) => ukoly.filter(x => x.projektId === id);
+
   const dates = items.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00')]);
+  items.forEach(i => kidsOf(i.id).forEach(k => dates.push(new Date(k.date+'T00:00:00'))));
   dates.push(todayD);
   const minD = new Date(Math.min(...dates));
   const maxD = new Date(Math.max(...dates));
@@ -891,10 +899,17 @@ function renderGantt() {
     const left = dayOffset(new Date(u.start+'T00:00:00')) * PX_PER_DAY;
     const width = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const cls = u.done ? (u.completedAt && u.completedAt > u.date ? 'gantt-late' : 'gantt-done') : (u.date < todayStr ? 'gantt-late' : '');
-    const subCount = ukoly.filter(x => x.projektId === u.id).length;
 
-    labelsHtml += `<div class="gantt-row-label">${esc(u.name)}${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}${subCount ? `<span class="resp-badge">${subCount} dílčí(ch) úkol(ů)</span>` : ''}</div>`;
+    labelsHtml += `<div class="gantt-row-label">${esc(u.name)}${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}</div>`;
     rowsHtml += `<div class="gantt-track-row"><div class="gantt-bar ${cls}" style="left:${left}px;width:${width}px" title="${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}"></div></div>`;
+
+    // dílčí úkoly — zjednodušeně jako značka na termínu
+    kidsOf(u.id).slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(k => {
+      const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
+      const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-late' : 'gantt-done') : (k.date < todayStr ? 'gantt-late' : '');
+      labelsHtml += `<div class="gantt-row-label sub">↳ ${esc(k.name)}${k.zodpovida ? `<span class="resp-badge">👤 ${esc(k.zodpovida)}</span>` : ''}</div>`;
+      rowsHtml += `<div class="gantt-track-row sub"><div class="gantt-marker ${kCls}" style="left:${kLeft}px" title="${esc(k.name)}: ${fmtDate(k.date)}"></div></div>`;
+    });
   });
 
   el.innerHTML = `
