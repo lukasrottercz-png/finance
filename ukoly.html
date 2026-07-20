@@ -684,7 +684,6 @@ let activeAgenda = load('tw_active_agenda', 'osobni');
 let ukolyView = 'list';
 
 function migrateAgendas() {
-  if (load('tw_agenda_migrated', false)) return;
   let changed = false;
   ukoly = ukoly.map(u => {
     if (u.agenda) return u;
@@ -696,7 +695,6 @@ function migrateAgendas() {
     changed = true;
     return { ...e, agenda: 'osobni' };
   });
-  save('tw_agenda_migrated', true);
   if (changed) { save('tw_ukoly2', ukoly); save('tw_events2', events); ghSave(); }
 }
 
