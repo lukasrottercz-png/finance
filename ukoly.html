@@ -301,10 +301,13 @@
   border-bottom: 0.5px solid var(--border);
 }
 .gantt-body { display: flex; }
-.gantt-labels { flex-shrink: 0; width: 170px; padding-right: 10px; }
+.gantt-labels { flex-shrink: 0; width: 230px; padding-right: 12px; box-sizing: border-box; }
 .gantt-label-spacer { height: 28px; }
-.gantt-row-label { height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 1px; font-size: 12px; font-weight: 500; border-bottom: 0.5px solid var(--border); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.gantt-row-label .resp-badge { font-size: 10px; display: block; }
+.gantt-row-label { height: 46px; display: flex; flex-direction: column; justify-content: center; gap: 2px; font-size: 13px; font-weight: 600; border-bottom: 0.5px solid var(--border); overflow: hidden; }
+.gantt-row-label .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-row-label .gantt-when { font-size: 11px; font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt-row-label.sub { height: 36px; font-size: 12px; font-weight: 500; color: var(--text); padding-left: 14px; }
+.gantt-row-label.sub .gantt-when { font-size: 10px; }
 .gantt-timeline { flex: 1; overflow-x: auto; min-width: 0; }
 .gantt-month-header { position: relative; height: 28px; border-bottom: 1px solid var(--border); }
 .gantt-month-header .gm { position: absolute; top: 0; height: 100%; box-sizing: border-box; border-left: 0.5px solid var(--border); font-size: 11px; color: var(--muted); padding: 4px 0 0 5px; white-space: nowrap; }
@@ -313,15 +316,12 @@
 .gantt-grid-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 0.5px solid var(--border); z-index: 0; }
 .gantt-grid-line.year-start { border-left: 1.5px solid var(--border); opacity: 0.6; }
 .gantt-today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--red); z-index: 5; }
-.gantt-track-row { position: relative; height: 44px; border-bottom: 0.5px solid var(--border); }
-.gantt-track-row.sub { height: 28px; }
-.gantt-row-label.sub { height: 28px; font-size: 11px; font-weight: 400; color: var(--muted); padding-left: 14px; border-bottom: 0.5px solid var(--border); }
+.gantt-track-row { position: relative; height: 46px; border-bottom: 0.5px solid var(--border); }
+.gantt-track-row.sub { height: 36px; }
 .gantt-marker { position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6px; margin-left: -6px; border-radius: 2px; transform: rotate(45deg); background: var(--accent); opacity: 0.85; z-index: 3; }
 .gantt-marker.gantt-done { background: var(--green); }
 .gantt-marker.gantt-late { background: var(--red); }
-.gantt-bar { position: absolute; top: 12px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--accent); opacity: 0.88; z-index: 2; }
-.gantt-bar.gantt-done { background: var(--green); }
-.gantt-bar.gantt-late { background: var(--red); }
+.gantt-bar { position: absolute; top: 13px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--gray); opacity: 0.9; z-index: 2; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -699,6 +699,9 @@ function urgLabel(days) {
 function fmtDate(d) {
   return new Date(d).toLocaleDateString('cs-CZ', { day:'numeric', month:'long', year:'numeric' });
 }
+function fmtDateShort(d) {
+  return new Date(d).toLocaleDateString('cs-CZ', { day:'numeric', month:'numeric' });
+}
 
 // ── AGENDA (Osobní / Práce) ─────────────────────────────────────────────
 let activeAgenda = load('tw_active_agenda', 'osobni');
@@ -898,16 +901,17 @@ function renderGantt() {
   items.forEach(u => {
     const left = dayOffset(new Date(u.start+'T00:00:00')) * PX_PER_DAY;
     const width = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
-    const cls = u.done ? (u.completedAt && u.completedAt > u.date ? 'gantt-late' : 'gantt-done') : (u.date < todayStr ? 'gantt-late' : '');
+    const when = `${fmtDateShort(u.start)} – ${fmtDateShort(u.date)}${u.zodpovida ? ' · 👤 '+esc(u.zodpovida) : ''}`;
 
-    labelsHtml += `<div class="gantt-row-label">${esc(u.name)}${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}</div>`;
-    rowsHtml += `<div class="gantt-track-row"><div class="gantt-bar ${cls}" style="left:${left}px;width:${width}px" title="${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}"></div></div>`;
+    labelsHtml += `<div class="gantt-row-label"><div class="name">${esc(u.name)}</div><div class="gantt-when">${when}</div></div>`;
+    rowsHtml += `<div class="gantt-track-row"><div class="gantt-bar" style="left:${left}px;width:${width}px" title="${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}"></div></div>`;
 
     // dílčí úkoly — zjednodušeně jako značka na termínu
     kidsOf(u.id).slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(k => {
       const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
       const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-late' : 'gantt-done') : (k.date < todayStr ? 'gantt-late' : '');
-      labelsHtml += `<div class="gantt-row-label sub">↳ ${esc(k.name)}${k.zodpovida ? `<span class="resp-badge">👤 ${esc(k.zodpovida)}</span>` : ''}</div>`;
+      const kWhen = `${fmtDateShort(k.date)}${k.zodpovida ? ' · 👤 '+esc(k.zodpovida) : ''}`;
+      labelsHtml += `<div class="gantt-row-label sub"><div class="name">↳ ${esc(k.name)}</div><div class="gantt-when">${kWhen}</div></div>`;
       rowsHtml += `<div class="gantt-track-row sub"><div class="gantt-marker ${kCls}" style="left:${kLeft}px" title="${esc(k.name)}: ${fmtDate(k.date)}"></div></div>`;
     });
   });
