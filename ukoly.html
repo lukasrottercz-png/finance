@@ -775,6 +775,21 @@ function renderUkoly() {
   if (uFilter === 'done') list = list.filter(u => u.done);
   if (activeTagFilter) list = list.filter(u => (u.tags||[]).includes(activeTagFilter));
 
+  // Seskup dílčí úkoly pod jejich projekt — pozici v seznamu určuje datum projektu,
+  // dílčí úkoly jedou hned pod ním (v pořadí podle vlastního data), i kdyby měly dřívější termín.
+  const childrenMap = {};
+  list.forEach(u => {
+    if (u.projektId) { (childrenMap[u.projektId] = childrenMap[u.projektId] || []).push(u); }
+  });
+  const parentIds = new Set(list.filter(u => u.projekt).map(u => u.id));
+  const grouped = [];
+  list.forEach(u => {
+    if (u.projektId && parentIds.has(u.projektId)) return; // vykreslí se pod svým projektem
+    grouped.push(u);
+    if (u.projekt) grouped.push(...(childrenMap[u.id] || []));
+  });
+  list = grouped;
+
   const el = document.getElementById('ukolList');
 
   // Tag filter row
@@ -810,7 +825,7 @@ function renderUkoly() {
     const projParent = u.projektId ? ukoly.find(p => p.id === u.projektId) : null;
     const waitSep = (isWaiting && !waitHeaderShown) ? (waitHeaderShown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
     return waitSep + `
-    <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}">
+    <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}" style="${u.projektId?'margin-left:18px;border-left-width:2px':''}">
       <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
       <div class="task-body">
         <div class="task-name">${u.projekt ? '<span class="proj-badge">📊 projekt</span>' : ''}${esc(u.name)}</div>
