@@ -761,6 +761,7 @@ function toggleProjectCollapse(id) {
   if (collapsedProjects.has(id)) collapsedProjects.delete(id); else collapsedProjects.add(id);
   save('tw_collapsed_projects', [...collapsedProjects]);
   renderUkoly();
+  if (ukolyView === 'gantt') renderGantt();
 }
 
 function renderUkoly() {
@@ -882,7 +883,7 @@ function renderGantt() {
   const kidsOf = (id) => ukoly.filter(x => x.projektId === id);
 
   const dates = items.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00')]);
-  items.forEach(i => kidsOf(i.id).forEach(k => dates.push(new Date(k.date+'T00:00:00'))));
+  items.forEach(i => { if (!collapsedProjects.has(i.id)) kidsOf(i.id).forEach(k => dates.push(new Date(k.date+'T00:00:00'))); });
   dates.push(todayD);
   const minD = new Date(Math.min(...dates));
   const maxD = new Date(Math.max(...dates));
@@ -915,17 +916,20 @@ function renderGantt() {
   items.forEach(u => {
     const left = dayOffset(new Date(u.start+'T00:00:00')) * PX_PER_DAY;
     const width = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
+    const kids = kidsOf(u.id).slice().sort((a,b) => a.date.localeCompare(b.date));
+    const isCollapsed = collapsedProjects.has(u.id);
+    const collapseBtn = kids.length ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;color:var(--muted);font-size:13px;font-weight:700;vertical-align:middle">${isCollapsed?'▸':'▾'}</span>` : '';
 
     labelsHtml += `<div class="gantt-row-label">
-        <div class="col-name" title="${esc(u.name)}">${esc(u.name)}</div>
+        <div class="col-name" title="${esc(u.name)}">${collapseBtn}${esc(u.name)}${isCollapsed ? ` <span style="font-size:10px;color:var(--muted)">(${kids.length})</span>` : ''}</div>
         <div class="col-date">${fmtDateShort(u.start)}</div>
         <div class="col-date">${fmtDateShort(u.date)}</div>
         <div class="col-resp">${u.zodpovida ? esc(u.zodpovida) : '–'}</div>
       </div>`;
     rowsHtml += `<div class="gantt-track-row"><div class="gantt-bar" style="left:${left}px;width:${width}px" title="${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}"></div></div>`;
 
-    // dílčí úkoly — zjednodušeně jako značka na termínu
-    kidsOf(u.id).slice().sort((a,b) => a.date.localeCompare(b.date)).forEach(k => {
+    // dílčí úkoly — zjednodušeně jako značka na termínu (skryté, pokud je projekt sbalený)
+    if (!isCollapsed) kids.forEach(k => {
       const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
       const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-late' : 'gantt-done') : (k.date < todayStr ? 'gantt-late' : '');
       labelsHtml += `<div class="gantt-row-label sub">
