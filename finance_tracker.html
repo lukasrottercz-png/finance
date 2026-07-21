@@ -621,6 +621,15 @@ function saveApiKey() {
   localStorage.setItem('anthropic_api_key', inp.value.trim());
   loadAiComment();
 }
+// ── INVESTICE: hodnota portfolia k danému datu ─────────────────────────
+function investAtDate(dateStr) {
+  const inv = loadInv();
+  const aktualni = (inv.aktualni || []).filter(a => a.datum <= dateStr).sort((a,b) => a.datum.localeCompare(b.datum));
+  if (aktualni.length) return aktualni[aktualni.length - 1].hodnota;
+  const transe = (inv.transe || []).filter(t => t.datum <= dateStr);
+  return transe.reduce((s,t) => s + (t.castka||0), 0);
+}
+
 // ── CHART HELPER ──────────────────────────────────────────────────────
 const _charts = {};
 function drawLineChart(id, labels, datasets) {
@@ -864,6 +873,7 @@ function renderDashboard() {
     cel: calcCelkem(pd),
     bez: calcBez(pd),
     hyp: calcHyp(pd),
+    inv: investAtDate(pd.date),
     difCel: i > 0 ? calcCelkem(pd) - calcCelkem(periods[i-1]) : null,
     difBez: i > 0 ? calcBez(pd) - calcBez(periods[i-1]) : null,
     difHyp: i > 0 ? calcHyp(pd) - calcHyp(periods[i-1]) : null,
@@ -877,6 +887,7 @@ function renderDashboard() {
         { label: 'Dostupné finance bez investic', data: rows.map(r => Math.round(r.cel)), color: '#185fa5' },
         { label: 'Bez hypotéky',   data: rows.map(r => Math.round(r.bez)), color: '#2d7a4f' },
         { label: 'Hypotéka',       data: rows.map(r => Math.round(r.hyp)), color: '#a32d2d' },
+        ...(rows.some(r => r.inv) ? [{ label: 'Investice', data: rows.map(r => Math.round(r.inv)), color: '#7c3aed' }] : []),
       ]
     );
     loadVydaje();
