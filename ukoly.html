@@ -1242,6 +1242,7 @@ function setTagFilter(tag) {
 
 function buildGanttSnapshotHtml() {
   const items = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
+    .sort((a,b) => a.start.localeCompare(b.start))
     .map(u => ({
       id: u.id, name: u.name, start: u.start, date: u.date, done: !!u.done, completedAt: u.completedAt||null,
       zodpovida: u.zodpovida||'', predecessorId: u.predecessorId||'',
