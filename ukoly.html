@@ -311,7 +311,7 @@
   position: relative; left: 50%; right: 50%;
   margin-left: -50vw; margin-right: -50vw;
   width: 100vw; box-sizing: border-box;
-  padding: 14px 16px 18px;
+  padding: 30px 16px 18px;
   background: var(--surface);
   border-top: 0.5px solid var(--border);
   border-bottom: 0.5px solid var(--border);
@@ -335,7 +335,11 @@
 .gantt-timeline-rows { position: relative; }
 .gantt-grid-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 0.5px solid var(--border); z-index: 0; }
 .gantt-grid-line.year-start { border-left: 1.5px solid var(--border); opacity: 0.6; }
+.gantt-minor-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 0.5px dotted var(--border); opacity: 0.55; z-index: 0; }
+.gantt-day-ticks { position: relative; height: 16px; border-bottom: 0.5px solid var(--border); }
+.gantt-day-ticks .dt { position: absolute; top: 2px; font-size: 9px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
 .gantt-today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--red); z-index: 5; }
+.gantt-today-label { position: absolute; top: 50%; transform: translate(-50%,-50%); background: var(--red); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 7px; white-space: nowrap; z-index: 6; pointer-events: none; }
 .gantt-track-row { position: relative; border-bottom: 0.5px solid var(--border); box-sizing: border-box; }
 .gantt-marker { position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6px; margin-left: -6px; border-radius: 2px; transform: rotate(45deg); background: var(--accent); opacity: 0.85; z-index: 3; }
 .gantt-marker.gantt-done { background: var(--green); }
@@ -1136,6 +1140,16 @@ function renderGantt() {
     gridHtml += `<div class="gantt-grid-line${m.isYearStart?' year-start':''}" style="left:${left}px"></div>`;
   });
   const todayLeft = dayOffset(todayD) * PX_PER_DAY;
+  const todayLabel = todayD.toLocaleDateString('cs-CZ', {day:'numeric', month:'numeric'});
+
+  // jemnější dělení podle zvoleného měřítka (dny u týdnů, týdny u měsíců, cca půlměsíce u kvartálů)
+  const minorStepDays = ganttScale === 'week' ? 1 : (ganttScale === 'month' ? 7 : 15);
+  let dayTicksHtml = '', minorGridHtml = '';
+  for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + minorStepDays)) {
+    const dLeft = dayOffset(d) * PX_PER_DAY;
+    dayTicksHtml += `<span class="dt" style="left:${dLeft}px">${d.getDate()}</span>`;
+    minorGridHtml += `<div class="gantt-minor-line" style="left:${dLeft}px"></div>`;
+  }
 
   let labelsHtml = '', rowsHtml = '';
   // hrubý odhad, jestli se název vejde na jeden řádek (podle šířky sloupce úkolu)
@@ -1220,9 +1234,14 @@ function renderGantt() {
         <div class="gantt-timeline" id="ganttTimeline">
           <div style="width:${totalPx}px;position:relative">
             <div class="gantt-month-header" style="width:${totalPx}px">${monthHtml}</div>
+            <div class="gantt-day-ticks" style="width:${totalPx}px">
+              ${dayTicksHtml}
+              <div class="gantt-today-label" style="left:${todayLeft}px">${todayLabel}</div>
+            </div>
             <div class="gantt-timeline-rows" style="width:${totalPx}px">
               ${gridHtml}
-              <div class="gantt-today-line" style="left:${todayLeft}px" title="Dnes"></div>
+              ${minorGridHtml}
+              <div class="gantt-today-line" style="left:${todayLeft}px" title="Dnes ${todayLabel}"></div>
               ${rowsHtml}
               ${connectorsSvg}
             </div>
@@ -1275,7 +1294,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .hd { padding:16px 20px 8px; }
 .hd h1 { font-size:20px; margin:0 0 4px; }
 .hd .meta { font-size:12px; color:var(--muted); }
-.gantt-wrap { box-sizing:border-box; padding:14px 16px 24px; background:var(--surface); }
+.gantt-wrap { box-sizing:border-box; padding:30px 16px 24px; background:var(--surface); }
 .gantt-body { display:flex; }
 .gantt-labels { flex-shrink:0; width:clamp(320px,42vw,500px); padding-right:12px; box-sizing:border-box; }
 .gantt-label-header { height:28px; display:flex; align-items:flex-end; gap:6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); border-bottom:1px solid var(--border); box-sizing:border-box; padding-bottom:4px; }
@@ -1295,7 +1314,11 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-timeline-rows { position:relative; }
 .gantt-grid-line { position:absolute; top:0; bottom:0; width:0; border-left:0.5px solid var(--border); z-index:0; }
 .gantt-grid-line.year-start { border-left:1.5px solid var(--border); opacity:.6; }
+.gantt-minor-line { position:absolute; top:0; bottom:0; width:0; border-left:0.5px dotted var(--border); opacity:.55; z-index:0; }
+.gantt-day-ticks { position:relative; height:16px; border-bottom:0.5px solid var(--border); }
+.gantt-day-ticks .dt { position:absolute; top:2px; font-size:9px; color:var(--muted); transform:translateX(-50%); white-space:nowrap; }
 .gantt-today-line { position:absolute; top:0; bottom:0; width:0; border-left:1.5px solid var(--red); z-index:5; }
+.gantt-today-label { position:absolute; top:50%; transform:translate(-50%,-50%); background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:1px 5px; border-radius:7px; white-space:nowrap; z-index:6; pointer-events:none; }
 .gantt-track-row { position:relative; border-bottom:0.5px solid var(--border); box-sizing:border-box; }
 .gantt-marker { position:absolute; top:50%; width:11px; height:11px; margin-top:-6px; margin-left:-6px; border-radius:2px; transform:rotate(45deg); background:var(--accent); opacity:.85; z-index:3; }
 .gantt-marker.gantt-done { background:var(--green); }
@@ -1393,6 +1416,15 @@ function render() {
     gridHtml += '<div class="gantt-grid-line'+(m.isYearStart?' year-start':'')+'" style="left:'+left+'px"></div>';
   });
   const todayLeft = dayOffset(todayD) * PX_PER_DAY;
+  const todayLabel = todayD.toLocaleDateString('cs-CZ', {day:'numeric', month:'numeric'});
+
+  const minorStepDays = SCALE === 'week' ? 1 : (SCALE === 'month' ? 7 : 15);
+  let dayTicksHtml = '', minorGridHtml = '';
+  for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + minorStepDays)) {
+    const dLeft = dayOffset(d) * PX_PER_DAY;
+    dayTicksHtml += '<span class="dt" style="left:'+dLeft+'px">'+d.getDate()+'</span>';
+    minorGridHtml += '<div class="gantt-minor-line" style="left:'+dLeft+'px"></div>';
+  }
 
   const labelsColPx = Math.min(500, Math.max(320, window.innerWidth * 0.42));
   const nameColPx = labelsColPx - 12 - 44*2 - 62 - 18;
@@ -1448,7 +1480,8 @@ function render() {
     '<div class="gantt-labels"><div class="gantt-label-header"><div class="col-name">Úkol</div><div class="col-date">Od</div><div class="col-date">Do</div><div class="col-resp">Zodp.</div></div>'+labelsHtml+'</div>'+
     '<div class="gantt-timeline" id="ganttTimeline"><div style="width:'+totalPx+'px;position:relative">'+
       '<div class="gantt-month-header" style="width:'+totalPx+'px">'+monthHtml+'</div>'+
-      '<div class="gantt-timeline-rows" style="width:'+totalPx+'px">'+gridHtml+'<div class="gantt-today-line" style="left:'+todayLeft+'px" title="Dnes"></div>'+rowsHtml+connectorsSvg+'</div>'+
+      '<div class="gantt-day-ticks" style="width:'+totalPx+'px">'+dayTicksHtml+'<div class="gantt-today-label" style="left:'+todayLeft+'px">'+todayLabel+'</div></div>'+
+      '<div class="gantt-timeline-rows" style="width:'+totalPx+'px">'+gridHtml+minorGridHtml+'<div class="gantt-today-line" style="left:'+todayLeft+'px" title="Dnes '+todayLabel+'"></div>'+rowsHtml+connectorsSvg+'</div>'+
     '</div></div>'+
   '</div></div>';
 
