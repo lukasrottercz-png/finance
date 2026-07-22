@@ -372,10 +372,15 @@
     <button onclick="expandAllProjects()">▾ Rozbalit vše</button>
   </div>
 
-  <div id="ganttShareLinkBar" style="display:none;align-items:center;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--surface2);border-radius:10px">
-    <span style="font-size:12px;color:var(--muted);flex-shrink:0">🔗 Sdíleno:</span>
-    <input id="ganttShareLinkInput" readonly style="flex:1;min-width:0;background:transparent;border:none;color:var(--text);font-size:12px;font-family:inherit" onclick="this.select()">
-    <button class="btn btn-ghost" style="flex-shrink:0;padding:4px 10px;font-size:12px" onclick="copyGanttShareLink()">Kopírovat</button>
+  <div class="view-toggle" id="ganttScaleRow" style="display:none">
+    <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:2px">Měřítko:</span>
+    <button data-scale="week" onclick="setGanttScale('week')">Týdny</button>
+    <button data-scale="month" class="active" onclick="setGanttScale('month')">Měsíce</button>
+    <button data-scale="quarter" onclick="setGanttScale('quarter')">Kvartály</button>
+  </div>
+
+  <div id="ganttShareLinkBar" style="display:none;margin-bottom:12px">
+    <button class="btn btn-ghost" onclick="copyGanttShareLink()">🔗 Kopírovat odkaz pro sdílení</button>
   </div>
 
   <div class="filter-row" id="ukolyFilterRow">
@@ -698,12 +703,7 @@ function renderGanttShareLinkBar() {
   const bar = document.getElementById('ganttShareLinkBar');
   if (!bar) return;
   const link = load('tw_gantt_share_link', '');
-  if (link && ukolyView === 'gantt') {
-    bar.style.display = 'flex';
-    document.getElementById('ganttShareLinkInput').value = link;
-  } else {
-    bar.style.display = 'none';
-  }
+  bar.style.display = (link && ukolyView === 'gantt') ? 'block' : 'none';
 }
 
 function copyGanttShareLink() {
@@ -798,6 +798,15 @@ function fmtDateShort(d) {
 // ── AGENDA (Osobní / Práce) ─────────────────────────────────────────────
 let activeAgenda = load('tw_active_agenda', 'osobni');
 let ukolyView = 'list';
+const GANTT_SCALES = { week: 20, month: 6, quarter: 2.2 };
+let ganttScale = load('tw_gantt_scale', 'month');
+
+function setGanttScale(s) {
+  ganttScale = s;
+  save('tw_gantt_scale', s);
+  document.querySelectorAll('#ganttScaleRow button').forEach(b => b.classList.toggle('active', b.dataset.scale===s));
+  if (ukolyView === 'gantt') renderGantt();
+}
 
 function migrateAgendas() {
   let changed = false;
@@ -833,7 +842,11 @@ function setUkolyView(v) {
   document.getElementById('ganttWrap').style.display = v==='gantt' ? '' : 'none';
   document.getElementById('ukolyFilterRow').style.display = v==='list' ? 'flex' : 'none';
   document.getElementById('ukoly-tag-filters').style.display = v==='list' ? '' : 'none';
-  if (v === 'gantt') renderGantt();
+  document.getElementById('ganttScaleRow').style.display = v==='gantt' ? 'flex' : 'none';
+  if (v === 'gantt') {
+    document.querySelectorAll('#ganttScaleRow button').forEach(b => b.classList.toggle('active', b.dataset.scale===ganttScale));
+    renderGantt();
+  }
   renderGanttShareLinkBar();
 }
 
@@ -1029,7 +1042,7 @@ function renderGantt() {
   }
 
   const DAY = 86400000;
-  const PX_PER_DAY = 6;
+  const PX_PER_DAY = GANTT_SCALES[ganttScale] || GANTT_SCALES.month;
   const todayStr = new Date().toISOString().slice(0,10);
   const todayD = new Date(); todayD.setHours(0,0,0,0);
 
@@ -1226,6 +1239,10 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-marker.gantt-late { background:var(--red); }
 .gantt-bar { position:absolute; top:50%; margin-top:-10px; height:20px; min-width:6px; border-radius:6px; background:var(--gray); opacity:.9; z-index:2; }
 .empty { text-align:center; padding:40px 20px; color:var(--muted); }
+.scale-row { display:flex; gap:6px; padding:0 20px 12px; align-items:center; }
+.scale-row span { font-size:11px; color:var(--muted); margin-right:2px; }
+.scale-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
+.scale-row button.active { background:rgba(124,58,237,0.1); color:var(--accent); border-color:rgba(124,58,237,0.3); font-weight:600; }
 </style>
 </head>
 <body>
@@ -1233,9 +1250,22 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
   <h1>📊 Gantt — projekty</h1>
   <div class="meta">Snímek k ${esc(generatedAt)} · neaktualizuje se automaticky, jde o poslední uloženou verzi</div>
 </div>
+<div class="scale-row" id="scaleRow">
+  <span>Měřítko:</span>
+  <button data-scale="week" onclick="setScale('week')">Týdny</button>
+  <button data-scale="month" class="active" onclick="setScale('month')">Měsíce</button>
+  <button data-scale="quarter" onclick="setScale('quarter')">Kvartály</button>
+</div>
 <div id="ganttWrap"></div>
 <script>
 let ITEMS = ${dataJson};
+const GANTT_SCALES = { week: 20, month: 6, quarter: 2.2 };
+let SCALE = 'month';
+function setScale(s) {
+  SCALE = s;
+  document.querySelectorAll('#scaleRow button').forEach(b => b.classList.toggle('active', b.dataset.scale===s));
+  render();
+}
 function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
 function fmtDate(d){ return new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
 function fmtDateShort(d){ return new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'}); }
@@ -1253,7 +1283,7 @@ function orderByChain(arr){
 function render() {
   const el = document.getElementById('ganttWrap');
   if (!ITEMS.length) { el.innerHTML = '<div class="empty">Žádné projekty.</div>'; return; }
-  const DAY = 86400000, PX_PER_DAY = 6;
+  const DAY = 86400000, PX_PER_DAY = GANTT_SCALES[SCALE] || GANTT_SCALES.month;
   const todayStr = new Date().toISOString().slice(0,10);
   const todayD = new Date(); todayD.setHours(0,0,0,0);
   ITEMS = orderByChain(ITEMS);
