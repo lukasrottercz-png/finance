@@ -366,6 +366,12 @@
     <button onclick="exportGanttSnapshot()">📤 Stáhnout</button>
   </div>
 
+  <div id="ganttShareLinkBar" style="display:none;align-items:center;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+    <span style="font-size:12px;color:var(--muted);flex-shrink:0">🔗 Sdíleno:</span>
+    <input id="ganttShareLinkInput" readonly style="flex:1;min-width:0;background:transparent;border:none;color:var(--text);font-size:12px;font-family:inherit" onclick="this.select()">
+    <button class="btn btn-ghost" style="flex-shrink:0;padding:4px 10px;font-size:12px" onclick="copyGanttShareLink()">Kopírovat</button>
+  </div>
+
   <div class="filter-row" id="ukolyFilterRow">
     <button class="f-btn" onclick="setUkolyFilter('all',this)">Vše <span id="all-count" style="background:var(--muted);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
     <button class="f-btn active" onclick="setUkolyFilter('open',this)">Nesplněné <span id="open-count" style="background:var(--accent);color:#fff;border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px"></span></button>
@@ -612,20 +618,21 @@ async function driveReadJSON(fname){
 async function driveWriteFile(fname, content, mimeType) {
   let id = localStorage.getItem(driveIdKey(fname)) || await driveFindFile(fname);
   if (id) {
-    const r = await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
+    const r = await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media&fields=id,webViewLink',
       {method:'PATCH', headers:{'Content-Type':mimeType}, body:content});
     if (!r.ok) throw new Error('UPDATE '+r.status);
-    return {id, created:false};
+    const d = await r.json();
+    return {id, webViewLink: d.webViewLink||'', created:false};
   }
   const boundary='uk'+Date.now();
   const meta=JSON.stringify({name:fname,mimeType:mimeType});
   const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+
              '\r\n--'+boundary+'\r\nContent-Type: '+mimeType+'\r\n\r\n'+content+'\r\n--'+boundary+'--';
-  const r2=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+  const r2=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink',
     {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body:body});
   if(!r2.ok) throw new Error('CREATE '+r2.status);
   const d=await r2.json(); localStorage.setItem(driveIdKey(fname),d.id);
-  return {id:d.id, created:true};
+  return {id:d.id, webViewLink: d.webViewLink||'', created:true};
 }
 async function driveWriteJSON(fname,obj){
   const json=JSON.stringify(obj,null,2);
@@ -664,7 +671,8 @@ async function autoShareGanttSnapshot() {
   const html = buildGanttSnapshotHtml();
   if (!html) return;
   try {
-    const { id } = await driveWriteFile(GANTT_SHARE_FILE, html, 'text/html');
+    const { id, webViewLink } = await driveWriteFile(GANTT_SHARE_FILE, html, 'text/html');
+    if (webViewLink) { save('tw_gantt_share_link', webViewLink); renderGanttShareLinkBar(); }
     const newEmails = ganttShareEmails.filter(e => !ganttSharePermApplied.has(e));
     for (const email of newEmails) {
       try { await driveSetPermission(id, email); ganttSharePermApplied.add(email); }
@@ -672,6 +680,26 @@ async function autoShareGanttSnapshot() {
     }
     save('tw_gantt_perm_applied', [...ganttSharePermApplied]);
   } catch (e) { console.error('autoShareGanttSnapshot:', e); }
+}
+
+function renderGanttShareLinkBar() {
+  const bar = document.getElementById('ganttShareLinkBar');
+  if (!bar) return;
+  const link = load('tw_gantt_share_link', '');
+  if (link && ukolyView === 'gantt') {
+    bar.style.display = 'flex';
+    document.getElementById('ganttShareLinkInput').value = link;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function copyGanttShareLink() {
+  const link = load('tw_gantt_share_link', '');
+  if (!link) { showToast('Odkaz zatím není — nejdřív nastav e-mail a počkej pár vteřin po uložení úkolu'); return; }
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('Odkaz zkopírován' + (ganttShareEmails.length ? ' — pošli ho kolegovi (musí být přihlášen jako ' + ganttShareEmails.join(', ') + ')' : ''));
+  }).catch(() => { prompt('Zkopíruj odkaz ručně:', link); });
 }
 
 async function ghLoad(){
@@ -793,6 +821,7 @@ function setUkolyView(v) {
   document.getElementById('ukolyFilterRow').style.display = v==='list' ? 'flex' : 'none';
   document.getElementById('ukoly-tag-filters').style.display = v==='list' ? '' : 'none';
   if (v === 'gantt') renderGantt();
+  renderGanttShareLinkBar();
 }
 
 // ── ÚKOLY ────────────────────────────────────────────────────────────────────
