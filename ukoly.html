@@ -298,8 +298,8 @@
 /* PROJECT BADGE */
 .proj-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(124,58,237,0.12); color: var(--accent); white-space: nowrap; margin-right: 4px; }
 .evid-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(142,142,147,0.15); color: var(--muted); white-space: nowrap; margin-right: 4px; }
-.evid-box { background: var(--surface2); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; }
-.evid-box-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px; }
+.evid-box { margin-top: 22px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+.evid-box-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
 .evid-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; }
 .evid-row:last-child { border-bottom: none; }
 .evid-row-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -406,10 +406,10 @@
     <span id="pozde-pill" style="display:none;padding:5px 12px;border-radius:20px;background:rgba(255,149,0,0.1);color:#ff9500;font-size:12px;font-weight:600">⚠️ <span id="pozde-count"></span> po termínu</span>
   </div>
   <div id="done-stats" style="display:none"></div>
-  <div id="evidovaneProjektyBox"></div>
   <div id="ukoly-tag-filters"></div>
 
   <div id="ukolList"></div>
+  <div id="evidovaneProjektyBox"></div>
   <div id="ganttWrap" style="display:none"></div>
 
   <hr class="divider">
@@ -863,6 +863,7 @@ function setUkolyView(v) {
   document.getElementById('ganttWrap').style.display = v==='gantt' ? '' : 'none';
   document.getElementById('ukolyFilterRow').style.display = v==='list' ? 'flex' : 'none';
   document.getElementById('ukoly-tag-filters').style.display = v==='list' ? '' : 'none';
+  document.getElementById('evidovaneProjektyBox').style.display = v==='list' ? '' : 'none';
   document.getElementById('ganttToolbar').style.display = v==='gantt' ? 'flex' : 'none';
   if (v === 'gantt') {
     document.querySelectorAll('#ganttToolbar [data-scale]').forEach(b => b.classList.toggle('active', b.dataset.scale===ganttScale));
@@ -1095,7 +1096,7 @@ function renderGantt() {
   const evidBox = evidHtml(evidovane);
 
   if (!items.length) {
-    el.innerHTML = evidBox + `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Žádné projektové úkoly. Označ úkol jako "Projekt" a vyplň začátek.</div></div>`;
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Žádné projektové úkoly. Označ úkol jako "Projekt" a vyplň začátek.</div></div>` + evidBox;
     return;
   }
 
@@ -1204,7 +1205,7 @@ function renderGantt() {
        </svg>`
     : '';
 
-  el.innerHTML = evidBox + `
+  el.innerHTML = `
     <div class="gantt-wrap">
       <div class="gantt-body">
         <div class="gantt-labels">
@@ -1228,7 +1229,7 @@ function renderGantt() {
           </div>
         </div>
       </div>
-    </div>`;
+    </div>` + evidBox;
 
   const tl = document.getElementById('ganttTimeline');
   if (tl) tl.scrollLeft = Math.max(todayLeft - 160, 0);
@@ -1306,8 +1307,8 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .scale-row button.active { background:rgba(124,58,237,0.1); color:var(--accent); border-color:rgba(124,58,237,0.3); font-weight:600; }
 .collapse-row { display:flex; gap:6px; padding:0 20px 12px; }
 .collapse-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
-.evid-box { background:var(--surface2); border-radius:14px; padding:12px 14px; margin:0 20px 14px; }
-.evid-box-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; }
+.evid-box { margin:14px 20px 0; padding-top:14px; border-top:0.5px solid var(--border); }
+.evid-box-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
 .evid-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:0.5px solid var(--border); }
 .evid-row:last-child { border-bottom:none; }
 .evid-row-name { flex:1; min-width:0; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1330,8 +1331,8 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
   <button data-scale="month" class="active" onclick="setScale('month')">Měsíce</button>
   <button data-scale="quarter" onclick="setScale('quarter')">Kvartály</button>
 </div>
-${evidHtmlStatic}
 <div id="ganttWrap"></div>
+${evidHtmlStatic}
 <script>
 let ITEMS = ${dataJson};
 const collapsed = new Set();
