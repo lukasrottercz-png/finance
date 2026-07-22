@@ -362,6 +362,8 @@
   <div class="view-toggle" id="ukolyViewToggle" style="display:none">
     <button id="viewListBtn" class="active" onclick="setUkolyView('list')">📋 Seznam</button>
     <button id="viewGanttBtn" onclick="setUkolyView('gantt')">📊 Gantt</button>
+    <button onclick="editGanttShareEmails()" style="margin-left:auto" title="Komu se automaticky sdílí Gantt při každém uložení">✉️ Komu sdílet</button>
+    <button onclick="exportGanttSnapshot()">📤 Stáhnout</button>
   </div>
 
   <div class="filter-row" id="ukolyFilterRow">
@@ -607,24 +609,69 @@ async function driveReadJSON(fname){
   let j=null; try{ j=await r.json(); }catch(e){ j=null; }
   return {data:j, exists:true};
 }
-async function driveWriteJSON(fname,obj){
-  const json=JSON.stringify(obj,null,2);
-  let id=localStorage.getItem(driveIdKey(fname)) || await driveFindFile(fname);
-  if(id){
-    const r=await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
-      {method:'PATCH',headers:{'Content-Type':'application/json'},body:json});
-    if(!r.ok) throw new Error('UPDATE '+r.status);
-    return id;
+async function driveWriteFile(fname, content, mimeType) {
+  let id = localStorage.getItem(driveIdKey(fname)) || await driveFindFile(fname);
+  if (id) {
+    const r = await driveApi('https://www.googleapis.com/upload/drive/v3/files/'+id+'?uploadType=media',
+      {method:'PATCH', headers:{'Content-Type':mimeType}, body:content});
+    if (!r.ok) throw new Error('UPDATE '+r.status);
+    return {id, created:false};
   }
   const boundary='uk'+Date.now();
-  const meta=JSON.stringify({name:fname,mimeType:'application/json'});
+  const meta=JSON.stringify({name:fname,mimeType:mimeType});
   const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+meta+
-             '\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+json+'\r\n--'+boundary+'--';
+             '\r\n--'+boundary+'\r\nContent-Type: '+mimeType+'\r\n\r\n'+content+'\r\n--'+boundary+'--';
   const r2=await driveApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
     {method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body:body});
   if(!r2.ok) throw new Error('CREATE '+r2.status);
   const d=await r2.json(); localStorage.setItem(driveIdKey(fname),d.id);
-  return d.id;
+  return {id:d.id, created:true};
+}
+async function driveWriteJSON(fname,obj){
+  const json=JSON.stringify(obj,null,2);
+  const r = await driveWriteFile(fname, json, 'application/json');
+  return r.id;
+}
+async function driveSetPermission(fileId, email) {
+  const r = await driveApi('https://www.googleapis.com/drive/v3/files/'+fileId+'/permissions?sendNotificationEmail=false',
+    {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({role:'reader', type:'user', emailAddress: email})});
+  if (!r.ok) throw new Error('PERM '+r.status);
+  return true;
+}
+
+const GANTT_SHARE_FILE = 'gantt-projekty-snapshot.html';
+let ganttShareEmails = load('tw_gantt_share_emails', []);
+let ganttSharePermApplied = new Set(load('tw_gantt_perm_applied', []));
+
+function editGanttShareEmails() {
+  const current = ganttShareEmails.join(', ');
+  const input = prompt('E-mail(y) kolegů pro trvalé sdílení Gantt snapshotu (odděl čárkou):', current);
+  if (input === null) return;
+  ganttShareEmails = input.split(',').map(s => s.trim()).filter(Boolean);
+  save('tw_gantt_share_emails', ganttShareEmails);
+  ghSave();
+  showToast('Uloženo — sdílení se nastaví při dalším ukládání');
+}
+
+let ganttShareTimer = null;
+function scheduleGanttShare() {
+  if (ganttShareTimer) clearTimeout(ganttShareTimer);
+  ganttShareTimer = setTimeout(() => { ganttShareTimer = null; autoShareGanttSnapshot(); }, 4000);
+}
+
+async function autoShareGanttSnapshot() {
+  if (!isConnected() || !ganttShareEmails.length) return;
+  const html = buildGanttSnapshotHtml();
+  if (!html) return;
+  try {
+    const { id } = await driveWriteFile(GANTT_SHARE_FILE, html, 'text/html');
+    const newEmails = ganttShareEmails.filter(e => !ganttSharePermApplied.has(e));
+    for (const email of newEmails) {
+      try { await driveSetPermission(id, email); ganttSharePermApplied.add(email); }
+      catch (e) { console.error('Sdílení Gantt s', email, 'selhalo:', e); }
+    }
+    save('tw_gantt_perm_applied', [...ganttSharePermApplied]);
+  } catch (e) { console.error('autoShareGanttSnapshot:', e); }
 }
 
 async function ghLoad(){
@@ -634,14 +681,16 @@ async function ghLoad(){
     if(r.exists && r.data){
       if(r.data.ukoly){ ukoly=r.data.ukoly; save('tw_ukoly2',ukoly); }
       if(r.data.events){ events=r.data.events; save('tw_events2',events); }
+      if(r.data.ganttShareEmails){ ganttShareEmails=r.data.ganttShareEmails; save('tw_gantt_share_emails', ganttShareEmails); }
     }
     updateSyncIcon('ok');
   }catch(e){ console.error('driveLoad ukoly:',e); updateSyncIcon('error'); }
 }
 async function ghSave(){
   if(!isConnected()){ updateSyncIcon('local'); return; }
-  try{ await driveWriteJSON(GH_FILE, {ukoly, events}); updateSyncIcon('ok'); }
-  catch(e){ console.error('driveSave ukoly:',e); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); }
+  try{ await driveWriteJSON(GH_FILE, {ukoly, events, ganttShareEmails}); updateSyncIcon('ok'); }
+  catch(e){ console.error('driveSave ukoly:',e); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); return; }
+  scheduleGanttShare();
 }
 
 function updateSyncIcon(state){
@@ -984,6 +1033,166 @@ function renderGantt() {
 function setTagFilter(tag) {
   activeTagFilter = tag;
   renderUkoly();
+}
+
+function buildGanttSnapshotHtml() {
+  const items = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
+    .map(u => ({
+      name: u.name, start: u.start, date: u.date, done: !!u.done, completedAt: u.completedAt||null,
+      zodpovida: u.zodpovida||'',
+      kids: ukoly.filter(k => k.projektId === u.id).map(k => ({
+        name: k.name, date: k.date, done: !!k.done, completedAt: k.completedAt||null, zodpovida: k.zodpovida||''
+      }))
+    }));
+
+  if (!items.length) return null;
+
+  const generatedAt = new Date().toLocaleString('cs-CZ', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const dataJson = JSON.stringify(items).replace(/</g, '\\u003c');
+
+  const html = `<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gantt – projekty (snapshot)</title>
+<style>
+:root { --bg:#f2f2f7; --surface:#fff; --surface2:#e9e9ef; --border:#e5e5ea; --text:#000; --muted:#8e8e93; --accent:#7c3aed; --green:#34c759; --red:#ff3b30; --gray:#aeaeb2; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --text:#fff; --muted:#8e8e93; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+.hd { padding:16px 20px 8px; }
+.hd h1 { font-size:20px; margin:0 0 4px; }
+.hd .meta { font-size:12px; color:var(--muted); }
+.gantt-wrap { box-sizing:border-box; padding:14px 16px 24px; background:var(--surface); }
+.gantt-body { display:flex; }
+.gantt-labels { flex-shrink:0; width:clamp(320px,42vw,500px); padding-right:12px; box-sizing:border-box; }
+.gantt-label-header { height:28px; display:flex; align-items:flex-end; gap:6px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); border-bottom:1px solid var(--border); box-sizing:border-box; padding-bottom:4px; }
+.gantt-label-header .col-name { flex:1; min-width:0; }
+.gantt-label-header .col-date { width:44px; flex-shrink:0; overflow:hidden; white-space:nowrap; }
+.gantt-label-header .col-resp { width:62px; flex-shrink:0; overflow:hidden; white-space:nowrap; }
+.gantt-row-label { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; border-bottom:0.5px solid var(--border); box-sizing:border-box; background:var(--surface2); }
+.gantt-row-label .col-name { flex:1; min-width:0; white-space:normal; line-height:1.25; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.gantt-row-label .col-date { width:44px; flex-shrink:0; font-size:11px; font-weight:400; color:var(--muted); }
+.gantt-row-label .col-resp { width:62px; flex-shrink:0; font-size:11px; font-weight:400; color:var(--muted); white-space:normal; line-height:1.2; overflow:hidden; }
+.gantt-row-label.sub { font-size:11.5px; font-weight:500; background:transparent; }
+.gantt-row-label.sub .col-name { padding-left:14px; }
+.gantt-timeline { flex:1; overflow-x:auto; min-width:0; }
+.gantt-month-header { position:relative; height:28px; border-bottom:1px solid var(--border); }
+.gantt-month-header .gm { position:absolute; top:0; height:100%; box-sizing:border-box; border-left:0.5px solid var(--border); font-size:11px; color:var(--muted); padding:4px 0 0 5px; white-space:nowrap; }
+.gantt-month-header .gm.year-start { border-left:1.5px solid var(--text); font-weight:700; color:var(--text); }
+.gantt-timeline-rows { position:relative; }
+.gantt-grid-line { position:absolute; top:0; bottom:0; width:0; border-left:0.5px solid var(--border); z-index:0; }
+.gantt-grid-line.year-start { border-left:1.5px solid var(--border); opacity:.6; }
+.gantt-today-line { position:absolute; top:0; bottom:0; width:0; border-left:1.5px solid var(--red); z-index:5; }
+.gantt-track-row { position:relative; border-bottom:0.5px solid var(--border); box-sizing:border-box; }
+.gantt-marker { position:absolute; top:50%; width:11px; height:11px; margin-top:-6px; margin-left:-6px; border-radius:2px; transform:rotate(45deg); background:var(--accent); opacity:.85; z-index:3; }
+.gantt-marker.gantt-done { background:var(--green); }
+.gantt-marker.gantt-late { background:var(--red); }
+.gantt-bar { position:absolute; top:50%; margin-top:-10px; height:20px; min-width:6px; border-radius:6px; background:var(--gray); opacity:.9; z-index:2; }
+.empty { text-align:center; padding:40px 20px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="hd">
+  <h1>📊 Gantt — projekty</h1>
+  <div class="meta">Snímek k ${esc(generatedAt)} · neaktualizuje se automaticky, jde o poslední uloženou verzi</div>
+</div>
+<div id="ganttWrap"></div>
+<script>
+const ITEMS = ${dataJson};
+function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+function fmtDate(d){ return new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
+function fmtDateShort(d){ return new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'}); }
+
+function render() {
+  const el = document.getElementById('ganttWrap');
+  if (!ITEMS.length) { el.innerHTML = '<div class="empty">Žádné projekty.</div>'; return; }
+  const DAY = 86400000, PX_PER_DAY = 6;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todayD = new Date(); todayD.setHours(0,0,0,0);
+  const dates = ITEMS.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00')]);
+  ITEMS.forEach(i => i.kids.forEach(k => dates.push(new Date(k.date+'T00:00:00'))));
+  dates.push(todayD);
+  const minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
+  const rangeStart = new Date(minD.getFullYear(), minD.getMonth(), 1);
+  const rangeEnd = new Date(maxD.getFullYear(), maxD.getMonth()+1, 0);
+  const dayOffset = d => Math.round((d - rangeStart) / DAY);
+  const totalDays = dayOffset(rangeEnd) + 1;
+  const totalPx = totalDays * PX_PER_DAY;
+
+  let months = [], cur = new Date(rangeStart);
+  while (cur <= rangeEnd) {
+    const monthStart = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    const monthDays = new Date(cur.getFullYear(), cur.getMonth()+1, 0).getDate();
+    months.push({ start: monthStart, days: monthDays, isYearStart: monthStart.getMonth()===0 });
+    cur.setMonth(cur.getMonth()+1);
+  }
+  let monthHtml = '', gridHtml = '';
+  months.forEach(m => {
+    const left = dayOffset(m.start) * PX_PER_DAY, width = m.days * PX_PER_DAY;
+    const label = m.start.toLocaleDateString('cs-CZ', m.isYearStart ? {month:'short',year:'numeric'} : {month:'short'});
+    monthHtml += '<div class="gm'+(m.isYearStart?' year-start':'')+'" style="left:'+left+'px;width:'+width+'px">'+esc(label)+'</div>';
+    gridHtml += '<div class="gantt-grid-line'+(m.isYearStart?' year-start':'')+'" style="left:'+left+'px"></div>';
+  });
+  const todayLeft = dayOffset(todayD) * PX_PER_DAY;
+
+  const labelsColPx = Math.min(500, Math.max(320, window.innerWidth * 0.42));
+  const nameColPx = labelsColPx - 12 - 44*2 - 62 - 18;
+  const rowH1=34, rowH2=50, subH1=28, subH2=42;
+  const estLines = (text, extraPad) => {
+    const perLine = Math.max(10, Math.floor((nameColPx - (extraPad||0)) / 6.3));
+    return text.length > perLine ? 2 : 1;
+  };
+
+  let labelsHtml = '', rowsHtml = '';
+  ITEMS.forEach(u => {
+    const left = dayOffset(new Date(u.start+'T00:00:00')) * PX_PER_DAY;
+    const width = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
+    const rowH = estLines(u.name) === 2 ? rowH2 : rowH1;
+    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px"><div class="col-name" title="'+esc(u.name)+'">'+esc(u.name)+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date">'+fmtDateShort(u.date)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>';
+    rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px"><div class="gantt-bar" style="left:'+left+'px;width:'+width+'px" title="'+esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date)+'"></div></div>';
+    u.kids.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(k => {
+      const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
+      const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-late':'gantt-done') : (k.date < todayStr ? 'gantt-late':'');
+      const kRowH = estLines(k.name, 14) === 2 ? subH2 : subH1;
+      labelsHtml += '<div class="gantt-row-label sub" style="height:'+kRowH+'px"><div class="col-name" title="'+esc(k.name)+'">↳ '+esc(k.name)+'</div><div class="col-date">–</div><div class="col-date">'+fmtDateShort(k.date)+'</div><div class="col-resp">'+(k.zodpovida?esc(k.zodpovida):'–')+'</div></div>';
+      rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px"><div class="gantt-marker '+kCls+'" style="left:'+kLeft+'px" title="'+esc(k.name)+': '+fmtDate(k.date)+'"></div></div>';
+    });
+  });
+
+  el.innerHTML = '<div class="gantt-wrap"><div class="gantt-body">'+
+    '<div class="gantt-labels"><div class="gantt-label-header"><div class="col-name">Úkol</div><div class="col-date">Od</div><div class="col-date">Do</div><div class="col-resp">Zodp.</div></div>'+labelsHtml+'</div>'+
+    '<div class="gantt-timeline" id="ganttTimeline"><div style="width:'+totalPx+'px;position:relative">'+
+      '<div class="gantt-month-header" style="width:'+totalPx+'px">'+monthHtml+'</div>'+
+      '<div class="gantt-timeline-rows" style="width:'+totalPx+'px">'+gridHtml+'<div class="gantt-today-line" style="left:'+todayLeft+'px" title="Dnes"></div>'+rowsHtml+'</div>'+
+    '</div></div>'+
+  '</div></div>';
+
+  const tl = document.getElementById('ganttTimeline');
+  if (tl) tl.scrollLeft = Math.max(todayLeft - 160, 0);
+}
+render();
+<\/script>
+</body>
+</html>`;
+
+  return html;
+}
+
+function exportGanttSnapshot() {
+  const html = buildGanttSnapshotHtml();
+  if (!html) { showToast('Žádné projekty k exportu'); return; }
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gantt-snapshot-' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('Staženo — nahraj do GitHub repa a pošli odkaz ✓');
 }
 
 function setUkolyFilter(f, el) {
