@@ -1351,7 +1351,7 @@ function render() {
     yCursor += rowH;
     const isCollapsed = collapsed.has(u.id);
     const hasKids = u.kids.length > 0;
-    const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\''+u.id+'\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;color:var(--muted);font-size:13px;font-weight:700;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
+    const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\\''+u.id+'\\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;color:var(--muted);font-size:13px;font-weight:700;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
     labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date">'+fmtDateShort(u.date)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>';
     rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px"><div class="gantt-bar" style="left:'+left+'px;width:'+width+'px" title="'+esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date)+'"></div></div>';
     if (isCollapsed) return;
