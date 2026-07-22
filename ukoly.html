@@ -364,6 +364,12 @@
     <button id="viewGanttBtn" onclick="setUkolyView('gantt')">📊 Gantt</button>
     <button onclick="editGanttShareEmails()" style="margin-left:auto" title="Komu se automaticky sdílí Gantt při každém uložení">✉️ Komu sdílet</button>
     <button onclick="exportGanttSnapshot()">📤 Stáhnout</button>
+    <button onclick="presentGantt()">🖥️ Prezentovat</button>
+  </div>
+
+  <div class="view-toggle" id="collapseAllRow" style="display:none">
+    <button onclick="collapseAllProjects()">▸ Sbalit vše</button>
+    <button onclick="expandAllProjects()">▾ Rozbalit vše</button>
   </div>
 
   <div id="ganttShareLinkBar" style="display:none;align-items:center;gap:8px;margin-bottom:12px;padding:8px 10px;background:var(--surface2);border-radius:10px">
@@ -807,6 +813,7 @@ function setAgenda(a) {
   save('tw_active_agenda', a);
   document.querySelectorAll('#agendaSwitch .agenda-btn').forEach((b,i) => b.classList.toggle('active', (i===0?'osobni':'prace')===a));
   document.getElementById('ukolyViewToggle').style.display = a === 'prace' ? 'flex' : 'none';
+  document.getElementById('collapseAllRow').style.display = a === 'prace' ? 'flex' : 'none';
   if (a !== 'prace' && ukolyView === 'gantt') setUkolyView('list');
   renderUkoly();
   renderEvents();
@@ -836,6 +843,20 @@ let collapsedProjects = new Set(load('tw_collapsed_projects', []));
 
 function toggleProjectCollapse(id) {
   if (collapsedProjects.has(id)) collapsedProjects.delete(id); else collapsedProjects.add(id);
+  save('tw_collapsed_projects', [...collapsedProjects]);
+  renderUkoly();
+  if (ukolyView === 'gantt') renderGantt();
+}
+
+function collapseAllProjects() {
+  ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt).forEach(u => collapsedProjects.add(u.id));
+  save('tw_collapsed_projects', [...collapsedProjects]);
+  renderUkoly();
+  if (ukolyView === 'gantt') renderGantt();
+}
+
+function expandAllProjects() {
+  ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt).forEach(u => collapsedProjects.delete(u.id));
   save('tw_collapsed_projects', [...collapsedProjects]);
   renderUkoly();
   if (ukolyView === 'gantt') renderGantt();
@@ -1209,6 +1230,15 @@ render();
 </html>`;
 
   return html;
+}
+
+function presentGantt() {
+  const html = buildGanttSnapshotHtml();
+  if (!html) { showToast('Žádné projekty k prezentaci'); return; }
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, 'ganttPresentation', 'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no');
+  if (!win) { showToast('Prohlížeč zablokoval nové okno — povol vyskakovací okna pro tuto stránku'); }
 }
 
 function exportGanttSnapshot() {
