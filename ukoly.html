@@ -434,12 +434,12 @@
     </div>
     <div class="field" id="uProjektIdField" style="display:none">
       <label>Patří pod projekt</label>
-      <select id="uProjektId" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+      <select id="uProjektId" onchange="buildPredecessorSelect(editUkolId)" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
         <option value="">— žádný —</option>
       </select>
     </div>
     <div class="field" id="uPredecessorField" style="display:none">
-      <label>Navazuje na <span style="font-weight:400;color:var(--muted)">(předchůdce — až po jeho dokončení)</span></label>
+      <label>Navazuje na <span style="font-weight:400;color:var(--muted)">(předchůdce ze stejného projektu)</span></label>
       <select id="uPredecessorId" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
         <option value="">— žádný —</option>
       </select>
@@ -1123,7 +1123,8 @@ function renderGantt() {
     const p = posMap[d.predecessorId], s = posMap[d.id];
     const x1 = p.x2, y1 = p.top + p.height/2;
     const x2 = s.x1, y2 = s.top + s.height/2;
-    connectorsHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />`;
+    const midX = x2 > x1 + 14 ? Math.round((x1+x2)/2) : x1 + 10;
+    connectorsHtml += `<path d="M ${x1} ${y1} H ${midX} V ${y2} H ${x2}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />`;
   });
   const connectorsSvg = connectorsHtml
     ? `<svg style="position:absolute;top:0;left:0;width:${totalPx}px;height:${yCursor}px;pointer-events:none;z-index:4" xmlns="http://www.w3.org/2000/svg">
@@ -1321,7 +1322,8 @@ function render() {
     if (!d.predecessorId || !posMap[d.predecessorId]) return;
     const p = posMap[d.predecessorId], s = posMap[d.id];
     const x1 = p.x2, y1 = p.top + p.height/2, x2 = s.x1, y2 = s.top + s.height/2;
-    connectorsHtml += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />';
+    const midX = x2 > x1 + 14 ? Math.round((x1+x2)/2) : x1 + 10;
+    connectorsHtml += '<path d="M '+x1+' '+y1+' H '+midX+' V '+y2+' H '+x2+'" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />';
   });
   const connectorsSvg = connectorsHtml
     ? '<svg style="position:absolute;top:0;left:0;width:'+totalPx+'px;height:'+yCursor+'px;pointer-events:none;z-index:4" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ganttArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--accent)"/></marker></defs>'+connectorsHtml+'</svg>'
@@ -1466,6 +1468,7 @@ function toggleUkolProjekt() {
   document.getElementById('uStartField').style.display = ukolProjekt ? 'block' : 'none';
   document.getElementById('uProjektIdField').style.display = ukolProjekt ? 'none' : 'block';
   updateUkolProjektPill();
+  buildPredecessorSelect(editUkolId);
 }
 function updateUkolProjektPill() {
   const p = document.getElementById('uProjektPill');
@@ -1481,9 +1484,17 @@ function buildProjektSelect(excludeId) {
 
 function buildPredecessorSelect(excludeId) {
   const sel = document.getElementById('uPredecessorId');
-  const candidates = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.id !== excludeId);
+  let candidates;
+  if (ukolProjekt) {
+    // úkol samotný je projekt -> předchůdcem může být jiný projekt
+    candidates = ukoly.filter(u => u.projekt && u.id !== excludeId && (u.agenda||'osobni')==='prace');
+  } else {
+    const projId = document.getElementById('uProjektId').value;
+    candidates = projId ? ukoly.filter(u => u.projektId === projId && u.id !== excludeId) : [];
+  }
   sel.innerHTML = '<option value="">— žádný —</option>' +
     candidates.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  if (![...sel.options].some(o => o.value === sel.value)) sel.value = '';
 }
 
 function buildZodpList() {
