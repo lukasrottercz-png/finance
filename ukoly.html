@@ -297,6 +297,13 @@
 
 /* PROJECT BADGE */
 .proj-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(124,58,237,0.12); color: var(--accent); white-space: nowrap; margin-right: 4px; }
+.evid-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(142,142,147,0.15); color: var(--muted); white-space: nowrap; margin-right: 4px; }
+.evid-box { background: var(--surface2); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; }
+.evid-box-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px; }
+.evid-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; }
+.evid-row:last-child { border-bottom: none; }
+.evid-row-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.evid-row .resp-badge { font-size: 11px; color: var(--muted); flex-shrink: 0; }
 .resp-badge { font-size: 11px; color: var(--muted); }
 
 /* GANTT */
@@ -399,6 +406,7 @@
     <span id="pozde-pill" style="display:none;padding:5px 12px;border-radius:20px;background:rgba(255,149,0,0.1);color:#ff9500;font-size:12px;font-weight:600">⚠️ <span id="pozde-count"></span> po termínu</span>
   </div>
   <div id="done-stats" style="display:none"></div>
+  <div id="evidovaneProjektyBox"></div>
   <div id="ukoly-tag-filters"></div>
 
   <div id="ukolList"></div>
@@ -441,6 +449,12 @@
         <span style="font-weight:400;text-transform:none;font-size:12px;letter-spacing:0">zobrazit v Ganttu podle začátku a termínu</span>
       </label>
     </div>
+    <div class="field" id="uEvidovanyField" style="display:none">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleUkolEvidovany()">
+        <span class="cat-pill" id="uEvidovanyPill">📋 Evidovaný (zatím bez termínu)</span>
+        <span style="font-weight:400;text-transform:none;font-size:12px;letter-spacing:0">nezahájený projekt — termín doplníš později</span>
+      </label>
+    </div>
     <div class="field" id="uStartField" style="display:none">
       <label>Začátek</label>
       <input id="uStart" type="date">
@@ -457,8 +471,8 @@
         <option value="">— žádný —</option>
       </select>
     </div>
-    <div class="field">
-      <label>Termín splnění *</label>
+    <div class="field" id="uDateField">
+      <label id="uDateLabel">Termín splnění *</label>
       <input id="uDate" type="date">
     </div>
     <div class="field" id="uZodpField" style="display:none">
@@ -863,6 +877,7 @@ let uFilter = 'open';
 let editUkolId = null;
 let selUkolAgenda = 'osobni';
 let ukolProjekt = false;
+let ukolEvidovany = false;
 
 let activeTagFilter = '';
 let collapsedProjects = new Set(load('tw_collapsed_projects', []));
@@ -888,8 +903,29 @@ function expandAllProjects() {
   if (ukolyView === 'gantt') renderGantt();
 }
 
+function renderEvidovaneProjekty(list) {
+  const box = document.getElementById('evidovaneProjektyBox');
+  if (!box) return;
+  if (!list.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="evid-box">
+    <div class="evid-box-title">📋 Evidované projekty (${list.length}) — zatím bez termínu</div>
+    ${list.map(u => `
+      <div class="evid-row" onclick="openUkolModal('${u.id}')">
+        <span class="evid-badge">nezahájeno</span>
+        <span class="evid-row-name">${esc(u.name)}</span>
+        ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderUkoly() {
-  const agendaUkoly = ukoly.filter(u => (u.agenda||'osobni') === activeAgenda);
+  const agendaUkolyAll = ukoly.filter(u => (u.agenda||'osobni') === activeAgenda);
+  const evidovaneIds = new Set(agendaUkolyAll.filter(u => u.projekt && u.evidovany).map(u => u.id));
+  const evidovaneProjekty = agendaUkolyAll.filter(u => u.projekt && u.evidovany);
+  const agendaUkoly = agendaUkolyAll.filter(u => !(u.projekt && u.evidovany) && !evidovaneIds.has(u.projektId));
+
+  renderEvidovaneProjekty(evidovaneProjekty);
+
   const pending = agendaUkoly.filter(u => !u.done).length;
   const done = agendaUkoly.filter(u => u.done).length;
   const vcas = agendaUkoly.filter(u => u.done && u.completedAt && u.completedAt <= u.date).length;
@@ -1038,13 +1074,28 @@ function orderByChain(arr) {
   return out;
 }
 
+function evidHtml(list) {
+  if (!list.length) return '';
+  return `<div class="evid-box">
+    <div class="evid-box-title">📋 Evidované projekty (${list.length}) — zatím bez termínu</div>
+    ${list.map(u => `
+      <div class="evid-row" onclick="openUkolModal('${u.id}')">
+        <span class="evid-badge">nezahájeno</span>
+        <span class="evid-row-name">${esc(u.name)}</span>
+        ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
+      </div>`).join('')}
+  </div>`;
+}
+
 function renderGantt() {
   const el = document.getElementById('ganttWrap');
   const items = orderByChain(ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
     .sort((a,b) => a.start.localeCompare(b.start)));
+  const evidovane = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
+  const evidBox = evidHtml(evidovane);
 
   if (!items.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Žádné projektové úkoly. Označ úkol jako "Projekt" a vyplň začátek.</div></div>`;
+    el.innerHTML = evidBox + `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Žádné projektové úkoly. Označ úkol jako "Projekt" a vyplň začátek.</div></div>`;
     return;
   }
 
@@ -1153,7 +1204,7 @@ function renderGantt() {
        </svg>`
     : '';
 
-  el.innerHTML = `
+  el.innerHTML = evidBox + `
     <div class="gantt-wrap">
       <div class="gantt-body">
         <div class="gantt-labels">
@@ -1197,8 +1248,11 @@ function buildGanttSnapshotHtml() {
         id: k.id, name: k.name, date: k.date, done: !!k.done, completedAt: k.completedAt||null, zodpovida: k.zodpovida||'', predecessorId: k.predecessorId||''
       }))
     }));
+  const evidovane = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
 
-  if (!items.length) return null;
+  if (!items.length && !evidovane.length) return null;
+
+  const evidHtmlStatic = evidovane.length ? `<div class="evid-box"><div class="evid-box-title">📋 Evidované projekty (${evidovane.length}) — zatím bez termínu</div>${evidovane.map(u => `<div class="evid-row"><span class="evid-badge">nezahájeno</span><span class="evid-row-name">${esc(u.name)}</span>${u.zodpovida?`<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>`:''}</div>`).join('')}</div>` : '';
 
   const generatedAt = new Date().toLocaleString('cs-CZ', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const dataJson = JSON.stringify(items).replace(/</g, '\\u003c');
@@ -1252,6 +1306,13 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .scale-row button.active { background:rgba(124,58,237,0.1); color:var(--accent); border-color:rgba(124,58,237,0.3); font-weight:600; }
 .collapse-row { display:flex; gap:6px; padding:0 20px 12px; }
 .collapse-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
+.evid-box { background:var(--surface2); border-radius:14px; padding:12px 14px; margin:0 20px 14px; }
+.evid-box-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:8px; }
+.evid-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:0.5px solid var(--border); }
+.evid-row:last-child { border-bottom:none; }
+.evid-row-name { flex:1; min-width:0; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.evid-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:8px; background:rgba(142,142,147,0.15); color:var(--muted); white-space:nowrap; }
+.resp-badge { font-size:11px; color:var(--muted); white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -1269,6 +1330,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
   <button data-scale="month" class="active" onclick="setScale('month')">Měsíce</button>
   <button data-scale="quarter" onclick="setScale('quarter')">Kvartály</button>
 </div>
+${evidHtmlStatic}
 <div id="ganttWrap"></div>
 <script>
 let ITEMS = ${dataJson};
@@ -1490,6 +1552,7 @@ function openUkolModal(id) {
   document.getElementById('uDelBtn').style.display = u ? 'inline-block' : 'none';
   selUkolAgenda = u ? (u.agenda||'osobni') : activeAgenda;
   ukolProjekt = u ? !!u.projekt : false;
+  ukolEvidovany = u ? !!u.evidovany : false;
   buildProjektSelect(u ? u.id : null);
   document.getElementById('uProjektId').value = u ? (u.projektId||'') : '';
   buildPredecessorSelect(u ? u.id : null);
@@ -1505,25 +1568,39 @@ function buildUkolAgendaPills() {
   const pills = document.querySelectorAll('#uAgendaPills .cat-pill');
   pills[0].classList.toggle('sel', selUkolAgenda==='osobni');
   pills[1].classList.toggle('sel', selUkolAgenda==='prace');
+  updateUkolFieldVisibility();
+}
+
+function updateUkolFieldVisibility() {
   const isPrace = selUkolAgenda === 'prace';
   document.getElementById('uProjektField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uZodpField').style.display = isPrace ? 'block' : 'none';
-  document.getElementById('uStartField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
+  document.getElementById('uEvidovanyField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
+  document.getElementById('uStartField').style.display = (isPrace && ukolProjekt && !ukolEvidovany) ? 'block' : 'none';
   document.getElementById('uProjektIdField').style.display = (isPrace && !ukolProjekt) ? 'block' : 'none';
   document.getElementById('uPredecessorField').style.display = isPrace ? 'block' : 'none';
+  document.getElementById('uDateField').style.display = (ukolProjekt && ukolEvidovany) ? 'none' : 'block';
   updateUkolProjektPill();
+  updateUkolEvidovanyPill();
 }
 
 function toggleUkolProjekt() {
   ukolProjekt = !ukolProjekt;
-  document.getElementById('uStartField').style.display = ukolProjekt ? 'block' : 'none';
-  document.getElementById('uProjektIdField').style.display = ukolProjekt ? 'none' : 'block';
-  updateUkolProjektPill();
+  if (!ukolProjekt) ukolEvidovany = false; // evidovaný stav dává smysl jen u projektu
+  updateUkolFieldVisibility();
   buildPredecessorSelect(editUkolId);
+}
+function toggleUkolEvidovany() {
+  ukolEvidovany = !ukolEvidovany;
+  updateUkolFieldVisibility();
 }
 function updateUkolProjektPill() {
   const p = document.getElementById('uProjektPill');
   p.classList.toggle('sel', ukolProjekt);
+}
+function updateUkolEvidovanyPill() {
+  const p = document.getElementById('uEvidovanyPill');
+  p.classList.toggle('sel', ukolEvidovany);
 }
 
 function buildProjektSelect(excludeId) {
@@ -1571,25 +1648,27 @@ function parseTags(str) {
 
 function saveUkol() {
   const name = document.getElementById('uName').value.trim();
-  const date = document.getElementById('uDate').value;
   const note = document.getElementById('uNote').value.trim();
   const repeat = document.getElementById('uRepeat').value;
   const tags = parseTags(document.getElementById('uTags').value);
   const agenda = selUkolAgenda;
   const isPrace = agenda === 'prace';
   const projekt = isPrace && ukolProjekt;
-  const start = projekt ? document.getElementById('uStart').value : '';
+  const evidovany = projekt && ukolEvidovany;
+  const date = evidovany ? '' : document.getElementById('uDate').value;
+  const start = (projekt && !evidovany) ? document.getElementById('uStart').value : '';
   const zodpovida = isPrace ? document.getElementById('uZodp').value.trim() : '';
   const projektId = (isPrace && !projekt) ? document.getElementById('uProjektId').value : '';
   const predecessorId = isPrace ? document.getElementById('uPredecessorId').value : '';
   const completedAtVal = document.getElementById('uCompletedAt').value;
   const done = !!completedAtVal;
   const completedAt = completedAtVal || null;
-  if (!name || !date) return alert('Vyplň název a termín.');
+  if (!name) return alert('Vyplň název.');
+  if (!evidovany && !date) return alert('Vyplň termín (nebo označ projekt jako "Evidovaný").');
   if (editUkolId) {
-    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat, tags, agenda, projekt, start, zodpovida, projektId, predecessorId, done, completedAt} : u);
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat, tags, agenda, projekt, evidovany, start, zodpovida, projektId, predecessorId, done, completedAt} : u);
   } else {
-    ukoly.push({ id: uid(), name, date, note, done, completedAt, repeat, tags, agenda, projekt, start, zodpovida, projektId, predecessorId });
+    ukoly.push({ id: uid(), name, date, note, done, completedAt, repeat, tags, agenda, projekt, evidovany, start, zodpovida, projektId, predecessorId });
   }
   save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
   closeUkolModal();
