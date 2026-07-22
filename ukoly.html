@@ -285,6 +285,15 @@
 .view-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .view-toggle button { padding: 5px 14px; border-radius: 20px; border: 0.5px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; font-family: inherit; cursor: pointer; }
 .view-toggle button.active { background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); font-weight: 600; }
+.toolbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 2px; align-self: center; }
+
+.gantt-toolbar { display: none; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface2); border-radius: 14px; padding: 10px 12px; margin-bottom: 10px; }
+.gantt-toolbar-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.gantt-toolbar-group .toolbar-label { font-size: 11px; color: var(--muted); margin-right: 2px; }
+.gantt-toolbar-group button { padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border); background: var(--surface); color: var(--muted); font-size: 12px; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.gantt-toolbar-group button.active { background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); font-weight: 600; }
+.gantt-toolbar-group.share-group button { color: #0a84ff; border-color: rgba(10,132,255,0.25); background: rgba(10,132,255,0.06); }
+.gantt-toolbar-group.share-group button:hover { background: rgba(10,132,255,0.12); }
 
 /* PROJECT BADGE */
 .proj-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(124,58,237,0.12); color: var(--accent); white-space: nowrap; margin-right: 4px; }
@@ -362,25 +371,24 @@
   <div class="view-toggle" id="ukolyViewToggle" style="display:none">
     <button id="viewListBtn" class="active" onclick="setUkolyView('list')">📋 Seznam</button>
     <button id="viewGanttBtn" onclick="setUkolyView('gantt')">📊 Gantt</button>
-    <button onclick="editGanttShareEmails()" style="margin-left:auto" title="Komu se automaticky sdílí Gantt při každém uložení">✉️ Komu sdílet</button>
-    <button onclick="exportGanttSnapshot()">📤 Stáhnout</button>
-    <button onclick="presentGantt()">🖥️ Prezentovat</button>
-  </div>
-
-  <div class="view-toggle" id="collapseAllRow" style="display:none">
+    <span class="toolbar-divider"></span>
     <button onclick="collapseAllProjects()">▸ Sbalit vše</button>
     <button onclick="expandAllProjects()">▾ Rozbalit vše</button>
   </div>
 
-  <div class="view-toggle" id="ganttScaleRow" style="display:none">
-    <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:2px">Měřítko:</span>
-    <button data-scale="week" onclick="setGanttScale('week')">Týdny</button>
-    <button data-scale="month" class="active" onclick="setGanttScale('month')">Měsíce</button>
-    <button data-scale="quarter" onclick="setGanttScale('quarter')">Kvartály</button>
-  </div>
-
-  <div id="ganttShareLinkBar" style="display:none;margin-bottom:12px">
-    <button class="btn btn-ghost" onclick="copyGanttShareLink()">🔗 Kopírovat odkaz pro sdílení</button>
+  <div class="gantt-toolbar" id="ganttToolbar">
+    <div class="gantt-toolbar-group">
+      <span class="toolbar-label">Měřítko</span>
+      <button data-scale="week" onclick="setGanttScale('week')">Týdny</button>
+      <button data-scale="month" class="active" onclick="setGanttScale('month')">Měsíce</button>
+      <button data-scale="quarter" onclick="setGanttScale('quarter')">Kvartály</button>
+    </div>
+    <div class="gantt-toolbar-group share-group">
+      <button onclick="editGanttShareEmails()" title="Komu se automaticky sdílí Gantt při každém uložení">✉️ Komu sdílet</button>
+      <button onclick="copyGanttShareLink()" id="ganttCopyLinkBtn" style="display:none">🔗 Odkaz</button>
+      <button onclick="exportGanttSnapshot()">📤 Stáhnout</button>
+      <button onclick="presentGantt()">🖥️ Prezentovat</button>
+    </div>
   </div>
 
   <div class="filter-row" id="ukolyFilterRow">
@@ -700,10 +708,10 @@ async function autoShareGanttSnapshot() {
 }
 
 function renderGanttShareLinkBar() {
-  const bar = document.getElementById('ganttShareLinkBar');
-  if (!bar) return;
+  const btn = document.getElementById('ganttCopyLinkBtn');
+  if (!btn) return;
   const link = load('tw_gantt_share_link', '');
-  bar.style.display = (link && ukolyView === 'gantt') ? 'block' : 'none';
+  btn.style.display = (link && ukolyView === 'gantt') ? 'inline-block' : 'none';
 }
 
 function copyGanttShareLink() {
@@ -804,7 +812,7 @@ let ganttScale = load('tw_gantt_scale', 'month');
 function setGanttScale(s) {
   ganttScale = s;
   save('tw_gantt_scale', s);
-  document.querySelectorAll('#ganttScaleRow button').forEach(b => b.classList.toggle('active', b.dataset.scale===s));
+  document.querySelectorAll('#ganttToolbar [data-scale]').forEach(b => b.classList.toggle('active', b.dataset.scale===s));
   if (ukolyView === 'gantt') renderGantt();
 }
 
@@ -828,7 +836,6 @@ function setAgenda(a) {
   save('tw_active_agenda', a);
   document.querySelectorAll('#agendaSwitch .agenda-btn').forEach((b,i) => b.classList.toggle('active', (i===0?'osobni':'prace')===a));
   document.getElementById('ukolyViewToggle').style.display = a === 'prace' ? 'flex' : 'none';
-  document.getElementById('collapseAllRow').style.display = a === 'prace' ? 'flex' : 'none';
   if (a !== 'prace' && ukolyView === 'gantt') setUkolyView('list');
   renderUkoly();
   renderEvents();
@@ -842,9 +849,9 @@ function setUkolyView(v) {
   document.getElementById('ganttWrap').style.display = v==='gantt' ? '' : 'none';
   document.getElementById('ukolyFilterRow').style.display = v==='list' ? 'flex' : 'none';
   document.getElementById('ukoly-tag-filters').style.display = v==='list' ? '' : 'none';
-  document.getElementById('ganttScaleRow').style.display = v==='gantt' ? 'flex' : 'none';
+  document.getElementById('ganttToolbar').style.display = v==='gantt' ? 'flex' : 'none';
   if (v === 'gantt') {
-    document.querySelectorAll('#ganttScaleRow button').forEach(b => b.classList.toggle('active', b.dataset.scale===ganttScale));
+    document.querySelectorAll('#ganttToolbar [data-scale]').forEach(b => b.classList.toggle('active', b.dataset.scale===ganttScale));
     renderGantt();
   }
   renderGanttShareLinkBar();
