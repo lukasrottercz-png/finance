@@ -1250,12 +1250,18 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .scale-row span { font-size:11px; color:var(--muted); margin-right:2px; }
 .scale-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
 .scale-row button.active { background:rgba(124,58,237,0.1); color:var(--accent); border-color:rgba(124,58,237,0.3); font-weight:600; }
+.collapse-row { display:flex; gap:6px; padding:0 20px 12px; }
+.collapse-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
 </style>
 </head>
 <body>
 <div class="hd">
   <h1>📊 Gantt — projekty</h1>
   <div class="meta">Snímek k ${esc(generatedAt)} · neaktualizuje se automaticky, jde o poslední uloženou verzi</div>
+</div>
+<div class="collapse-row">
+  <button onclick="collapseAll()">▸ Sbalit vše</button>
+  <button onclick="expandAll()">▾ Rozbalit vše</button>
 </div>
 <div class="scale-row" id="scaleRow">
   <span>Měřítko:</span>
@@ -1266,6 +1272,10 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 <div id="ganttWrap"></div>
 <script>
 let ITEMS = ${dataJson};
+const collapsed = new Set();
+function toggleCollapse(id) { if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id); render(); }
+function collapseAll() { ITEMS.forEach(u => collapsed.add(u.id)); render(); }
+function expandAll() { collapsed.clear(); render(); }
 const GANTT_SCALES = { week: 20, month: 6, quarter: 2.2 };
 let SCALE = 'month';
 function setScale(s) {
@@ -1339,8 +1349,12 @@ function render() {
     posMap[u.id] = { top: yCursor, height: rowH, x1: left, x2: left+width };
     depList.push({ id: u.id, predecessorId: u.predecessorId||'' });
     yCursor += rowH;
-    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px"><div class="col-name" title="'+esc(u.name)+'">'+esc(u.name)+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date">'+fmtDateShort(u.date)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>';
+    const isCollapsed = collapsed.has(u.id);
+    const hasKids = u.kids.length > 0;
+    const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\''+u.id+'\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;color:var(--muted);font-size:13px;font-weight:700;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
+    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date">'+fmtDateShort(u.date)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>';
     rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px"><div class="gantt-bar" style="left:'+left+'px;width:'+width+'px" title="'+esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date)+'"></div></div>';
+    if (isCollapsed) return;
     u.kids = orderByChain(u.kids.slice().sort((a,b)=>a.date.localeCompare(b.date)));
     u.kids.forEach(k => {
       const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
@@ -1356,7 +1370,7 @@ function render() {
 
   let connectorsHtml = '';
   depList.forEach(d => {
-    if (!d.predecessorId || !posMap[d.predecessorId]) return;
+    if (!d.predecessorId || !posMap[d.predecessorId] || !posMap[d.id]) return;
     const p = posMap[d.predecessorId], s = posMap[d.id];
     const x1 = p.x2, y1 = p.top + p.height/2, x2 = s.x1, y2 = s.top + s.height/2;
     const midX = x2 > x1 + 14 ? Math.round((x1+x2)/2) : x1 + 10;
