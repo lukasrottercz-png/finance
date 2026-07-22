@@ -934,7 +934,11 @@ function renderUkoly() {
     grouped.push(u); rendered.add(u.id);
     attachRelated(u);
   });
-  list.forEach(u => { if (!rendered.has(u.id)) { grouped.push(u); rendered.add(u.id); } }); // pojistka
+  list.forEach(u => {
+    if (rendered.has(u.id)) return;
+    if (u.projektId && parentIds.has(u.projektId)) return; // patří pod projekt, který je sbalený (nebo ho ještě čeká) — nezobrazovat samostatně
+    grouped.push(u); rendered.add(u.id);
+  }); // pojistka (jen pro skutečně osiřelé položky mimo projekt)
   list = grouped;
 
   const el = document.getElementById('ukolList');
@@ -977,8 +981,8 @@ function renderUkoly() {
     const waitSep = (isWaiting && !waitHeaderShown) ? (waitHeaderShown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
     return waitSep + `
     <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}" style="${(u.projektId||predTask)?'margin-left:18px;border-left-width:2px':''}">
-      <div class="check ${u.done?'checked':''}" onclick="toggleUkol('${u.id}')"></div>
-      <div class="task-body">
+      <div class="check ${u.done?'checked':''}" onclick="event.stopPropagation();toggleUkol('${u.id}')"></div>
+      <div class="task-body" onclick="openUkolModal('${u.id}')" style="cursor:pointer">
         <div class="task-name">${collapseBtn}${u.projekt ? '<span class="proj-badge">📊 projekt</span>' : ''}${esc(u.name)}${isCollapsed ? ` <span style="font-size:11px;color:var(--muted);font-weight:400">(${(childrenMap[u.id]||[]).length} sbaleno)</span>` : ''}</div>
         <div class="task-date">${u.projekt && u.start ? fmtDate(u.start)+' – ' : ''}${fmtDate(u.date)}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}${u.zodpovida ? ' · <span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>' : ''}${projParent ? ' · <span class="resp-badge">📊 '+esc(projParent.name)+'</span>' : ''}${predTask ? ' · <span class="resp-badge">🔗 po: '+esc(predTask.name)+'</span>' : ''}</div>
         ${tagsHtml}
