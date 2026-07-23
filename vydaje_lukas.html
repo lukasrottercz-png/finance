@@ -177,6 +177,7 @@ var CATS=[
   {k:'sporeni',    i:'💰',l:'Spoření',        s:['Stavební spoření','Penzijní','Investice']},
   {k:'domacnost',  i:'🔧',l:'Domácnost',      s:['Elektro','Nábytek','Nářadí','Mazlíčci','Čisticí prostředky']},
   {k:'darky',      i:'🎁',l:'Dárky a oslavy',s:['Narozeniny','Svátky','Charita','Různé']},
+  {k:'za_jitku',   i:'💸',l:'Za Jitku',       s:['Nákup','Služby','Zdraví','Oblečení','Různé']},
   {k:'vyrovnani',  i:'🤝',l:'Vyrovnání Jitka', s:['Podíl Jitka']},
   {k:'ostatni',    i:'❓',l:'Ostatní',        s:['Poplatky','Pokuty','Jiné']}
 ];
@@ -442,6 +443,7 @@ function budgetInfo(){
   var bezne=0, todayTotal=0, tod=today();
   exps.forEach(function(e){
     if(e.mimoradny)return; // mimořádné výdaje rozpočet ignoruje
+    if(e.catKey==='za_jitku')return; // zaplaceno za Jitku — vrací se, není to má spotřeba
     var d=new Date(e.date);
     if(d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()) bezne+=e.amount||0;
     if(e.date===tod) todayTotal+=e.amount||0;
@@ -1197,7 +1199,8 @@ function famForMonth(m){
 
 function renderJitka(){
   var shared=exps.filter(function(e){return e.shared});
-  if(!shared.length){
+  var hasZa=exps.some(function(e){return e.catKey==='za_jitku';});
+  if(!shared.length && !hasZa){
     return '<div class="empty"><div class="empty-icon">👫</div>'
       +'<div class="empty-title">Žádné sdílené výdaje</div>'
       +'<div class="empty-sub">Při zadávání výdaje zapni přepínač "Sdíleno s Jitkou"</div>'
@@ -1211,16 +1214,33 @@ function renderJitka(){
     if(!byMonth[m])byMonth[m]=[];
     byMonth[m].push(e);
   });
-  var months=Object.keys(byMonth).sort(function(a,b){return b.localeCompare(a)});
+  // Výdaje zaplacené za Jitku — vyúčtují se v PLNÉ výši (nedělí se)
+  var byMonthZ={};
+  exps.filter(function(e){return e.catKey==='za_jitku';}).forEach(function(e){
+    var m=e.date.slice(0,7);
+    if(!byMonthZ[m])byMonthZ[m]=[];
+    byMonthZ[m].push(e);
+  });
+  var monthSet={};
+  Object.keys(byMonth).forEach(function(m){monthSet[m]=true;});
+  Object.keys(byMonthZ).forEach(function(m){monthSet[m]=true;});
+  var months=Object.keys(monthSet).sort(function(a,b){return b.localeCompare(a)});
 
   // Celkový dluh z nevyúčtovaných měsíců
   var totalUnpaid=shared.filter(function(e){return !e.jitkaSettled}).reduce(function(s,e){return s+(e.amount||0)},0);
+  // Zaplaceno za Jitku (nevyúčtované) — v plné výši
+  var totalZUnpaid=0;
+  Object.keys(byMonthZ).forEach(function(m){
+    byMonthZ[m].forEach(function(e){ if(!e.jitkaSettled) totalZUnpaid+=(e.amount||0); });
+  });
   // Souhrn částek od Jitky jen za měsíce, kde je ještě co vyúčtovat
   var totalClaimUnpaid=0;
   months.forEach(function(m){
-    if(byMonth[m].some(function(e){return !e.jitkaSettled})) totalClaimUnpaid+=(jitkaClaims[m]||0);
+    var openShared=(byMonth[m]||[]).some(function(e){return !e.jitkaSettled});
+    var openZ=(byMonthZ[m]||[]).some(function(e){return !e.jitkaSettled});
+    if(openShared||openZ) totalClaimUnpaid+=(jitkaClaims[m]||0);
   });
-  var netGlobal=totalUnpaid/2 - totalClaimUnpaid/2;
+  var netGlobal=totalUnpaid/2 + totalZUnpaid - totalClaimUnpaid/2;
   var topPos=netGlobal>=0;
 
   var h='<div class="jitka-sum">'
@@ -1229,18 +1249,23 @@ function renderJitka(){
     +'</div>';
 
   months.forEach(function(m){
-    var items=byMonth[m];
+    var items=byMonth[m]||[];
+    var zItems=byMonthZ[m]||[];
     var dt=new Date(m+'-01T12:00:00');
     var monthLbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
     var monthTotal=items.reduce(function(s,e){return s+(e.amount||0)},0);
     var unpaidItems=items.filter(function(e){return !e.jitkaSettled});
     var paidItems=items.filter(function(e){return e.jitkaSettled});
     var unpaidTotal=unpaidItems.reduce(function(s,e){return s+(e.amount||0)},0);
-    var isSettled=unpaidItems.length===0;
+    var zUnpaidItems=zItems.filter(function(e){return !e.jitkaSettled});
+    var zTotal=zItems.reduce(function(s,e){return s+(e.amount||0)},0);
+    var zUnpaidTotal=zUnpaidItems.reduce(function(s,e){return s+(e.amount||0)},0);
+    var isSettled=unpaidItems.length===0 && zUnpaidItems.length===0;
     var claimM=jitkaClaims[m]||0;            // co po mně za tento měsíc chce Jitka
     // otevřený měsíc počítá z toho, co zbývá; vyúčtovaný z celého měsíce
     var baseHalf=(isSettled?monthTotal:unpaidTotal)/2;
-    var netM=baseHalf - claimM/2;            // + = Jitka platí mně, − = platím Jitce
+    var zBase=(isSettled?zTotal:zUnpaidTotal);   // v plné výši, nedělí se
+    var netM=baseHalf + zBase - claimM/2;    // + = Jitka platí mně, − = platím Jitce
     var sectionId='jm-'+m.replace('-','');
 
     // Hlavička měsíce
@@ -1283,6 +1308,28 @@ function renderJitka(){
       h+='</div>';
     }
 
+    // Zaplaceno za Jitku — v plné výši
+    if(zUnpaidItems.length){
+      h+='<div class="card" style="margin-bottom:8px;background:#fff5f8;border-color:#ffd0e0">';
+      [].concat(zUnpaidItems).sort(function(a,b){return b.date.localeCompare(a.date)}).forEach(function(e){
+        var dt3=new Date(e.date+'T12:00:00');
+        var dayLbl3=dt3.toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+        h+='<div class="exp-row">'
+          +'<div class="exp-ico">💸</div>'
+          +'<div class="exp-info">'
+          +'<div class="exp-cat">Za Jitku</div>'
+          +'<div class="exp-sub">'+dayLbl3+(e.subcat?' · '+e.subcat:'')+(e.note?' · '+e.note:'')+'</div>'
+          +'</div>'
+          +'<div style="text-align:right;flex-shrink:0">'
+          +'<div class="exp-amt">'+fmt(e.amount)+'</div>'
+          +'<div style="font-size:11px;color:#ff2d78;font-weight:600">celé</div>'
+          +'</div>'
+          +'<button onclick="event.stopPropagation();settleExp(\''+e.id+'\')" title="Zaplaceno" style="background:none;border:1px solid #34c759;border-radius:8px;cursor:pointer;font-size:13px;color:#34c759;padding:4px 8px;flex-shrink:0;margin-left:4px">✓</button>'
+          +'</div>';
+      });
+      h+='</div>';
+    }
+
     // Pole: kolik po mně za tento měsíc chce Jitka + netto výpočet (i u vyúčtovaného — kvůli opravě)
     h+='<div class="card" style="margin-bottom:8px;padding:12px 14px">'
       +'<div style="font-size:14px;font-weight:500;color:#1c1c1e;margin-bottom:8px">👜 Co po mně chce Jitka (její nákupy)</div>'
@@ -1291,6 +1338,7 @@ function renderJitka(){
       +'<span style="font-size:14px;color:#6c6c70;flex-shrink:0">Kč</span>'
       +'</div>'
       +'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>'+(isSettled?'Jitka zaplatila':'Jitka ti dluží')+' (tvé sdílené ÷ 2)</span><span style="font-weight:500;color:#1c1c1e">'+fmt(baseHalf)+'</span></div>'
+      +(zBase>0?'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>Zaplaceno za Jitku (v plné výši)</span><span style="font-weight:500;color:#1c1c1e">+ '+fmt(zBase)+'</span></div>':'')
       +(claimM>0?'<div style="font-size:13px;color:#6c6c70;display:flex;justify-content:space-between;padding:2px 0"><span>Tvá spoluúčast (její nákup ÷ 2)</span><span style="font-weight:500;color:#1c1c1e">− '+fmt(claimM/2)+'</span></div>':'')
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #f0f0f0;font-size:15px;font-weight:700">'
       +(netM>=0
@@ -1360,14 +1408,18 @@ function renderJitka(){
 
 function printMonth(m){
   var items=exps.filter(function(e){return e.shared&&e.date.slice(0,7)===m});
-  if(!items.length)return;
+  var zItems=exps.filter(function(e){return e.catKey==='za_jitku'&&e.date.slice(0,7)===m});
+  if(!items.length && !zItems.length)return;
   var dt=new Date(m+'-01T12:00:00');
   var monthLbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
   var unpaid=items.filter(function(e){return !e.jitkaSettled});
   var paid=items.filter(function(e){return e.jitkaSettled});
   var totalAll=items.reduce(function(s,e){return s+(e.amount||0)},0);
   var totalUnpaid=unpaid.reduce(function(s,e){return s+(e.amount||0)},0);
-  var isSettled=unpaid.length===0;
+  var zTotalAll=zItems.reduce(function(s,e){return s+(e.amount||0)},0);
+  var zUnpaidTotal=zItems.filter(function(e){return !e.jitkaSettled}).reduce(function(s,e){return s+(e.amount||0)},0);
+  var isSettled=unpaid.length===0 && zItems.every(function(e){return e.jitkaSettled});
+  var zBase=isSettled?zTotalAll:zUnpaidTotal;
 
   function row(e,settled){
     var cat=catByKey(e.catKey);
@@ -1395,8 +1447,11 @@ function printMonth(m){
   var claim=jitkaClaims[m]||0;
   var summaryLine;
   if(isSettled){
-    var netS=totalAll/2 - claim/2;
+    var netS=totalAll/2 + zBase - claim/2;
     summaryLine='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Jitka platí (sdílené výdaje ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">'+fmt(totalAll/2)+'</span></div>';
+    if(zBase>0){
+      summaryLine+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Zaplaceno za Jitku (v plné výši)</span><span style="font-weight:600;color:#1c1c1e">+ '+fmt(zBase)+'</span></div>';
+    }
     if(claim>0){
       summaryLine+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Spoluúčast Lukáše z nákupů Jitky ('+fmt(claim)+' ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">− '+fmt(claim/2)+'</span></div>';
     }
@@ -1406,8 +1461,11 @@ function printMonth(m){
          :'<span>✓ Vyrovnáno — Lukáš platí Jitce</span><span>'+fmt(Math.abs(netS))+'</span>')
       +'</div>';
   }else{
-    var net=totalUnpaid/2 - claim/2;
+    var net=totalUnpaid/2 + zBase - claim/2;
     summaryLine='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Jitka dluží Lukášovi (sdílené výdaje ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">'+fmt(totalUnpaid/2)+'</span></div>';
+    if(zBase>0){
+      summaryLine+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Zaplaceno za Jitku (v plné výši)</span><span style="font-weight:600;color:#1c1c1e">+ '+fmt(zBase)+'</span></div>';
+    }
     if(claim>0){
       summaryLine+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:#444"><span>Spoluúčast Lukáše z nákupů Jitky ('+fmt(claim)+' ÷ 2)</span><span style="font-weight:600;color:#1c1c1e">− '+fmt(claim/2)+'</span></div>';
     }
@@ -1417,6 +1475,19 @@ function printMonth(m){
          :'<span>Lukáš platí Jitce</span><span style="color:#1c8a3a">'+fmt(Math.abs(net))+'</span>')
       +'</div>'
       +(paid.length?'<p style="margin:8px 0 0;font-size:12px;color:#999">Dříve vyrovnáno '+fmt((totalAll-totalUnpaid)/2)+'</p>':'');
+  }
+
+  var zaHtml='';
+  if(zItems.length){
+    var zr='';
+    [].concat(zItems).sort(function(a,b){return b.date.localeCompare(a.date);}).forEach(function(e){
+      var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+      zr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td><td style="padding:8px 6px;font-size:14px;color:#222">'+(e.subcat||'Za Jitku')+(e.note?' — '+e.note:'')+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#e8003d">'+fmt(e.amount)+'</td></tr>';
+    });
+    zaHtml='<h2 style="font-size:16px;font-weight:700;margin-top:28px">Zaplaceno za Jitku <span style="font-weight:400;font-size:12px;color:#888">(vyúčtuje se v plné výši, nedělí se)</span></h2>'
+      +'<table style="width:100%;border-collapse:collapse;margin-top:10px"><tbody>'+zr
+      +'<tr><td colspan="2" style="padding:10px 6px;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px">Celkem za Jitku</td><td style="padding:10px 6px;text-align:right;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px;color:#e8003d">'+fmt(zTotalAll)+'</td></tr>'
+      +'</tbody></table>';
   }
 
   var famM=famForMonth(m);
@@ -1503,6 +1574,7 @@ function printMonth(m){
     +'<td style="text-align:right;color:#e8003d">'+fmt(totalAll/2)+'</td>'
     +'</tr>'
     +'</tbody></table>'
+    +'<div class="keep-together">'+zaHtml+'</div>'
     +'<div class="summary">'+summaryLine+'</div>'
     +'<div class="keep-together">'+famHtml+'</div>'
     +'<div class="keep-together">'+shareHtml+'</div>'
@@ -1534,15 +1606,17 @@ function unSettleExp(id){
 
 function settleMonth(m){
   var items=exps.filter(function(e){return e.shared&&!e.jitkaSettled&&e.date.slice(0,7)===m});
+  var zItems=exps.filter(function(e){return e.catKey==='za_jitku'&&!e.jitkaSettled&&e.date.slice(0,7)===m});
   var total=items.reduce(function(s,e){return s+(e.amount||0)},0);
+  var zTotal=zItems.reduce(function(s,e){return s+(e.amount||0)},0);
   var dt=new Date(m+'-01T12:00:00');
   var lbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
   var claim=jitkaClaims[m]||0;
-  var net=total/2 - claim/2;
+  var net=total/2 + zTotal - claim/2;
   var msg=net>=0 ? 'Jitka zaplatí '+fmt(net)+'.' : 'Zaplatíš Jitce '+fmt(Math.abs(net))+'.';
   if(!confirm('Vyúčtovat '+lbl+'?\n'+msg))return;
   exps=exps.map(function(e){
-    return (e.shared&&!e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:true,settledDate:today()}):e;
+    return ((e.shared||e.catKey==='za_jitku')&&!e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:true,settledDate:today()}):e;
   });
   ghSave();renderHome();showToast(lbl+' vyúčtováno ✓');
 }
@@ -1552,7 +1626,7 @@ function unsettleMonth(m){
   var lbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
   if(!confirm('Znovu otevřít '+lbl+'?\nVšechny položky se vrátí mezi nevyúčtované, abys mohl vyúčtování opravit.'))return;
   exps=exps.map(function(e){
-    return (e.shared&&e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:false,settledDate:''}):e;
+    return ((e.shared||e.catKey==='za_jitku')&&e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:false,settledDate:''}):e;
   });
   ghSave();renderHome();showToast(lbl+' znovu otevřeno');
 }
