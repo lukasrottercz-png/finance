@@ -343,7 +343,6 @@
 .gantt-track-row { position: relative; border-bottom: 0.5px solid var(--border); box-sizing: border-box; }
 .gantt-marker { position: absolute; top: 50%; width: 11px; height: 11px; margin-top: -6px; margin-left: -6px; border-radius: 2px; transform: rotate(45deg); background: var(--accent); opacity: 0.85; z-index: 3; }
 .gantt-marker.gantt-done { background: var(--green); }
-.gantt-marker.gantt-done-late { background: #ff9500; }
 .gantt-marker.gantt-late { background: var(--red); }
 .gantt-bar { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--gray); opacity: 0.9; z-index: 2; }
 </style>
@@ -1188,7 +1187,7 @@ function renderGantt() {
     // dílčí úkoly — zjednodušeně jako značka na termínu (skryté, pokud je projekt sbalený)
     if (!isCollapsed) kids.forEach(k => {
       const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
-      const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-done-late' : 'gantt-done') : (k.date < todayStr ? 'gantt-late' : '');
+      const kCls = k.done ? 'gantt-done' : (k.date < todayStr ? 'gantt-late' : '');
       const kRowH = estLines(k.name, 14) === 2 ? subH2 : subH1;
       posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
@@ -1324,7 +1323,6 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-track-row { position:relative; border-bottom:0.5px solid var(--border); box-sizing:border-box; }
 .gantt-marker { position:absolute; top:50%; width:11px; height:11px; margin-top:-6px; margin-left:-6px; border-radius:2px; transform:rotate(45deg); background:var(--accent); opacity:.85; z-index:3; }
 .gantt-marker.gantt-done { background:var(--green); }
-.gantt-marker.gantt-done-late { background:#ff9500; }
 .gantt-marker.gantt-late { background:var(--red); }
 .gantt-bar { position:absolute; top:50%; margin-top:-10px; height:20px; min-width:6px; border-radius:6px; background:var(--gray); opacity:.9; z-index:2; }
 .empty { text-align:center; padding:40px 20px; color:var(--muted); }
@@ -1457,7 +1455,7 @@ function render() {
     u.kids = orderByChain(u.kids.slice().sort((a,b)=>a.date.localeCompare(b.date)));
     u.kids.forEach(k => {
       const kLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
-      const kCls = k.done ? (k.completedAt && k.completedAt > k.date ? 'gantt-done-late':'gantt-done') : (k.date < todayStr ? 'gantt-late':'');
+      const kCls = k.done ? 'gantt-done' : (k.date < todayStr ? 'gantt-late':'');
       const kRowH = estLines(k.name, 14) === 2 ? subH2 : subH1;
       posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
