@@ -1229,6 +1229,7 @@ function renderGantt() {
             <div class="col-date">Do</div>
             <div class="col-resp">Zodp.</div>
           </div>
+          <div style="height:16px"></div>
           ${labelsHtml}
         </div>
         <div class="gantt-timeline" id="ganttTimeline">
@@ -1477,7 +1478,7 @@ function render() {
     : '';
 
   el.innerHTML = '<div class="gantt-wrap"><div class="gantt-body">'+
-    '<div class="gantt-labels"><div class="gantt-label-header"><div class="col-name">Úkol</div><div class="col-date">Od</div><div class="col-date">Do</div><div class="col-resp">Zodp.</div></div>'+labelsHtml+'</div>'+
+    '<div class="gantt-labels"><div class="gantt-label-header"><div class="col-name">Úkol</div><div class="col-date">Od</div><div class="col-date">Do</div><div class="col-resp">Zodp.</div></div><div style="height:16px"></div>'+labelsHtml+'</div>'+
     '<div class="gantt-timeline" id="ganttTimeline"><div style="width:'+totalPx+'px;position:relative">'+
       '<div class="gantt-month-header" style="width:'+totalPx+'px">'+monthHtml+'</div>'+
       '<div class="gantt-day-ticks" style="width:'+totalPx+'px">'+dayTicksHtml+'<div class="gantt-today-label" style="left:'+todayLeft+'px">'+todayLabel+'</div></div>'+
