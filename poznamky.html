@@ -268,6 +268,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
       <a href="https://lukasrottercz-png.github.io/finance/vydaje_lukas.html" class="hdr-link">🧾</a>
       <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
+      <button class="hdr-btn" onclick="openImport()" title="Import poznámek">📥</button>
       <button class="hdr-new" onclick="openNew()">+ Nová</button>
     </div>
   </div>
@@ -378,6 +379,52 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
     </div>
     <div class="sheet-foot" id="polish-foot">
       <button class="btn btn-ghost" onclick="closePolish()">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: IMPORT POZNÁMEK -->
+<div class="overlay" id="import-overlay" onclick="if(event.target===this)closeImport()">
+  <div class="sheet">
+    <div class="sheet-hdr">
+      <span class="sheet-title">📥 Import poznámek</span>
+      <button class="sheet-close" onclick="closeImport()">×</button>
+    </div>
+    <div class="sheet-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="f-btn on" id="imp-tab-files" onclick="setImportTab('files')">📁 Soubory</button>
+        <button class="f-btn" id="imp-tab-paste" onclick="setImportTab('paste')">📋 Vložit text</button>
+      </div>
+
+      <div id="imp-panel-files">
+        <input type="file" id="imp-file-input" multiple accept=".txt,.md,.markdown" onchange="handleImportFiles(event)" style="width:100%;margin-bottom:8px;font-size:14px;color:var(--text)">
+        <div style="font-size:12px;color:var(--text2)">Vyber víc souborů najednou (Ctrl/Cmd + klik ve výběru). Každý soubor = jedna poznámka, název souboru = nadpis.</div>
+      </div>
+
+      <div id="imp-panel-paste" style="display:none">
+        <textarea id="imp-paste-ta" class="field-ta big" placeholder="Vlož text poznámek sem. Pokud jich vkládáš víc najednou, odděl je řádkem se třemi pomlčkami: ---" style="min-height:160px" oninput="updateImportFromPaste()"></textarea>
+        <div style="font-size:12px;color:var(--text2);margin-top:6px">Bez oddělovače <code>---</code> vznikne jedna poznámka. První krátký řádek se použije jako název.</div>
+      </div>
+
+      <div style="margin-top:16px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Štítky (pro všechny importované)</label>
+        <input type="text" id="imp-tags" class="field-inp" placeholder="např. nohel" value="nohel" style="margin-top:6px">
+      </div>
+      <div style="margin-top:12px">
+        <label style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Typ</label>
+        <select id="imp-type" class="field-inp" style="margin-top:6px">
+          <option value="volna" selected>📝 Volná poznámka</option>
+          <option value="schuze">📅 Schůzka</option>
+          <option value="napad">💡 Nápad</option>
+          <option value="rozhodnuti">✅ Rozhodnutí</option>
+        </select>
+      </div>
+
+      <div id="imp-preview" style="margin-top:16px"></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn btn-primary" id="imp-confirm-btn" onclick="confirmImport()" style="flex:1" disabled>Naimportovat</button>
+      <button class="btn btn-ghost" onclick="closeImport()">Zrušit</button>
     </div>
   </div>
 </div>
@@ -1175,6 +1222,111 @@ function deleteNote(){
   showToast('Smazáno');
   closeEdit(true); // neukládej obsah formuláře zpět nad smazanou poznámku
   backToList();
+}
+
+// ── IMPORT POZNÁMEK (soubory / vložený text) ────────────────────────
+let importItems=[]; // {title, content}
+let importTab='files';
+
+function escapeHtmlImp(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openImport(){
+  importItems=[];
+  importTab='files';
+  const fi=document.getElementById('imp-file-input'); if(fi) fi.value='';
+  const pa=document.getElementById('imp-paste-ta'); if(pa) pa.value='';
+  document.getElementById('imp-tags').value='nohel';
+  document.getElementById('imp-type').value='volna';
+  setImportTab('files');
+  updateImportPreview();
+  document.getElementById('import-overlay').classList.add('on');
+}
+function closeImport(){
+  document.getElementById('import-overlay').classList.remove('on');
+}
+
+function setImportTab(t){
+  importTab=t;
+  document.getElementById('imp-tab-files').classList.toggle('on', t==='files');
+  document.getElementById('imp-tab-paste').classList.toggle('on', t==='paste');
+  document.getElementById('imp-panel-files').style.display = t==='files' ? '' : 'none';
+  document.getElementById('imp-panel-paste').style.display = t==='paste' ? '' : 'none';
+  if(t==='paste'){ updateImportFromPaste(); } else { updateImportPreview(); }
+}
+
+async function handleImportFiles(ev){
+  const files=Array.from(ev.target.files||[]);
+  const items=[];
+  for(const f of files){
+    try{
+      const text=await f.text();
+      const title=f.name.replace(/\.[^.]+$/,'');
+      const content=text.trim();
+      if(content||title) items.push({title:title||'Bez názvu',content});
+    }catch(e){}
+  }
+  importItems=items;
+  updateImportPreview();
+}
+
+function updateImportFromPaste(){
+  const raw=document.getElementById('imp-paste-ta').value||'';
+  const parts=raw.split(/^\s*-{3,}\s*$/m).map(s=>s.trim()).filter(s=>s.length>0);
+  importItems=parts.map((p,i)=>{
+    const lines=p.split('\n');
+    const firstLine=(lines[0]||'').trim();
+    let title, content;
+    if(firstLine.length>0 && firstLine.length<=80 && lines.length>1){
+      title=firstLine;
+      content=lines.slice(1).join('\n').trim();
+    } else {
+      title='Poznámka '+(i+1);
+      content=p;
+    }
+    if(!content) content=p;
+    return {title:title||('Poznámka '+(i+1)), content};
+  });
+  updateImportPreview();
+}
+
+function updateImportPreview(){
+  const box=document.getElementById('imp-preview');
+  const btn=document.getElementById('imp-confirm-btn');
+  if(!importItems.length){
+    box.innerHTML='<div style="font-size:13px;color:var(--text2)">Zatím nic k importu.</div>';
+    btn.disabled=true;
+    return;
+  }
+  box.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Náhled — '+importItems.length+' poznámek</div>'+
+    importItems.map(it=>{
+      const preview=it.content.length>200 ? it.content.slice(0,200)+'…' : it.content;
+      return `<div style="background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px">
+        <div style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtmlImp(it.title)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;white-space:pre-wrap;max-height:60px;overflow:hidden">${escapeHtmlImp(preview)}</div>
+      </div>`;
+    }).join('');
+  btn.disabled=false;
+}
+
+async function confirmImport(){
+  if(!importItems.length) return;
+  const tags=parseTags(document.getElementById('imp-tags').value||'');
+  const type=document.getElementById('imp-type').value||'volna';
+  await loadPromise; // počkej na čerstvá data, ať nic nepřepíšeme
+  const now=new Date().toISOString();
+  const count=importItems.length;
+  importItems.forEach((it,i)=>{
+    // mírně odlišný updatedAt kvůli zachování pořadí importu v seznamu (řazeno dle editace)
+    const t=new Date(Date.now()-i*1000).toISOString();
+    notes.unshift({id:uid(),title:it.title||'Bez názvu',content:it.content,type,tags:[...tags],pinned:false,createdAt:now,updatedAt:t});
+  });
+  await ghSave();
+  importItems=[];
+  showToast('Naimportováno '+count+' poznámek ✓');
+  closeImport();
+  renderList();
 }
 
 async function aiPolishNote(noteId){
