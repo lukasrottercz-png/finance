@@ -268,6 +268,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" class="hdr-link">💰</a>
       <a href="https://lukasrottercz-png.github.io/finance/vydaje_lukas.html" class="hdr-link">🧾</a>
       <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" class="hdr-link">📋</a>
+      <button class="hdr-btn" onclick="openAiChat()" title="Zeptat se AI na poznámky">💬</button>
       <button class="hdr-btn" onclick="openImport()" title="Import poznámek">📥</button>
       <button class="hdr-new" onclick="openNew()">+ Nová</button>
     </div>
@@ -425,6 +426,22 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
     <div class="sheet-foot">
       <button class="btn btn-primary" id="imp-confirm-btn" onclick="confirmImport()" style="flex:1" disabled>Naimportovat</button>
       <button class="btn btn-ghost" onclick="closeImport()">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: AI DOTAZY NAD POZNÁMKAMI -->
+<div class="overlay" id="chat-overlay" onclick="if(event.target===this)closeAiChat()">
+  <div class="sheet" style="display:flex;flex-direction:column;max-height:85vh">
+    <div class="sheet-hdr">
+      <span class="sheet-title">💬 Zeptat se na poznámky</span>
+      <button class="sheet-close" onclick="closeAiChat()">×</button>
+    </div>
+    <div id="chat-scope-note" style="font-size:12px;color:var(--text2);padding:0 20px 8px"></div>
+    <div class="sheet-body" id="chat-messages" style="flex:1;overflow-y:auto;min-height:200px"></div>
+    <div class="sheet-foot" style="gap:8px">
+      <textarea id="chat-input" class="field-ta" rows="1" placeholder="Zeptej se na cokoliv z poznámek…" style="flex:1;resize:none;min-height:44px;max-height:120px" onkeydown="chatKey(event)"></textarea>
+      <button class="btn btn-primary" onclick="sendChatMessage()">Odeslat</button>
     </div>
   </div>
 </div>
@@ -1327,6 +1344,122 @@ async function confirmImport(){
   showToast('Naimportováno '+count+' poznámek ✓');
   closeImport();
   renderList();
+}
+
+// ── AI DOTAZY NAD POZNÁMKAMI (chat) ─────────────────────────────────
+let chatHistory=[]; // {role:'user'|'ai', text, pending?}
+
+function openAiChat(){
+  chatHistory=[];
+  renderChatHistory();
+  updateChatScopeNote();
+  document.getElementById('chat-overlay').classList.add('on');
+  setTimeout(()=>document.getElementById('chat-input')?.focus(),50);
+}
+function closeAiChat(){
+  document.getElementById('chat-overlay').classList.remove('on');
+}
+function chatKey(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChatMessage(); }
+}
+
+function buildChatNotePool(){
+  // respektuj aktuální filtr typu / štítku / hledání z hlavního seznamu, pokud je aktivní
+  let pool=notes.filter(n=>!n.deleted);
+  if(curFilter) pool=pool.filter(n=>n.type===curFilter);
+  if(curStitkFilter) pool=pool.filter(n=>(n.tags||[]).includes(curStitkFilter));
+  const q=(document.getElementById('search-inp')?.value||'').trim().toLowerCase();
+  if(q) pool=pool.filter(n=>(n.title+' '+n.content).toLowerCase().includes(q));
+  return pool.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+}
+
+function updateChatScopeNote(){
+  const el=document.getElementById('chat-scope-note');
+  if(!el) return;
+  const pool=buildChatNotePool();
+  const scoped = curFilter || curStitkFilter || (document.getElementById('search-inp')?.value||'').trim();
+  el.textContent = scoped
+    ? `Prohledávám jen aktuálně vyfiltrované poznámky (${pool.length}). Zavři chat a zruš filtr, pokud chceš prohledat úplně všechny.`
+    : `Prohledávám všech ${pool.length} poznámek.`;
+}
+
+async function sendChatMessage(){
+  const inp=document.getElementById('chat-input');
+  const question=(inp?.value||'').trim();
+  if(!question) return;
+  const apiKey=localStorage.getItem('anthropic_api_key')||'';
+  if(!apiKey){
+    chatHistory.push({role:'ai',text:'Nejdřív je potřeba Anthropic API klíč — nastav ho v AI analýze poznámek (🤖 v detailu poznámky).'});
+    renderChatHistory();
+    return;
+  }
+  chatHistory.push({role:'user',text:question});
+  inp.value='';
+  inp.style.height='';
+  renderChatHistory();
+  chatHistory.push({role:'ai',text:'⏳ přemýšlím…',pending:true});
+  renderChatHistory();
+
+  const pool=buildChatNotePool();
+  const MAX_NOTES=250, CHAR_LIMIT=1200;
+  const used=pool.slice(0,MAX_NOTES);
+  const corpus=used.map(n=>`### ${n.title||'(bez názvu)'} [${TYPES[n.type]?.label||n.type}]${(n.tags||[]).length?' — štítky: '+n.tags.join(', '):''} — ${new Date(n.updatedAt).toLocaleDateString('cs-CZ')}\n${n.content.slice(0,CHAR_LIMIT)}`).join('\n\n');
+
+  const historyText=chatHistory.filter(m=>!m.pending).slice(0,-1).map(m=>(m.role==='user'?'Otázka: ':'Odpověď: ')+m.text).join('\n');
+
+  const prompt=`Jsi asistent, který odpovídá na otázky nad osobními a pracovními poznámkami uživatele. Odpovídej stručně, věcně a přirozeně v češtině, výhradně na základě obsahu poznámek níže. Když je to relevantní, uveď název poznámky, ze které informace pochází. Pokud odpověď v poznámkách vůbec není, řekni to na rovinu — nic si nevymýšlej.
+${pool.length>used.length?`\n(Pozn.: zobrazeno je jen ${used.length} z ${pool.length} nejnovějších poznámek odpovídajících aktuálnímu filtru.)\n`:''}
+POZNÁMKY:
+${corpus}
+${historyText?`\nPŘEDCHOZÍ KONVERZACE:\n${historyText}\n`:''}
+NOVÁ OTÁZKA: ${question}`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1200,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){
+      if(res.status===401){
+        localStorage.removeItem('anthropic_api_key');
+        chatHistory=chatHistory.filter(m=>!m.pending);
+        chatHistory.push({role:'ai',text:'Neplatný API klíč — nastav ho znovu v AI analýze (🤖 v detailu poznámky).'});
+        renderChatHistory();
+        return;
+      }
+      throw new Error(res.status);
+    }
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'(prázdná odpověď)';
+    chatHistory=chatHistory.filter(m=>!m.pending);
+    chatHistory.push({role:'ai',text});
+  }catch(e){
+    chatHistory=chatHistory.filter(m=>!m.pending);
+    chatHistory.push({role:'ai',text:'Chyba: '+e.message});
+  }
+  renderChatHistory();
+}
+
+function renderChatHistory(){
+  const box=document.getElementById('chat-messages');
+  if(!box) return;
+  if(!chatHistory.length){
+    box.innerHTML='<div style="font-size:13px;color:var(--text2);text-align:center;padding:24px 8px">Zeptej se na cokoliv ze svých poznámek — např. „co jsme řešili s Pavlem ohledně skladu?“</div>';
+  } else {
+    box.innerHTML=chatHistory.map(m=>{
+      const isUser=m.role==='user';
+      return `<div style="display:flex;justify-content:${isUser?'flex-end':'flex-start'};margin-bottom:8px">
+        <div style="max-width:85%;padding:10px 12px;border-radius:14px;font-size:14px;line-height:1.5;white-space:pre-wrap;background:${isUser?'var(--accent)':'var(--bg)'};color:${isUser?'#fff':'var(--text)'};${!isUser?'border:0.5px solid var(--border)':''}">${escapeHtmlImp(m.text)}</div>
+      </div>`;
+    }).join('');
+  }
+  box.scrollTop=box.scrollHeight;
 }
 
 async function aiPolishNote(noteId){
