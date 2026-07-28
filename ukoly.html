@@ -297,11 +297,12 @@
 
 /* PROJECT BADGE */
 .proj-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(124,58,237,0.12); color: var(--accent); white-space: nowrap; margin-right: 4px; }
-.evid-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(142,142,147,0.15); color: var(--muted); white-space: nowrap; margin-right: 4px; }
+.evid-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(142,142,147,0.15); color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 .evid-box { margin-top: 22px; padding-top: 14px; border-top: 0.5px solid var(--border); }
 .evid-box-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
-.evid-row { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; }
+.evid-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; }
 .evid-row:last-child { border-bottom: none; }
+.evid-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .evid-row-top { display: flex; align-items: center; gap: 8px; }
 .evid-row-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .evid-row .resp-badge { font-size: 11px; color: var(--muted); flex-shrink: 0; }
@@ -891,8 +892,13 @@ function renderEvidovaneProjekty(list) {
     ${list.map(u => `
       <div class="evid-row" onclick="openUkolModal('${u.id}')">
         <span class="evid-badge">nezahájeno</span>
-        <span class="evid-row-name">${esc(u.name)}</span>
-        ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
+        <div class="evid-row-body">
+          <div class="evid-row-top">
+            <span class="evid-row-name">${esc(u.name)}</span>
+            ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
+          </div>
+          ${u.note ? `<div class="evid-row-desc">${esc(u.note)}</div>` : ''}
+        </div>
       </div>`).join('')}
   </div>`;
 }
@@ -1061,12 +1067,14 @@ function evidHtml(list) {
     <div class="evid-box-title">📋 Evidované projekty (${list.length}) — zatím bez termínu</div>
     ${list.map(u => `
       <div class="evid-row" onclick="openUkolModal('${u.id}')">
-        <div class="evid-row-top">
-          <span class="evid-badge">nezahájeno</span>
-          <span class="evid-row-name">${esc(u.name)}</span>
-          ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
+        <span class="evid-badge">nezahájeno</span>
+        <div class="evid-row-body">
+          <div class="evid-row-top">
+            <span class="evid-row-name">${esc(u.name)}</span>
+            ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
+          </div>
+          ${u.note ? `<div class="evid-row-desc">${esc(u.note)}</div>` : ''}
         </div>
-        ${u.note ? `<div class="evid-row-desc">${esc(u.note)}</div>` : ''}
       </div>`).join('')}
   </div>`;
 }
@@ -1261,7 +1269,7 @@ function buildGanttSnapshotHtml() {
 
   if (!items.length && !evidovane.length) return null;
 
-  const evidHtmlStatic = evidovane.length ? `<div class="evid-box"><div class="evid-box-title">📋 Evidované projekty (${evidovane.length}) — zatím bez termínu</div>${evidovane.map(u => `<div class="evid-row"><div class="evid-row-top"><span class="evid-badge">nezahájeno</span><span class="evid-row-name">${esc(u.name)}</span>${u.zodpovida?`<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>`:''}</div>${u.note?`<div class="evid-row-desc">${esc(u.note)}</div>`:''}</div>`).join('')}</div>` : '';
+  const evidHtmlStatic = evidovane.length ? `<div class="evid-box"><div class="evid-box-title">📋 Evidované projekty (${evidovane.length}) — zatím bez termínu</div>${evidovane.map(u => `<div class="evid-row"><span class="evid-badge">nezahájeno</span><div class="evid-row-body"><div class="evid-row-top"><span class="evid-row-name">${esc(u.name)}</span>${u.zodpovida?`<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>`:''}</div>${u.note?`<div class="evid-row-desc">${esc(u.note)}</div>`:''}</div></div>`).join('')}</div>` : '';
 
   const generatedAt = new Date().toLocaleString('cs-CZ', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const dataJson = JSON.stringify(items).replace(/</g, '\\u003c');
@@ -1321,12 +1329,13 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .collapse-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
 .evid-box { margin:14px 20px 0; padding-top:14px; border-top:0.5px solid var(--border); }
 .evid-box-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
-.evid-row { display:flex; flex-direction:column; gap:2px; padding:8px 0; border-bottom:0.5px solid var(--border); }
+.evid-row { display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:0.5px solid var(--border); }
 .evid-row:last-child { border-bottom:none; }
+.evid-row-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .evid-row-top { display:flex; align-items:center; gap:8px; }
 .evid-row-name { flex:1; min-width:0; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .evid-row-desc { font-size:12px; color:var(--muted); line-height:1.35; }
-.evid-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:8px; background:rgba(142,142,147,0.15); color:var(--muted); white-space:nowrap; }
+.evid-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:8px; background:rgba(142,142,147,0.15); color:var(--muted); white-space:nowrap; flex-shrink:0; }
 .resp-badge { font-size:11px; color:var(--muted); white-space:nowrap; }
 </style>
 </head>
