@@ -688,6 +688,7 @@ async function driveWriteJSON(fname,obj){
   return r.id;
 }
 let ganttShareEmails = load('tw_gantt_share_emails', []);
+let ganttViewerLink = load('tw_gantt_viewer_link', '');
 
 function editGanttShareEmails() {
   const current = ganttShareEmails.join(', ');
@@ -700,13 +701,13 @@ function editGanttShareEmails() {
 }
 
 function copyGanttViewerLink() {
-  const current = load('tw_gantt_viewer_link', '');
-  const input = prompt('Odkaz na živý Gantt viewer (Apps Script Web app URL):', current);
+  const input = prompt('Odkaz na živý Gantt viewer (Apps Script Web app URL):', ganttViewerLink);
   if (input === null) return;
-  const link = input.trim();
-  save('tw_gantt_viewer_link', link);
-  if (!link) { showToast('Odkaz smazán'); return; }
-  navigator.clipboard.writeText(link).then(() => {
+  ganttViewerLink = input.trim();
+  save('tw_gantt_viewer_link', ganttViewerLink);
+  ghSave();
+  if (!ganttViewerLink) { showToast('Odkaz smazán'); return; }
+  navigator.clipboard.writeText(ganttViewerLink).then(() => {
     showToast('Odkaz uložen a zkopírován ✓');
   }).catch(() => { showToast('Odkaz uložen'); });
 }
@@ -719,13 +720,14 @@ async function ghLoad(){
       if(r.data.ukoly){ ukoly=r.data.ukoly; save('tw_ukoly2',ukoly); }
       if(r.data.events){ events=r.data.events; save('tw_events2',events); }
       if(r.data.ganttShareEmails){ ganttShareEmails=r.data.ganttShareEmails; save('tw_gantt_share_emails', ganttShareEmails); }
+      if(r.data.ganttViewerLink){ ganttViewerLink=r.data.ganttViewerLink; save('tw_gantt_viewer_link', ganttViewerLink); }
     }
     updateSyncIcon('ok');
   }catch(e){ console.error('driveLoad ukoly:',e); updateSyncIcon('error'); }
 }
 async function ghSave(){
   if(!isConnected()){ updateSyncIcon('local'); return; }
-  try{ await driveWriteJSON(GH_FILE, {ukoly, events, ganttShareEmails}); updateSyncIcon('ok'); }
+  try{ await driveWriteJSON(GH_FILE, {ukoly, events, ganttShareEmails, ganttViewerLink}); updateSyncIcon('ok'); }
   catch(e){ console.error('driveSave ukoly:',e); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); return; }
 }
 
