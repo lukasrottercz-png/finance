@@ -459,6 +459,12 @@
         <span style="font-weight:400;text-transform:none;font-size:12px;letter-spacing:0">nezahájený projekt — termín doplníš později</span>
       </label>
     </div>
+    <div class="field" id="uNaKonciField" style="display:none">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleUkolNaKonci()">
+        <span class="cat-pill" id="uNaKonciPill">⬇️ Vždy na konci</span>
+        <span style="font-weight:400;text-transform:none;font-size:12px;letter-spacing:0">v seznamu i Ganttu se zobrazí za ostatními projekty</span>
+      </label>
+    </div>
     <div class="field" id="uStartField" style="display:none">
       <label>Začátek</label>
       <input id="uStart" type="date">
@@ -883,6 +889,7 @@ let editUkolId = null;
 let selUkolAgenda = 'osobni';
 let ukolProjekt = false;
 let ukolEvidovany = false;
+let ukolNaKonci = false;
 
 let activeTagFilter = '';
 let collapsedProjects = new Set(load('tw_collapsed_projects', []));
@@ -952,6 +959,8 @@ function renderUkoly() {
 
   let list = agendaUkoly.slice().sort((a,b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
+    const ak = !a.done && !!a.naKonci, bk = !b.done && !!b.naKonci;
+    if (ak !== bk) return ak ? 1 : -1;
     const aw = !a.done && !!a.waiting, bw = !b.done && !!b.waiting;
     if (aw !== bw) return aw ? 1 : -1;
     return daysUntil(a.date) - daysUntil(b.date);
@@ -1095,7 +1104,11 @@ function evidHtml(list) {
 function renderGantt() {
   const el = document.getElementById('ganttWrap');
   const items = orderByChain(ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
-    .sort((a,b) => a.start.localeCompare(b.start)));
+    .sort((a,b) => {
+      const ak = !!a.naKonci, bk = !!b.naKonci;
+      if (ak !== bk) return ak ? 1 : -1;
+      return a.start.localeCompare(b.start);
+    }));
   const evidovane = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
   const evidBox = evidHtml(evidovane);
 
@@ -1262,7 +1275,11 @@ function setTagFilter(tag) {
 
 function buildGanttSnapshotHtml() {
   const items = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
-    .sort((a,b) => a.start.localeCompare(b.start))
+    .sort((a,b) => {
+      const ak = !!a.naKonci, bk = !!b.naKonci;
+      if (ak !== bk) return ak ? 1 : -1;
+      return a.start.localeCompare(b.start);
+    })
     .map(u => ({
       id: u.id, name: u.name, start: u.start, date: u.date, done: !!u.done, completedAt: u.completedAt||null,
       zodpovida: u.zodpovida||'', predecessorId: u.predecessorId||'',
@@ -1589,6 +1606,7 @@ function openUkolModal(id) {
   selUkolAgenda = u ? (u.agenda||'osobni') : activeAgenda;
   ukolProjekt = u ? !!u.projekt : false;
   ukolEvidovany = u ? !!u.evidovany : false;
+  ukolNaKonci = u ? !!u.naKonci : false;
   buildProjektSelect(u ? u.id : null);
   document.getElementById('uProjektId').value = u ? (u.projektId||'') : '';
   buildPredecessorSelect(u ? u.id : null);
@@ -1613,21 +1631,27 @@ function updateUkolFieldVisibility() {
   document.getElementById('uZodpField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uEvidovanyField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
   document.getElementById('uStartField').style.display = (isPrace && ukolProjekt && !ukolEvidovany) ? 'block' : 'none';
+  document.getElementById('uNaKonciField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
   document.getElementById('uProjektIdField').style.display = (isPrace && !ukolProjekt) ? 'block' : 'none';
   document.getElementById('uPredecessorField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uDateField').style.display = (ukolProjekt && ukolEvidovany) ? 'none' : 'block';
   updateUkolProjektPill();
   updateUkolEvidovanyPill();
+  updateUkolNaKonciPill();
 }
 
 function toggleUkolProjekt() {
   ukolProjekt = !ukolProjekt;
-  if (!ukolProjekt) ukolEvidovany = false; // evidovaný stav dává smysl jen u projektu
+  if (!ukolProjekt) { ukolEvidovany = false; ukolNaKonci = false; } // evidovaný a "na konci" dávají smysl jen u projektu
   updateUkolFieldVisibility();
   buildPredecessorSelect(editUkolId);
 }
 function toggleUkolEvidovany() {
   ukolEvidovany = !ukolEvidovany;
+  updateUkolFieldVisibility();
+}
+function toggleUkolNaKonci() {
+  ukolNaKonci = !ukolNaKonci;
   updateUkolFieldVisibility();
 }
 function updateUkolProjektPill() {
@@ -1637,6 +1661,10 @@ function updateUkolProjektPill() {
 function updateUkolEvidovanyPill() {
   const p = document.getElementById('uEvidovanyPill');
   p.classList.toggle('sel', ukolEvidovany);
+}
+function updateUkolNaKonciPill() {
+  const p = document.getElementById('uNaKonciPill');
+  p.classList.toggle('sel', ukolNaKonci);
 }
 
 function buildProjektSelect(excludeId) {
@@ -1691,6 +1719,7 @@ function saveUkol() {
   const isPrace = agenda === 'prace';
   const projekt = isPrace && ukolProjekt;
   const evidovany = projekt && ukolEvidovany;
+  const naKonci = projekt && ukolNaKonci;
   const date = evidovany ? '' : document.getElementById('uDate').value;
   const start = (projekt && !evidovany) ? document.getElementById('uStart').value : '';
   const zodpovida = isPrace ? document.getElementById('uZodp').value.trim() : '';
@@ -1702,9 +1731,9 @@ function saveUkol() {
   if (!name) return alert('Vyplň název.');
   if (!evidovany && !date) return alert('Vyplň termín (nebo označ projekt jako "Evidovaný").');
   if (editUkolId) {
-    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat, tags, agenda, projekt, evidovany, start, zodpovida, projektId, predecessorId, done, completedAt} : u);
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, note, repeat, tags, agenda, projekt, evidovany, naKonci, start, zodpovida, projektId, predecessorId, done, completedAt} : u);
   } else {
-    ukoly.push({ id: uid(), name, date, note, done, completedAt, repeat, tags, agenda, projekt, evidovany, start, zodpovida, projektId, predecessorId });
+    ukoly.push({ id: uid(), name, date, note, done, completedAt, repeat, tags, agenda, projekt, evidovany, naKonci, start, zodpovida, projektId, predecessorId });
   }
   save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
   closeUkolModal();
