@@ -396,6 +396,7 @@
     </div>
     <div class="gantt-toolbar-group share-group">
       <button onclick="editGanttShareEmails()" title="Kdo má přístup k živému Gantt vieweru (Apps Script)">✉️ Komu sdílet</button>
+      <button onclick="copyGanttViewerLink()" title="Odkaz na živý Gantt viewer (Apps Script URL)">🔗 Odkaz</button>
       <button onclick="presentGantt()">🖥️ Prezentovat</button>
     </div>
   </div>
@@ -696,6 +697,18 @@ function editGanttShareEmails() {
   save('tw_gantt_share_emails', ganttShareEmails);
   ghSave();
   showToast('Uloženo ✓');
+}
+
+function copyGanttViewerLink() {
+  const current = load('tw_gantt_viewer_link', '');
+  const input = prompt('Odkaz na živý Gantt viewer (Apps Script Web app URL):', current);
+  if (input === null) return;
+  const link = input.trim();
+  save('tw_gantt_viewer_link', link);
+  if (!link) { showToast('Odkaz smazán'); return; }
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('Odkaz uložen a zkopírován ✓');
+  }).catch(() => { showToast('Odkaz uložen'); });
 }
 
 async function ghLoad(){
