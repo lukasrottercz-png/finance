@@ -395,9 +395,7 @@
       <button data-scale="quarter" onclick="setGanttScale('quarter')">Kvartály</button>
     </div>
     <div class="gantt-toolbar-group share-group">
-      <button onclick="editGanttShareEmails()" title="Komu se automaticky sdílí Gantt při každém uložení">✉️ Komu sdílet</button>
-      <button onclick="copyGanttShareLink()" id="ganttCopyLinkBtn" style="display:none">🔗 Odkaz</button>
-      <button onclick="exportGanttSnapshot()">📤 Stáhnout</button>
+      <button onclick="editGanttShareEmails()" title="Kdo má přístup k živému Gantt vieweru (Apps Script)">✉️ Komu sdílet</button>
       <button onclick="presentGantt()">🖥️ Prezentovat</button>
     </div>
   </div>
@@ -688,62 +686,16 @@ async function driveWriteJSON(fname,obj){
   const r = await driveWriteFile(fname, json, 'application/json');
   return r.id;
 }
-async function driveSetPermission(fileId, email) {
-  const r = await driveApi('https://www.googleapis.com/drive/v3/files/'+fileId+'/permissions?sendNotificationEmail=false',
-    {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({role:'reader', type:'user', emailAddress: email})});
-  if (!r.ok) throw new Error('PERM '+r.status);
-  return true;
-}
-
-const GANTT_SHARE_FILE = 'gantt-projekty-snapshot.html';
 let ganttShareEmails = load('tw_gantt_share_emails', []);
-let ganttSharePermApplied = new Set(load('tw_gantt_perm_applied', []));
 
 function editGanttShareEmails() {
   const current = ganttShareEmails.join(', ');
-  const input = prompt('E-mail(y) kolegů pro trvalé sdílení Gantt snapshotu (odděl čárkou):', current);
+  const input = prompt('E-mail(y) s přístupem k živému Gantt vieweru (odděl čárkou):', current);
   if (input === null) return;
   ganttShareEmails = input.split(',').map(s => s.trim()).filter(Boolean);
   save('tw_gantt_share_emails', ganttShareEmails);
   ghSave();
-  showToast('Uloženo — sdílení se nastaví při dalším ukládání');
-}
-
-let ganttShareTimer = null;
-function scheduleGanttShare() {
-  if (ganttShareTimer) clearTimeout(ganttShareTimer);
-  ganttShareTimer = setTimeout(() => { ganttShareTimer = null; autoShareGanttSnapshot(); }, 4000);
-}
-
-async function autoShareGanttSnapshot() {
-  if (!isConnected() || !ganttShareEmails.length) return;
-  const html = buildGanttSnapshotHtml();
-  if (!html) return;
-  try {
-    const { id, webContentLink } = await driveWriteFile(GANTT_SHARE_FILE, html, 'text/html');
-    if (webContentLink) { save('tw_gantt_share_link', webContentLink); renderGanttShareLinkBar(); }
-    const newEmails = ganttShareEmails.filter(e => !ganttSharePermApplied.has(e));
-    for (const email of newEmails) {
-      try { await driveSetPermission(id, email); ganttSharePermApplied.add(email); }
-      catch (e) { console.error('Sdílení Gantt s', email, 'selhalo:', e); }
-    }
-    save('tw_gantt_perm_applied', [...ganttSharePermApplied]);
-  } catch (e) { console.error('autoShareGanttSnapshot:', e); }
-}
-
-function renderGanttShareLinkBar() {
-  const btn = document.getElementById('ganttCopyLinkBtn');
-  if (!btn) return;
-  const link = load('tw_gantt_share_link', '');
-  btn.style.display = (link && ukolyView === 'gantt') ? 'inline-block' : 'none';
-}
-
-function copyGanttShareLink() {
-  const link = load('tw_gantt_share_link', '');
-  if (!link) { showToast('Odkaz zatím není — nejdřív nastav e-mail a počkej pár vteřin po uložení úkolu'); return; }
-  navigator.clipboard.writeText(link).then(() => {
-    showToast('Odkaz zkopírován — po kliknutí se soubor STÁHNE, kolega ho musí otevřít (ne jen prohlížet v Drive)' + (ganttShareEmails.length ? '. Musí být přihlášen jako ' + ganttShareEmails.join(', ') : ''));
-  }).catch(() => { prompt('Zkopíruj odkaz ručně:', link); });
+  showToast('Uloženo ✓');
 }
 
 async function ghLoad(){
@@ -762,7 +714,6 @@ async function ghSave(){
   if(!isConnected()){ updateSyncIcon('local'); return; }
   try{ await driveWriteJSON(GH_FILE, {ukoly, events, ganttShareEmails}); updateSyncIcon('ok'); }
   catch(e){ console.error('driveSave ukoly:',e); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); return; }
-  scheduleGanttShare();
 }
 
 function updateSyncIcon(state){
@@ -879,7 +830,6 @@ function setUkolyView(v) {
     document.querySelectorAll('#ganttToolbar [data-scale]').forEach(b => b.classList.toggle('active', b.dataset.scale===ganttScale));
     renderGantt();
   }
-  renderGanttShareLinkBar();
 }
 
 // ── ÚKOLY ────────────────────────────────────────────────────────────────────
@@ -1521,19 +1471,6 @@ function presentGantt() {
   const url = URL.createObjectURL(blob);
   const win = window.open(url, 'ganttPresentation', 'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no');
   if (!win) { showToast('Prohlížeč zablokoval nové okno — povol vyskakovací okna pro tuto stránku'); }
-}
-
-function exportGanttSnapshot() {
-  const html = buildGanttSnapshotHtml();
-  if (!html) { showToast('Žádné projekty k exportu'); return; }
-  const blob = new Blob([html], { type: 'text/html' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'gantt-snapshot-' + new Date().toISOString().slice(0,10) + '.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  showToast('Staženo — nahraj do GitHub repa a pošli odkaz ✓');
 }
 
 function setUkolyFilter(f, el) {
