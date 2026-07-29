@@ -403,8 +403,8 @@
       <button data-scale="quarter" onclick="setGanttScale('quarter')">Kvartály</button>
     </div>
     <div class="gantt-toolbar-group share-group">
-      <button onclick="editGanttShareEmails()" title="Kdo má přístup k živému Gantt vieweru (Apps Script)">✉️ Komu sdílet</button>
-      <button onclick="copyGanttViewerLink()" title="Odkaz na živý Gantt viewer (Apps Script URL)">🔗 Odkaz</button>
+      <button onclick="copyGanttViewerLink()" title="Zkopírovat odkaz na živý Gantt viewer (obsahuje přístupový klíč)">🔗 Odkaz</button>
+      <button onclick="invalidateGanttShareKey()" title="Zneplatní stávající odkaz — kdokoliv ho má, ztratí přístup">🔒 Zneplatnit odkaz</button>
       <button onclick="presentGantt()">🖥️ Prezentovat</button>
     </div>
   </div>
@@ -706,29 +706,34 @@ async function driveWriteJSON(fname,obj){
   const r = await driveWriteFile(fname, json, 'application/json');
   return r.id;
 }
-let ganttShareEmails = load('tw_gantt_share_emails', []);
 let ganttViewerLink = load('tw_gantt_viewer_link', '');
+let ganttShareKey = load('tw_gantt_share_key', '');
 
-function editGanttShareEmails() {
-  const current = ganttShareEmails.join(', ');
-  const input = prompt('E-mail(y) s přístupem k živému Gantt vieweru (odděl čárkou):', current);
-  if (input === null) return;
-  ganttShareEmails = input.split(',').map(s => s.trim()).filter(Boolean);
-  save('tw_gantt_share_emails', ganttShareEmails);
-  ghSave();
-  showToast('Uloženo ✓');
+function generateShareKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 function copyGanttViewerLink() {
-  const input = prompt('Odkaz na živý Gantt viewer (Apps Script Web app URL):', ganttViewerLink);
+  const input = prompt('Základní odkaz na Apps Script Gantt viewer (bez klíče, jen /exec URL):', ganttViewerLink);
   if (input === null) return;
   ganttViewerLink = input.trim();
   save('tw_gantt_viewer_link', ganttViewerLink);
+  if (!ganttViewerLink) { ghSave(); showToast('Odkaz smazán'); return; }
+  if (!ganttShareKey) { ganttShareKey = generateShareKey(); save('tw_gantt_share_key', ganttShareKey); }
   ghSave();
-  if (!ganttViewerLink) { showToast('Odkaz smazán'); return; }
-  navigator.clipboard.writeText(ganttViewerLink).then(() => {
-    showToast('Odkaz uložen a zkopírován ✓');
-  }).catch(() => { showToast('Odkaz uložen'); });
+  const fullLink = ganttViewerLink + (ganttViewerLink.includes('?') ? '&' : '?') + 'key=' + ganttShareKey;
+  navigator.clipboard.writeText(fullLink).then(() => {
+    showToast('Odkaz s klíčem zkopírován ✓');
+  }).catch(() => { prompt('Zkopíruj odkaz ručně:', fullLink); });
+}
+
+function invalidateGanttShareKey() {
+  if (!confirm('Zneplatnit stávající odkaz? Kdokoliv, kdo ho má, ztratí přístup — budeš muset rozeslat nový.')) return;
+  ganttShareKey = generateShareKey();
+  save('tw_gantt_share_key', ganttShareKey);
+  ghSave();
+  showToast('Odkaz zneplatněn — klikni na 🔗 Odkaz pro nový');
 }
 
 async function ghLoad(){
@@ -738,15 +743,15 @@ async function ghLoad(){
     if(r.exists && r.data){
       if(r.data.ukoly){ ukoly=r.data.ukoly; save('tw_ukoly2',ukoly); }
       if(r.data.events){ events=r.data.events; save('tw_events2',events); }
-      if(r.data.ganttShareEmails){ ganttShareEmails=r.data.ganttShareEmails; save('tw_gantt_share_emails', ganttShareEmails); }
       if(r.data.ganttViewerLink){ ganttViewerLink=r.data.ganttViewerLink; save('tw_gantt_viewer_link', ganttViewerLink); }
+      if(r.data.ganttShareKey){ ganttShareKey=r.data.ganttShareKey; save('tw_gantt_share_key', ganttShareKey); }
     }
     updateSyncIcon('ok');
   }catch(e){ console.error('driveLoad ukoly:',e); updateSyncIcon('error'); }
 }
 async function ghSave(){
   if(!isConnected()){ updateSyncIcon('local'); return; }
-  try{ await driveWriteJSON(GH_FILE, {ukoly, events, ganttShareEmails, ganttViewerLink}); updateSyncIcon('ok'); }
+  try{ await driveWriteJSON(GH_FILE, {ukoly, events, ganttViewerLink, ganttShareKey}); updateSyncIcon('ok'); }
   catch(e){ console.error('driveSave ukoly:',e); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); return; }
 }
 
