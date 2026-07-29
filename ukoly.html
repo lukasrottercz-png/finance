@@ -303,10 +303,9 @@
 .evid-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; }
 .evid-row:last-child { border-bottom: none; }
 .evid-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.evid-row-top { display: flex; align-items: center; gap: 8px; }
-.evid-row-name { flex: 0 1 auto; min-width: 0; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.evid-row .resp-badge { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.evid-row-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .evid-row-desc { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.evid-row-body .resp-badge { align-self: flex-start; }
 .resp-badge { font-size: 11px; color: var(--muted); }
 
 /* GANTT */
@@ -893,11 +892,9 @@ function renderEvidovaneProjekty(list) {
       <div class="evid-row" onclick="openUkolModal('${u.id}')">
         <span class="evid-badge">nezahájeno</span>
         <div class="evid-row-body">
-          <div class="evid-row-top">
-            <span class="evid-row-name">${esc(u.name)}</span>
-            ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
-          </div>
+          <span class="evid-row-name">${esc(u.name)}</span>
           ${u.note ? `<div class="evid-row-desc">${esc(u.note)}</div>` : ''}
+          ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
         </div>
       </div>`).join('')}
   </div>`;
@@ -1069,11 +1066,9 @@ function evidHtml(list) {
       <div class="evid-row" onclick="openUkolModal('${u.id}')">
         <span class="evid-badge">nezahájeno</span>
         <div class="evid-row-body">
-          <div class="evid-row-top">
-            <span class="evid-row-name">${esc(u.name)}</span>
-            ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
-          </div>
+          <span class="evid-row-name">${esc(u.name)}</span>
           ${u.note ? `<div class="evid-row-desc">${esc(u.note)}</div>` : ''}
+          ${u.zodpovida ? `<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>` : ''}
         </div>
       </div>`).join('')}
   </div>`;
@@ -1269,7 +1264,7 @@ function buildGanttSnapshotHtml() {
 
   if (!items.length && !evidovane.length) return null;
 
-  const evidHtmlStatic = evidovane.length ? `<div class="evid-box"><div class="evid-box-title">📋 Evidované projekty (${evidovane.length}) — zatím bez termínu</div>${evidovane.map(u => `<div class="evid-row"><span class="evid-badge">nezahájeno</span><div class="evid-row-body"><div class="evid-row-top"><span class="evid-row-name">${esc(u.name)}</span>${u.zodpovida?`<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>`:''}</div>${u.note?`<div class="evid-row-desc">${esc(u.note)}</div>`:''}</div></div>`).join('')}</div>` : '';
+  const evidHtmlStatic = evidovane.length ? `<div class="evid-box"><div class="evid-box-title">📋 Evidované projekty (${evidovane.length}) — zatím bez termínu</div>${evidovane.map(u => `<div class="evid-row"><span class="evid-badge">nezahájeno</span><div class="evid-row-body"><span class="evid-row-name">${esc(u.name)}</span>${u.note?`<div class="evid-row-desc">${esc(u.note)}</div>`:''}${u.zodpovida?`<span class="resp-badge">👤 ${esc(u.zodpovida)}</span>`:''}</div></div>`).join('')}</div>` : '';
 
   const generatedAt = new Date().toLocaleString('cs-CZ', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
   const dataJson = JSON.stringify(items).replace(/</g, '\\u003c');
@@ -1332,11 +1327,11 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .evid-row { display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:0.5px solid var(--border); }
 .evid-row:last-child { border-bottom:none; }
 .evid-row-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-.evid-row-top { display:flex; align-items:center; gap:8px; }
-.evid-row-name { flex:0 1 auto; min-width:0; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.evid-row-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .evid-row-desc { font-size:12px; color:var(--muted); line-height:1.35; }
 .evid-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:8px; background:rgba(142,142,147,0.15); color:var(--muted); white-space:nowrap; flex-shrink:0; }
 .resp-badge { font-size:11px; color:var(--muted); white-space:nowrap; }
+.evid-row-body .resp-badge { align-self: flex-start; }
 </style>
 </head>
 <body>
