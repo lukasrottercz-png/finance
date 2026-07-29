@@ -300,6 +300,8 @@
 .evid-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(142,142,147,0.15); color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 .evid-box { margin-top: 22px; padding-top: 14px; border-top: 0.5px solid var(--border); }
 .evid-box-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.list-section-hd { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin: 18px 0 8px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+.list-section-hd.first { margin-top: 0; padding-top: 0; border-top: none; }
 .evid-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; }
 .evid-row:last-child { border-bottom: none; }
 .evid-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -1034,8 +1036,8 @@ function renderUkoly() {
     el.innerHTML = `<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Žádné úkoly.</div></div>`;
     return;
   }
-  let waitHeaderShown = false;
-  el.innerHTML = list.map(u => {
+
+  function taskRowHtml(u, waitState) {
     const days = daysUntil(effDate(u));
     const isWaiting = !u.done && !!u.waiting;
     const u2 = (u.done || isWaiting) ? 'gray' : urg(days);
@@ -1052,7 +1054,7 @@ function renderUkoly() {
     const hasKids = u.projekt && (childrenMap[u.id] || []).length > 0;
     const isCollapsed = collapsedProjects.has(u.id);
     const collapseBtn = hasKids ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-right:2px;color:var(--muted);font-size:18px;font-weight:700;vertical-align:middle;border-radius:6px">${isCollapsed?'▸':'▾'}</span>` : '';
-    const waitSep = (isWaiting && !waitHeaderShown) ? (waitHeaderShown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
+    const waitSep = (isWaiting && !waitState.shown) ? (waitState.shown = true, `<div class="section-sep">⏳ Čeká se na ostatní</div>`) : '';
     return waitSep + `
     <div class="task-item urg-${u2} ${u.done?'done':''} ${isOverdue?'overdue':''} ${isWaiting?'waiting':''}" style="${(u.projektId||predTask)?'margin-left:18px;border-left-width:2px':''}">
       <div class="check ${u.done?'checked':''}" onclick="event.stopPropagation();toggleUkol('${u.id}')"></div>
@@ -1068,7 +1070,18 @@ function renderUkoly() {
         !u.done ? `<span class="urg-badge">${urgLabel(days)}</span>` : ''}
       <button class="task-edit" onclick="event.stopPropagation();showUkolMenu('${u.id}',this)">···</button>
     </div>`;
-  }).join('');
+  }
+
+  // Rozdělí seznam na projekty (+ jejich dílčí úkoly) a samostatné úkoly bez projektu —
+  // navazující (predecessorId) řetězce existují jen v rámci projektu, takže toto rozdělení je jednoznačné.
+  const projectSection = list.filter(u => u.projekt || u.projektId);
+  const standaloneSection = list.filter(u => !u.projekt && !u.projektId);
+  function renderSection(arr, title, isFirst) {
+    if (!arr.length) return '';
+    const waitState = { shown: false };
+    return `<div class="list-section-hd${isFirst ? ' first' : ''}">${title}</div>` + arr.map(u => taskRowHtml(u, waitState)).join('');
+  }
+  el.innerHTML = renderSection(projectSection, '📊 Projekty', true) + renderSection(standaloneSection, '☑️ Samostatné úkoly', !projectSection.length);
 }
 
 // Přeřadí pole úkolů tak, aby navazující (predecessorId) úkol byl hned za svým předchůdcem,
@@ -1325,7 +1338,7 @@ function buildGanttSnapshotHtml() {
     .map(u => ({
       id: u.id, name: u.name, start: u.start, date: u.date, nahradniTermin: u.nahradniTermin||'', note: u.note||'', done: !!u.done, completedAt: u.completedAt||null,
       zodpovida: u.zodpovida||'', predecessorId: u.predecessorId||'',
-      kids: ukoly.filter(k => k.projektId === u.id).map(k => ({
+      kids: ukoly.filter(k => k.projektId === u.id && (k.agenda||'osobni')==='prace').map(k => ({
         id: k.id, name: k.name, date: k.date, nahradniTermin: k.nahradniTermin||'', done: !!k.done, completedAt: k.completedAt||null, zodpovida: k.zodpovida||'', predecessorId: k.predecessorId||''
       }))
     }));
