@@ -1060,7 +1060,7 @@ function renderUkoly() {
       <div class="check ${u.done?'checked':''}" onclick="event.stopPropagation();toggleUkol('${u.id}')"></div>
       <div class="task-body" onclick="openUkolModal('${u.id}')" style="cursor:pointer">
         <div class="task-name">${collapseBtn}${u.projekt ? '<span class="proj-badge">📊 projekt</span>' : ''}${esc(u.name)}${isCollapsed ? ` <span style="font-size:11px;color:var(--muted);font-weight:400">(${(childrenMap[u.id]||[]).length} sbaleno)</span>` : ''}</div>
-        <div class="task-date">${u.projekt && u.start ? fmtDate(u.start)+' – ' : ''}${dateDisplay}${u.note ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}${u.zodpovida ? ' · <span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>' : ''}${projParent ? ' · <span class="resp-badge">📊 '+esc(projParent.name)+'</span>' : ''}${predTask ? ' · <span class="resp-badge">🔗 po: '+esc(predTask.name)+'</span>' : ''}${u.done && u.reseni ? ' · ✅ ' + esc(u.reseni) : ''}</div>
+        <div class="task-date">${u.projekt && u.start ? fmtDate(u.start)+' – ' : ''}${dateDisplay}${(u.note && !u.projekt) ? ' · ' + esc(u.note) : ''}${u.repeat?' 🔄 '+repeatLabel(u.repeat):''}${u.zodpovida ? ' · <span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>' : ''}${projParent ? ' · <span class="resp-badge">📊 '+esc(projParent.name)+'</span>' : ''}${predTask ? ' · <span class="resp-badge">🔗 po: '+esc(predTask.name)+'</span>' : ''}${u.done && u.reseni ? ' · ✅ ' + esc(u.reseni) : ''}</div>
         ${tagsHtml}
       </div>
       ${isWaiting ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:rgba(10,132,255,0.12);color:#0a84ff;white-space:nowrap">⏳ čeká</span>` :
