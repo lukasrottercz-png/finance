@@ -304,7 +304,7 @@
 .evid-row:last-child { border-bottom: none; }
 .evid-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .evid-row-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.evid-row-desc { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.evid-row-desc { font-size: 12px; font-weight: 400; color: var(--muted); line-height: 1.35; }
 .evid-row-body .resp-badge { align-self: flex-start; }
 .resp-badge { font-size: 11px; color: var(--muted); }
 
@@ -353,6 +353,12 @@
 .gantt-bar.gantt-bar-moved { box-shadow: 0 0 0 2px #ff9500; }
 .gantt-bar-ghost { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; border: 1.5px dashed var(--muted); background: transparent; opacity: 0.6; z-index: 1; }
 .col-date.moved { color: #ff9500; font-weight: 700; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 4px 12px; font-size: 11px; color: var(--muted); }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 9px; height: 9px; margin-top: -1px; border-radius: 2px; transform: rotate(45deg); flex-shrink: 0; background: var(--accent); }
+.legend-dot.legend-done { background: var(--green); }
+.legend-dot.legend-late { background: var(--red); }
+.legend-dot.legend-moved { background: var(--accent); box-shadow: 0 0 0 2px #ff9500; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1174,6 +1180,11 @@ function renderGantt() {
     const perLine = Math.max(10, Math.floor((nameColPx - (extraPad||0)) / 6.3));
     return text.length > perLine ? 2 : 1;
   };
+  const estDescLines = (text) => {
+    if (!text) return 0;
+    const perLine = Math.max(10, Math.floor(labelsColPx / 5.8));
+    return Math.max(1, Math.ceil(text.length / perLine));
+  };
 
   let yCursor = 0;
   const posMap = {}; // id -> {top, height, x1 (start px), x2 (end px)}
@@ -1186,17 +1197,23 @@ function renderGantt() {
     const width = Math.max(dayOffset(new Date(uEff+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const kids = orderByChain(kidsOf(u.id).slice().sort((a,b) => effDate(a).localeCompare(effDate(b))));
     const isCollapsed = collapsedProjects.has(u.id);
-    const collapseBtn = kids.length ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;color:var(--muted);font-size:13px;font-weight:700;vertical-align:middle">${isCollapsed?'▸':'▾'}</span>` : '';
-    const rowH = estLines(u.name) === 2 ? rowH2 : rowH1;
+    const showDesc = !isCollapsed && !!u.note;
+    const collapseBtn = kids.length ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:2px;color:var(--accent);background:rgba(124,58,237,0.12);border-radius:50%;font-size:13px;font-weight:900;vertical-align:middle">${isCollapsed?'▸':'▾'}</span>` : '';
+    const baseRowH = estLines(u.name) === 2 ? rowH2 : rowH1;
+    const descH = showDesc ? (estDescLines(u.note) * 15 + 8) : 0;
+    const rowH = baseRowH + descH;
     posMap[u.id] = { top: yCursor, height: rowH, x1: left, x2: left+width };
     depList.push({ id: u.id, predecessorId: u.predecessorId||'' });
     yCursor += rowH;
 
-    labelsHtml += `<div class="gantt-row-label" style="height:${rowH}px">
-        <div class="col-name" title="${esc(u.name)}">${collapseBtn}${esc(u.name)}${isCollapsed ? ` <span style="font-size:10px;color:var(--muted)">(${kids.length})</span>` : ''}</div>
-        <div class="col-date">${fmtDateShort(u.start)}</div>
-        <div class="col-date${uMoved?' moved':''}" title="${uMoved?'Původně: '+fmtDate(u.date):''}">${fmtDateShort(uEff)}</div>
-        <div class="col-resp">${u.zodpovida ? esc(u.zodpovida) : '–'}</div>
+    const descHtml = showDesc ? `<div class="evid-row-desc" style="padding:0 12px 4px 18px">${esc(u.note)}</div>` : '';
+    labelsHtml += `<div class="gantt-row-label" style="height:${rowH}px;flex-direction:column;align-items:stretch">
+        <div style="display:flex;align-items:center;gap:6px;height:${baseRowH}px;flex-shrink:0">
+          <div class="col-name" title="${esc(u.name)}">${collapseBtn}${esc(u.name)}${isCollapsed ? ` <span style="font-size:10px;color:var(--muted)">(${kids.length})</span>` : ''}</div>
+          <div class="col-date">${fmtDateShort(u.start)}</div>
+          <div class="col-date${uMoved?' moved':''}" title="${uMoved?'Původně: '+fmtDate(u.date):''}">${fmtDateShort(uEff)}</div>
+          <div class="col-resp">${u.zodpovida ? esc(u.zodpovida) : '–'}</div>
+        </div>${descHtml}
       </div>`;
     const barTitle = uMoved
       ? `${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(uEff)} (původně do ${fmtDate(u.date)})`
@@ -1252,6 +1269,12 @@ function renderGantt() {
     : '';
 
   el.innerHTML = `
+    <div class="legend-row">
+      <span class="legend-item"><span class="legend-dot"></span>Naplánováno</span>
+      <span class="legend-item"><span class="legend-dot legend-done"></span>Splněno</span>
+      <span class="legend-item"><span class="legend-dot legend-late"></span>Po termínu</span>
+      <span class="legend-item"><span class="legend-dot legend-moved"></span>Termín posunut</span>
+    </div>
     <div class="gantt-wrap">
       <div class="gantt-body">
         <div class="gantt-labels">
@@ -1300,7 +1323,7 @@ function buildGanttSnapshotHtml() {
       return a.start.localeCompare(b.start);
     })
     .map(u => ({
-      id: u.id, name: u.name, start: u.start, date: u.date, nahradniTermin: u.nahradniTermin||'', done: !!u.done, completedAt: u.completedAt||null,
+      id: u.id, name: u.name, start: u.start, date: u.date, nahradniTermin: u.nahradniTermin||'', note: u.note||'', done: !!u.done, completedAt: u.completedAt||null,
       zodpovida: u.zodpovida||'', predecessorId: u.predecessorId||'',
       kids: ukoly.filter(k => k.projektId === u.id).map(k => ({
         id: k.id, name: k.name, date: k.date, nahradniTermin: k.nahradniTermin||'', done: !!k.done, completedAt: k.completedAt||null, zodpovida: k.zodpovida||'', predecessorId: k.predecessorId||''
@@ -1373,14 +1396,20 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .scale-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
 .scale-row button.active { background:rgba(124,58,237,0.1); color:var(--accent); border-color:rgba(124,58,237,0.3); font-weight:600; }
 .collapse-row { display:flex; gap:6px; padding:0 20px 12px; }
-.collapse-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
+.collapse-row button { padding:6px 16px; border-radius:20px; border:0.5px solid rgba(124,58,237,0.35); background:rgba(124,58,237,0.1); color:var(--accent); font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }
+.legend-row { display:flex; flex-wrap:wrap; gap:14px; padding:0 20px 12px; font-size:11px; color:var(--muted); }
+.legend-item { display:flex; align-items:center; gap:5px; }
+.legend-dot { width:9px; height:9px; margin-top:-1px; border-radius:2px; transform:rotate(45deg); flex-shrink:0; background:var(--accent); }
+.legend-dot.legend-done { background:var(--green); }
+.legend-dot.legend-late { background:var(--red); }
+.legend-dot.legend-moved { background:var(--accent); box-shadow:0 0 0 2px #ff9500; }
 .evid-box { margin:14px 20px 0; padding-top:14px; border-top:0.5px solid var(--border); }
 .evid-box-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
 .evid-row { display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:0.5px solid var(--border); }
 .evid-row:last-child { border-bottom:none; }
 .evid-row-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .evid-row-name { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.evid-row-desc { font-size:12px; color:var(--muted); line-height:1.35; }
+.evid-row-desc { font-size:12px; font-weight:400; color:var(--muted); line-height:1.35; }
 .evid-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:8px; background:rgba(142,142,147,0.15); color:var(--muted); white-space:nowrap; flex-shrink:0; }
 .resp-badge { font-size:11px; color:var(--muted); white-space:nowrap; }
 .evid-row-body .resp-badge { align-self: flex-start; }
@@ -1390,6 +1419,12 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 <div class="hd">
   <h1>📊 Gantt — projekty</h1>
   <div class="meta">Snímek k ${esc(generatedAt)} · neaktualizuje se automaticky, jde o poslední uloženou verzi</div>
+</div>
+<div class="legend-row">
+  <span class="legend-item"><span class="legend-dot"></span>Naplánováno</span>
+  <span class="legend-item"><span class="legend-dot legend-done"></span>Splněno</span>
+  <span class="legend-item"><span class="legend-dot legend-late"></span>Po termínu</span>
+  <span class="legend-item"><span class="legend-dot legend-moved"></span>Termín posunut</span>
 </div>
 <div class="collapse-row">
   <button onclick="collapseAll()">▸ Sbalit vše</button>
@@ -1480,6 +1515,11 @@ function render() {
     const perLine = Math.max(10, Math.floor((nameColPx - (extraPad||0)) / 6.3));
     return text.length > perLine ? 2 : 1;
   };
+  const estDescLines = (text) => {
+    if (!text) return 0;
+    const perLine = Math.max(10, Math.floor(labelsColPx / 5.8));
+    return Math.max(1, Math.ceil(text.length / perLine));
+  };
 
   let labelsHtml = '', rowsHtml = '';
   let yCursor = 0;
@@ -1490,14 +1530,18 @@ function render() {
     const uEff = effDate(u);
     const uMoved = !!u.nahradniTermin && u.nahradniTermin !== u.date;
     const width = Math.max(dayOffset(new Date(uEff+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
-    const rowH = estLines(u.name) === 2 ? rowH2 : rowH1;
+    const isCollapsed = collapsed.has(u.id);
+    const showDesc = !isCollapsed && !!u.note;
+    const baseRowH = estLines(u.name) === 2 ? rowH2 : rowH1;
+    const descH = showDesc ? (estDescLines(u.note) * 15 + 8) : 0;
+    const rowH = baseRowH + descH;
     posMap[u.id] = { top: yCursor, height: rowH, x1: left, x2: left+width };
     depList.push({ id: u.id, predecessorId: u.predecessorId||'' });
     yCursor += rowH;
-    const isCollapsed = collapsed.has(u.id);
     const hasKids = u.kids.length > 0;
-    const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\\''+u.id+'\\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;color:var(--muted);font-size:13px;font-weight:700;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
-    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date'+(uMoved?' moved':'')+'" title="'+(uMoved?'Původně: '+fmtDate(u.date):'')+'">'+fmtDateShort(uEff)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>';
+    const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\\''+u.id+'\\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:2px;color:var(--accent);background:rgba(124,58,237,0.12);border-radius:50%;font-size:13px;font-weight:900;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
+    const descHtml = showDesc ? '<div class="evid-row-desc" style="padding:0 12px 4px 18px">'+esc(u.note)+'</div>' : '';
+    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px;flex-direction:column;align-items:stretch"><div style="display:flex;align-items:center;gap:6px;height:'+baseRowH+'px;flex-shrink:0"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date'+(uMoved?' moved':'')+'" title="'+(uMoved?'Původně: '+fmtDate(u.date):'')+'">'+fmtDateShort(uEff)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>'+descHtml+'</div>';
     const barTitle = uMoved ? (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(uEff)+' (původně do '+fmtDate(u.date)+')') : (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date));
     const origWidth = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const ghostBar = uMoved ? ('<div class="gantt-bar-ghost" style="left:'+left+'px;width:'+origWidth+'px" title="Původní termín: '+fmtDate(u.date)+'"></div>') : '';
