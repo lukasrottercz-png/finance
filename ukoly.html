@@ -1182,7 +1182,7 @@ function renderGantt() {
   };
   const estDescLines = (text) => {
     if (!text) return 0;
-    const perLine = Math.max(10, Math.floor(labelsColPx / 5.8));
+    const perLine = Math.max(10, Math.floor(labelsColPx / 6.2));
     return Math.max(1, Math.ceil(text.length / perLine));
   };
 
@@ -1200,14 +1200,14 @@ function renderGantt() {
     const showDesc = !isCollapsed && !!u.note;
     const collapseBtn = kids.length ? `<span onclick="event.stopPropagation();toggleProjectCollapse('${u.id}')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:2px;color:var(--accent);background:rgba(124,58,237,0.12);border-radius:50%;font-size:13px;font-weight:900;vertical-align:middle">${isCollapsed?'▸':'▾'}</span>` : '';
     const baseRowH = estLines(u.name) === 2 ? rowH2 : rowH1;
-    const descH = showDesc ? (estDescLines(u.note) * 15 + 8) : 0;
+    const descH = showDesc ? (estDescLines(u.note) * 17 + 22) : 0;
     const rowH = baseRowH + descH;
     posMap[u.id] = { top: yCursor, height: rowH, x1: left, x2: left+width };
     depList.push({ id: u.id, predecessorId: u.predecessorId||'' });
     yCursor += rowH;
 
-    const descHtml = showDesc ? `<div class="evid-row-desc" style="padding:0 12px 4px 18px">${esc(u.note)}</div>` : '';
-    labelsHtml += `<div class="gantt-row-label" style="height:${rowH}px;flex-direction:column;align-items:stretch">
+    const descHtml = showDesc ? `<div class="evid-row-desc" style="padding:4px 12px 12px 18px">${esc(u.note)}</div>` : '';
+    labelsHtml += `<div class="gantt-row-label" style="height:${rowH}px;flex-direction:column;align-items:stretch;gap:0">
         <div style="display:flex;align-items:center;gap:6px;height:${baseRowH}px;flex-shrink:0">
           <div class="col-name" title="${esc(u.name)}">${collapseBtn}${esc(u.name)}${isCollapsed ? ` <span style="font-size:10px;color:var(--muted)">(${kids.length})</span>` : ''}</div>
           <div class="col-date">${fmtDateShort(u.start)}</div>
@@ -1517,7 +1517,7 @@ function render() {
   };
   const estDescLines = (text) => {
     if (!text) return 0;
-    const perLine = Math.max(10, Math.floor(labelsColPx / 5.8));
+    const perLine = Math.max(10, Math.floor(labelsColPx / 6.2));
     return Math.max(1, Math.ceil(text.length / perLine));
   };
 
@@ -1533,15 +1533,15 @@ function render() {
     const isCollapsed = collapsed.has(u.id);
     const showDesc = !isCollapsed && !!u.note;
     const baseRowH = estLines(u.name) === 2 ? rowH2 : rowH1;
-    const descH = showDesc ? (estDescLines(u.note) * 15 + 8) : 0;
+    const descH = showDesc ? (estDescLines(u.note) * 17 + 22) : 0;
     const rowH = baseRowH + descH;
     posMap[u.id] = { top: yCursor, height: rowH, x1: left, x2: left+width };
     depList.push({ id: u.id, predecessorId: u.predecessorId||'' });
     yCursor += rowH;
     const hasKids = u.kids.length > 0;
     const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\\''+u.id+'\\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:2px;color:var(--accent);background:rgba(124,58,237,0.12);border-radius:50%;font-size:13px;font-weight:900;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
-    const descHtml = showDesc ? '<div class="evid-row-desc" style="padding:0 12px 4px 18px">'+esc(u.note)+'</div>' : '';
-    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px;flex-direction:column;align-items:stretch"><div style="display:flex;align-items:center;gap:6px;height:'+baseRowH+'px;flex-shrink:0"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date'+(uMoved?' moved':'')+'" title="'+(uMoved?'Původně: '+fmtDate(u.date):'')+'">'+fmtDateShort(uEff)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>'+descHtml+'</div>';
+    const descHtml = showDesc ? '<div class="evid-row-desc" style="padding:4px 12px 12px 18px">'+esc(u.note)+'</div>' : '';
+    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px;flex-direction:column;align-items:stretch;gap:0"><div style="display:flex;align-items:center;gap:6px;height:'+baseRowH+'px;flex-shrink:0"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date'+(uMoved?' moved':'')+'" title="'+(uMoved?'Původně: '+fmtDate(u.date):'')+'">'+fmtDateShort(uEff)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>'+descHtml+'</div>';
     const barTitle = uMoved ? (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(uEff)+' (původně do '+fmtDate(u.date)+')') : (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date));
     const origWidth = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const ghostBar = uMoved ? ('<div class="gantt-bar-ghost" style="left:'+left+'px;width:'+origWidth+'px" title="Původní termín: '+fmtDate(u.date)+'"></div>') : '';
