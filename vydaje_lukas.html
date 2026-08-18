@@ -97,17 +97,18 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .rod-catfill{height:100%;background:#ff9500;border-radius:3px}
 .budget-banner{background:#fff;border-radius:16px;padding:18px 16px;margin-bottom:14px;text-align:center;border:1px solid #e8e8ed}
 .bb-big{font-size:34px;font-weight:700;line-height:1}
-.bb-cap{font-size:13px;color:#6c6c70;margin-top:6px}
+.bb-cap{font-size:15px;color:#48484a;margin-top:6px}
 .bb-rate{color:#7c3aed;cursor:pointer;white-space:nowrap}
-.bb-bar{height:8px;background:#f0f0f3;border-radius:4px;overflow:hidden;margin:12px 0 8px}
-.bb-bar-fill{height:100%;border-radius:4px;transition:width .3s}
-.bb-sub{font-size:12px;color:#8e8e93}
-.bb-pace{margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f3}
-.bb-pace-bar{position:relative;height:8px;background:#f0f0f3;border-radius:4px;overflow:visible;margin:7px 0}
-.bb-pace-fill{height:100%;border-radius:4px;transition:width .3s}
-.bb-pace-mark{position:absolute;top:-3px;width:2px;height:14px;background:#1c1c1e;border-radius:1px}
-.bb-pace-txt{font-size:13px;font-weight:600}
-.bb-note{font-size:13px;color:#8e8e93;padding:4px 0}
+.bb-bar{height:10px;background:#f0f0f3;border-radius:5px;overflow:hidden;margin:12px 0 8px}
+.bb-bar-fill{height:100%;border-radius:5px;transition:width .3s}
+.bb-sub{font-size:14px;color:#48484a}
+.bb-pace{margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f3}
+.bb-pace-bar{position:relative;height:10px;background:#f0f0f3;border-radius:5px;overflow:visible;margin:22px 0 8px}
+.bb-pace-fill{height:100%;border-radius:5px;transition:width .3s}
+.bb-pace-mark{position:absolute;top:-3px;width:3px;height:16px;background:#1c1c1e;border-radius:1.5px}
+.bb-pace-mark-lbl{position:absolute;top:-22px;transform:translateX(-50%);font-size:11px;font-weight:600;color:#1c1c1e;white-space:nowrap}
+.bb-pace-txt{font-size:16px;font-weight:600}
+.bb-note{font-size:15px;color:#48484a;padding:4px 0}
 .jitka-sum{text-align:center;padding:20px 16px 4px}
 .jitka-amt{font-size:40px;font-weight:200;letter-spacing:-1px;color:#ff2d78}
 .jitka-lbl{font-size:13px;color:#6c6c70;margin-top:3px}
@@ -516,10 +517,11 @@ function paceHtml(b){
   return '<div class="bb-pace">'
     +'<div class="bb-pace-txt" style="color:'+pColor+'">'+(ahead?'✓ ':'⚠ ')+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</div>'
     +'<div class="bb-pace-bar">'
+      +'<div class="bb-pace-mark-lbl" style="left:calc('+markPct+'% - 1.5px)">dnes</div>'
       +'<div class="bb-pace-fill" style="width:'+fillPct+'%;background:'+fillColor+'"></div>'
-      +'<div class="bb-pace-mark" style="left:calc('+markPct+'% - 1px)"></div>'
+      +'<div class="bb-pace-mark" style="left:calc('+markPct+'% - 1.5px)"></div>'
     +'</div>'
-    +'<div class="bb-sub">Utraceno <b style="color:'+spentColor+'">'+fmt(b.bezne)+'</b> z <b>'+fmt(b.limit)+'</b> · '+b.denVMesici+'. den z '+b.dnuVMesici+' (ryska = kde bys měl dnes být)</div>'
+    +'<div class="bb-sub">Utraceno <b style="color:'+spentColor+'">'+fmt(b.bezne)+'</b> z <b>'+fmt(b.limit)+'</b> · '+b.denVMesici+'. den z '+b.dnuVMesici+'</div>'
     +'</div>';
 }
 function fmt(n){return Math.round(n).toLocaleString('cs-CZ')+' Kč'}
