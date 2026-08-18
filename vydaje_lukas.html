@@ -99,8 +99,6 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .bb-big{font-size:34px;font-weight:700;line-height:1}
 .bb-cap{font-size:15px;color:#48484a;margin-top:6px}
 .bb-rate{color:#7c3aed;cursor:pointer;white-space:nowrap}
-.bb-bar{height:10px;background:#f0f0f3;border-radius:5px;overflow:hidden;margin:12px 0 8px}
-.bb-bar-fill{height:100%;border-radius:5px;transition:width .3s}
 .bb-sub{font-size:14px;color:#48484a}
 .bb-pace{margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f3}
 .bb-pace-bar{position:relative;height:10px;background:#f0f0f3;border-radius:5px;overflow:visible;margin:22px 0 8px}
@@ -492,15 +490,12 @@ function budgetBannerHtml(){
   }
   var over=b.dnesZbyva<0;
   var color=over?'#ff3b30':(b.dnesZbyva<b.denni*0.25?'#ff9500':'#34c759');
-  var spentPct=Math.min(100,Math.max(0,Math.round(b.todayTotal/Math.max(b.denni,1)*100)));
-  var barColor=spentPct>100?'#ff3b30':spentPct>75?'#ff9500':'#34c759';
   var amt=Math.round(Math.abs(b.dnesZbyva)).toLocaleString('cs-CZ');
   return '<div class="budget-banner">'
     +'<div class="bb-big" style="color:'+color+'">'+(over?'−':'')+amt+' Kč</div>'
     +'<div class="bb-cap">'+(over?'dnes jsi přes denní rozpočet':'můžeš dnes ještě utratit')
       +(b.odhad?' · <span class="bb-rate" onclick="setExpectedMzda()">odhad výplaty ✎</span>':'')
       +' · <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div>'
-    +'<div class="bb-bar"><div class="bb-bar-fill" style="width:'+spentPct+'%;background:'+barColor+'"></div></div>'
     +'<div class="bb-sub">Dnes '+fmt(b.todayTotal)+' z denního rozpočtu '+fmt(b.denni)+' · do konce měsíce zbývá '+fmt(b.zbyvaMesic)+'</div>'
     +paceHtml(b)
     +'</div>';
