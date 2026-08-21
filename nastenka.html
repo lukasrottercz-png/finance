@@ -152,6 +152,14 @@ body{
 .tile .delta.up{color:var(--backlight)}
 .tile .delta.down{color:var(--alert)}
 
+.tiles-sync{
+  text-align:right;
+  font-size:1.3vmin;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--label);
+  margin-top:.6vmin;
+}
+.tiles-sync.stale{color:var(--alert)}
+
 .empty{
   grid-column:1/-1;
   border:1px dashed var(--lcd-edge);
@@ -226,6 +234,7 @@ body{
   </div>
 
   <div class="tiles" id="tiles"></div>
+  <div class="tiles-sync" id="tilesSync"></div>
 
 </div>
 
@@ -263,6 +272,7 @@ const MONTHS = ["LED","ÚNO","BŘE","DUB","KVĚ","ČVN","ČVC","SRP","ZÁŘ","Ř
 
 const $ = id => document.getElementById(id);
 let lastOk = null;
+let lastTilesOk = null;
 
 /* ---------- hodiny ---------- */
 function tick(){
@@ -274,9 +284,10 @@ function tick(){
   $("date").textContent = DAYS[n.getDay()] + " " + n.getDate() + " " + MONTHS[n.getMonth()];
   $("place").textContent = CONFIG.place;
   paintSync();
+  paintTilesSync();
 }
 
-/* ---------- indikátor čerstvosti ---------- */
+/* ---------- indikátor čerstvosti (počasí) ---------- */
 function paintSync(){
   const el = $("sync");
   if(!lastOk){ el.className = "sync dead"; $("synctext").textContent = "bez dat"; return; }
@@ -286,6 +297,19 @@ function paintSync(){
   $("synctext").textContent = stale
     ? "zastaralé · " + minAgo + " min"
     : (minAgo < 1 ? "právě teď" : "před " + minAgo + " min");
+}
+
+/* ---------- indikátor čerstvosti (dlaždice) ---------- */
+function paintTilesSync(){
+  const el = $("tilesSync");
+  if(!el) return;
+  if(!lastTilesOk){ el.className = "tiles-sync"; el.textContent = "dlaždice · bez dat"; return; }
+  const minAgo = Math.round((Date.now() - lastTilesOk) / 60000);
+  const stale = minAgo > CONFIG.staleAfterMin;
+  el.className = "tiles-sync" + (stale ? " stale" : "");
+  el.textContent = "dlaždice · " + (stale
+    ? "zastaralé · " + minAgo + " min"
+    : (minAgo < 1 ? "právě teď" : "před " + minAgo + " min"));
 }
 
 /* ---------- počasí ---------- */
@@ -363,6 +387,9 @@ async function loadTiles(){
            +   (t.delta ? '<div class="delta ' + dir + '">' + esc(t.delta) + "</div>" : "")
            + "</div>";
     }).join("");
+
+    lastTilesOk = Date.now();
+    paintTilesSync();
   }catch(e){
     box.innerHTML =
       '<div class="empty">'
@@ -371,6 +398,7 @@ async function loadTiles(){
       + '<div><code>{ "tiles": [ { "label": "Tržby týden", "value": "1,24", "unit": "M Kč", "delta": "+8 %", "trend": "up" } ] }</code></div>'
       + "<div>Tři dlaždice maximálně. Čtvrtou už z chodby nepřečteš.</div>"
       + "</div>";
+    paintTilesSync();
   }
 }
 
