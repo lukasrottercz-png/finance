@@ -354,9 +354,13 @@ async function ghLoad(){
   }catch(e){ console.error('driveLoad vydaje:',e); updateSyncIcon('error'); return false; }
 }
 async function ghSave(){
-  if(!isConnected()){ saveAll(); updateSyncIcon('local'); return; }
-  try{ await driveWriteJSON(GH_FILE, exps); saveAll(); updateSyncIcon('ok'); }
-  catch(e){ console.error('driveSave vydaje:',e); saveAll(); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); }
+  if(isConnected()){
+    try{ await driveWriteJSON(GH_FILE, exps); saveAll(); updateSyncIcon('ok'); }
+    catch(e){ console.error('driveSave vydaje:',e); saveAll(); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); }
+  } else {
+    saveAll(); updateSyncIcon('local');
+  }
+  syncNastenkaTiles();
 }
 
 // Trvalé platby (vlastní soubor)
@@ -398,9 +402,11 @@ async function ghLoadCfg(){
 }
 async function ghSaveCfg(){
   cfgUpdated=Date.now(); localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
-  if(!isConnected()) return;
-  try{ await driveWriteJSON(GH_FILE_CFG,{expectedMzda:expectedMzda,savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,updatedAt:cfgUpdated}); }
-  catch(e){ console.error('driveSaveCfg:',e); }
+  if(isConnected()){
+    try{ await driveWriteJSON(GH_FILE_CFG,{expectedMzda:expectedMzda,savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,updatedAt:cfgUpdated}); }
+    catch(e){ console.error('driveSaveCfg:',e); }
+  }
+  syncNastenkaTiles();
 }
 
 function updateSyncIcon(state){
