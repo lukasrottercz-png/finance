@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Den D — Obrana pláže</title>
+<style>
+  :root{
+    --sand:#c9b183;
+    --sand-dark:#a4895f;
+    --sea:#2b4a63;
+    --sea-dark:#1c3140;
+    --sky:#5c6f73;
+    --bunker:#2a2a24;
+    --accent:#d43b2e;
+    --hud-bg:rgba(20,18,14,0.72);
+    --text:#eee6d3;
+    --muted:#a89b7f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent; user-select:none;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#000; overflow:hidden;
+    font-family:-apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    touch-action:none;
+  }
+  #wrap{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:#000;
+  }
+  canvas{
+    display:block;
+    width:100%; height:100%;
+    touch-action:none;
+  }
+  #hud{
+    position:fixed; top:0; left:0; right:0;
+    padding: max(10px, env(safe-area-inset-top)) 14px 8px 14px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    pointer-events:none;
+    color:var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-box{
+    background:var(--hud-bg);
+    border:1px solid rgba(238,230,211,0.15);
+    border-radius:10px;
+    padding:6px 12px;
+    font-size:13px;
+    letter-spacing:0.5px;
+    backdrop-filter: blur(4px);
+  }
+  .hud-box b{ font-size:16px; display:block; margin-top:2px;}
+  #heatWrap{
+    position:fixed;
+    left:14px; right:14px;
+    bottom: calc(env(safe-area-inset-bottom) + 14px);
+    pointer-events:none;
+  }
+  #heatLabel{
+    color:var(--text); font-size:11px; letter-spacing:1px;
+    margin-bottom:4px; opacity:0.85;
+    text-transform:uppercase;
+  }
+  #heatBarBg{
+    width:100%; height:10px; border-radius:6px;
+    background:rgba(20,18,14,0.6);
+    border:1px solid rgba(238,230,211,0.15);
+    overflow:hidden;
+  }
+  #heatBarFill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#e0c341,#d43b2e);
+    transition:width 0.05s linear;
+  }
+  #healthWrap{
+    margin-top:6px;
+  }
+  #healthBarBg{
+    width:100%; height:8px; border-radius:6px;
+    background:rgba(20,18,14,0.6);
+    border:1px solid rgba(238,230,211,0.15);
+    overflow:hidden;
+  }
+  #healthBarFill{
+    height:100%; width:100%;
+    background:linear-gradient(90deg,#4caf50,#8bc34a);
+    transition:width 0.15s ease;
+  }
+  #overheatMsg{
+    position:fixed; top:44%; left:50%; transform:translate(-50%,-50%);
+    color:var(--accent); font-weight:700; font-size:22px;
+    letter-spacing:2px; text-shadow:0 2px 6px rgba(0,0,0,0.6);
+    opacity:0; pointer-events:none; transition:opacity 0.15s;
+  }
+  .screen{
+    position:fixed; inset:0;
+    background:rgba(10,9,6,0.92);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color:var(--text); text-align:center; padding:24px;
+    z-index:10;
+  }
+  .screen h1{
+    font-size:clamp(26px,7vw,42px);
+    margin:0 0 6px 0; letter-spacing:1px;
+    color:var(--accent);
+  }
+  .screen p{
+    color:var(--muted); font-size:14px; line-height:1.5; max-width:340px; margin:8px 0 22px 0;
+  }
+  .stat-row{
+    display:flex; gap:24px; margin-bottom:22px;
+  }
+  .stat{
+    text-align:center;
+  }
+  .stat .n{ font-size:28px; font-weight:700; color:var(--text);}
+  .stat .l{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;}
+  button.btn{
+    background:var(--accent);
+    color:#fff; border:none; border-radius:12px;
+    padding:14px 34px; font-size:16px; font-weight:600;
+    letter-spacing:0.5px;
+    box-shadow:0 4px 14px rgba(212,59,46,0.35);
+  }
+  button.btn:active{ transform:scale(0.97); }
+  #hidden{ display:none; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+</div>
+
+<div id="hud">
+  <div class="hud-box">SKÓRE<b id="scoreVal">0</b></div>
+  <div class="hud-box">VLNA<b id="waveVal">1</b></div>
+</div>
+
+<div id="overheatMsg">PŘEHŘÁTÁ HLAVEŇ!</div>
+
+<div id="heatWrap">
+  <div id="heatLabel">Teplota hlavně MG42</div>
+  <div id="heatBarBg"><div id="heatBarFill"></div></div>
+  <div id="healthWrap">
+    <div id="healthBarBg"><div id="healthBarFill"></div></div>
+  </div>
+</div>
+
+<div class="screen" id="startScreen">
+  <h1>DEN D</h1>
+  <p>6. června 1944. Jsi v betonovém bunkru nad pláží Omaha.<br>Na obzoru se objevují vyloďovací čluny. Braň pozici tak dlouho, jak dokážeš.</p>
+  <p style="margin-top:-14px;">Dotykem miř a stiskni pro palbu z MG42. Držením hlaveň přehřeje — nech ji vychladnout.</p>
+  <button class="btn" id="startBtn">Zaujmout pozici</button>
+</div>
+
+<div class="screen" id="overScreen" style="display:none;">
+  <h1>POZICE PADLA</h1>
+  <div class="stat-row">
+    <div class="stat"><div class="n" id="finalScore">0</div><div class="l">Skóre</div></div>
+    <div class="stat"><div class="n" id="finalWave">1</div><div class="l">Vlna</div></div>
+  </div>
+  <button class="btn" id="retryBtn">Znovu do zákopů</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let W=0,H=0,DPR=1;
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio||1, 2.5);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W*DPR);
+    canvas.height = Math.round(H*DPR);
+    canvas.style.width = W+'px';
+    canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ---------- Game state ----------
+  const state = {
+    running:false,
+    score:0,
+    wave:1,
+    health:100,
+    heat:0,
+    overheated:false,
+    aim:{x:0,y:0,active:false},
+    firing:false,
+    lastFireT:0,
+    soldiers:[],
+    boats:[],
+    particles:[],
+    tracers:[],
+    spawnQueue:[],
+    waveTimer:0,
+    waveActive:false,
+    t:0
+  };
+
+  const seaY = ()=> H*0.30;
+  const beachTopY = ()=> H*0.30;
+  const beachBotY = ()=> H*0.86;
+  const bunkerY = ()=> H*0.86;
+
+  function resetGame(){
+    state.score=0; state.wave=1; state.health=100; state.heat=0; state.overheated=false;
+    state.soldiers=[]; state.boats=[]; state.particles=[]; state.tracers=[];
+    state.waveActive=false; state.waveTimer=0;
+    updateHud();
+  }
+
+  function updateHud(){
+    document.getElementById('scoreVal').textContent = state.score;
+    document.getElementById('waveVal').textContent = state.wave;
+    document.getElementById('heatBarFill').style.width = Math.min(100,state.heat)+'%';
+    document.getElementById('healthBarFill').style.width = Math.max(0,state.health)+'%';
+  }
+
+  // ---------- Wave spawning ----------
+  function startWave(){
+    const w = state.wave;
+    const boatCount = Math.min(2 + Math.floor(w/2), 6);
+    const soldiersPerBoat = Math.min(3 + Math.floor(w/3), 8);
+    let delay = 0;
+    for(let b=0;b<boatCount;b++){
+      state.spawnQueue.push({type:'boat', t: state.t + delay, x: 0.1+Math.random()*0.8, soldiers: soldiersPerBoat});
+      delay += 900 + Math.random()*700;
+    }
+    state.waveActive = true;
+    state.waveBoatsRemaining = boatCount;
+    state.waveSoldiersTotal = boatCount*soldiersPerBoat;
+    state.waveSoldiersSpawned = 0;
+  }
+
+  function spawnBoat(xFrac, soldierCount){
+    state.boats.push({
+      x: xFrac*W, y: seaY()-20, vy: 22, life:0,
+      soldierCount, spawned:0, nextSpawn: 600, dead:false
+    });
+  }
+
+  function spawnSoldierFromBoat(boat){
+    const speed = 14 + state.wave*1.6 + Math.random()*8;
+    state.soldiers.push({
+      x: boat.x + (Math.random()-0.5)*30,
+      y: boat.y+10,
+      vy: speed,
+      hp: 1 + Math.floor(state.wave/4),
+      maxHp: 1 + Math.floor(state.wave/4),
+      alive:true,
+      wobble: Math.random()*Math.PI*2,
+      hitFlash:0
+    });
+  }
+
+  // ---------- Firing ----------
+  const FIRE_INTERVAL = 70; // ms between shots while holding
+  const HEAT_PER_SHOT = 3.4;
+  const HEAT_COOL_RATE = 22; // per second
+  const OVERHEAT_LOCK = 100;
+  const OVERHEAT_RECOVER = 25;
+
+  function tryFire(dtMs){
+    if(!state.firing || state.overheated) return;
+    if(state.t - state.lastFireT < FIRE_INTERVAL) return;
+    state.lastFireT = state.t;
+    state.heat += HEAT_PER_SHOT;
+    if(state.heat >= OVERHEAT_LOCK){
+      state.heat = OVERHEAT_LOCK;
+      state.overheated = true;
+      flashOverheat(true);
+    }
+    fireShot();
+  }
+
+  function flashOverheat(show){
+    const el = document.getElementById('overheatMsg');
+    el.style.opacity = show? '1':'0';
+  }
+
+  function fireShot(){
+    const ax = state.aim.x, ay = state.aim.y;
+    // spread near muzzle for feel
+    const mx = W*0.5, my = H*0.97;
+    state.tracers.push({x1:mx,y1:my,x2:ax,y2:ay,life:80});
+
+    // find nearest soldier within hit radius of aim point
+    let best=null, bestD=9999;
+    for(const s of state.soldiers){
+      if(!s.alive) continue;
+      const d = Math.hypot(s.x-ax, s.y-ay);
+      const hitR = 26;
+      if(d < hitR && d < bestD){ best=s; bestD=d; }
+    }
+    if(best){
+      best.hp -= 1;
+      best.hitFlash = 120;
+      if(best.hp<=0){
+        killSoldier(best);
+      }
+    } else {
+      // small dust/miss puff on sand
+      if(ay > beachTopY()){
+        spawnParticles(ax,ay,'#c9b183',4);
+      }
+    }
+  }
+
+  function killSoldier(s){
+    s.alive=false;
+    state.score += 10 + state.wave;
+    spawnParticles(s.x,s.y,'#8a7350',10);
+    updateHud();
+  }
+
+  function spawnParticles(x,y,color,count){
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2;
+      const sp = 30+Math.random()*90;
+      state.particles.push({
+        x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+        life: 300+Math.random()*300, maxLife:600, color
+      });
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dtMs){
+    state.t += dtMs;
+
+    // heat cooldown
+    if(!state.firing || state.overheated){
+      state.heat = Math.max(0, state.heat - HEAT_COOL_RATE*(dtMs/1000)*(state.overheated?1.6:1));
+    }
+    if(state.overheated && state.heat <= OVERHEAT_RECOVER){
+      state.overheated = false;
+      flashOverheat(false);
+    }
+
+    tryFire(dtMs);
+
+    // spawn queue
+    for(let i=state.spawnQueue.length-1;i>=0;i--){
+      const item = state.spawnQueue[i];
+      if(state.t >= item.t){
+        spawnBoat(item.x, item.soldiers);
+        state.spawnQueue.splice(i,1);
+      }
+    }
+
+    // boats
+    for(const boat of state.boats){
+      if(boat.dead) continue;
+      if(boat.y < beachTopY()-10){
+        boat.y += boat.vy*(dtMs/1000);
+      } else {
+        // beached, disgorge soldiers
+        boat.nextSpawn -= dtMs;
+        if(boat.spawned < boat.soldierCount && boat.nextSpawn<=0){
+          spawnSoldierFromBoat(boat);
+          boat.spawned++;
+          state.waveSoldiersSpawned++;
+          boat.nextSpawn = 350 + Math.random()*450;
+        }
+      }
+    }
+    state.boats = state.boats.filter(b => !(b.dead));
+
+    // soldiers
+    for(const s of state.soldiers){
+      if(!s.alive) continue;
+      s.wobble += dtMs*0.004;
+      s.x += Math.sin(s.wobble)*10*(dtMs/1000);
+      s.y += s.vy*(dtMs/1000);
+      if(s.hitFlash>0) s.hitFlash -= dtMs;
+      if(s.y >= bunkerY()){
+        s.alive=false;
+        state.health = Math.max(0, state.health - (6+state.wave*0.4));
+        spawnParticles(s.x,bunkerY(),'#d43b2e',8);
+        updateHud();
+      }
+    }
+    state.soldiers = state.soldiers.filter(s=>s.alive || false).concat([]); // keep only alive next filter below
+    state.soldiers = state.soldiers.filter(s=>s.alive);
+
+    // particles
+    for(const p of state.particles){
+      p.life -= dtMs;
+      p.x += p.vx*(dtMs/1000);
+      p.y += p.vy*(dtMs/1000);
+      p.vy += 40*(dtMs/1000);
+    }
+    state.particles = state.particles.filter(p=>p.life>0);
+
+    // tracers
+    for(const tr of state.tracers) tr.life -= dtMs;
+    state.tracers = state.tracers.filter(t=>t.life>0);
+
+    updateHud();
+
+    // wave completion check
+    if(state.waveActive && state.spawnQueue.length===0 && state.boats.length===0 && state.soldiers.length===0){
+      state.waveActive=false;
+      state.wave += 1;
+      setTimeout(()=>{ if(state.running) startWave(); }, 1400);
+    }
+
+    if(state.health<=0 && state.running){
+      endGame();
+    }
+  }
+
+  // ---------- Draw ----------
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // sky
+    const skyGrad = ctx.createLinearGradient(0,0,0,seaY());
+    skyGrad.addColorStop(0,'#71888c');
+    skyGrad.addColorStop(1,'#94a29f');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0,0,W,seaY());
+
+    // sea
+    const seaGrad = ctx.createLinearGradient(0,0,0,beachTopY());
+    seaGrad.addColorStop(0,'#3c6478');
+    seaGrad.addColorStop(1,'#274a5c');
+    ctx.fillStyle = seaGrad;
+    ctx.fillRect(0,seaY()-10,W,beachTopY()-seaY()+10);
+
+    // sea texture lines
+    ctx.strokeStyle='rgba(255,255,255,0.08)';
+    ctx.lineWidth=1;
+    for(let i=0;i<6;i++){
+      const y = seaY() + i*8 + (state.t*0.02)%8;
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(W,y);
+      ctx.stroke();
+    }
+
+    // beach
+    const beachGrad = ctx.createLinearGradient(0,beachTopY(),0,beachBotY());
+    beachGrad.addColorStop(0,'#b89a68');
+    beachGrad.addColorStop(1,'#93794f');
+    ctx.fillStyle = beachGrad;
+    ctx.fillRect(0,beachTopY(),W,beachBotY()-beachTopY());
+
+    // beach obstacles (hedgehogs) static decoration
+    ctx.strokeStyle='rgba(40,35,25,0.5)';
+    ctx.lineWidth=3;
+    for(let i=0;i<6;i++){
+      const bx = (i*0.17+0.05)*W;
+      const by = beachTopY() + (beachBotY()-beachTopY())*0.35;
+      drawHedgehog(bx,by,18);
+    }
+
+    // bunker foreground
+    const bunkerGrad = ctx.createLinearGradient(0,bunkerY(),0,H);
+    bunkerGrad.addColorStop(0,'#3a382f');
+    bunkerGrad.addColorStop(1,'#141310');
+    ctx.fillStyle = bunkerGrad;
+    ctx.fillRect(0,bunkerY(),W,H-bunkerY());
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.fillRect(0,bunkerY(),W,6);
+
+    // boats
+    for(const b of state.boats) drawBoat(b);
+
+    // soldiers
+    for(const s of state.soldiers) drawSoldier(s);
+
+    // particles
+    for(const p of state.particles){
+      const alpha = Math.max(0,p.life/p.maxLife);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,2.5,0,Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // tracers
+    for(const tr of state.tracers){
+      const alpha = Math.max(0,tr.life/80);
+      ctx.strokeStyle = `rgba(255,230,150,${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(tr.x1,tr.y1);
+      ctx.lineTo(tr.x2,tr.y2);
+      ctx.stroke();
+    }
+
+    // MG42 mount silhouette
+    drawMG();
+
+    // crosshair
+    if(state.aim.active){
+      drawCrosshair(state.aim.x, state.aim.y);
+    }
+  }
+
+  function drawHedgehog(x,y,size){
+    ctx.beginPath();
+    ctx.moveTo(x-size,y); ctx.lineTo(x+size,y+size*0.3);
+    ctx.moveTo(x-size,y+size*0.3); ctx.lineTo(x+size,y);
+    ctx.moveTo(x,y-size*0.4); ctx.lineTo(x,y+size*0.6);
+    ctx.stroke();
+  }
+
+  function drawBoat(b){
+    ctx.save();
+    ctx.translate(b.x,b.y);
+    ctx.fillStyle='#5b5a4e';
+    ctx.beginPath();
+    ctx.moveTo(-26,0);
+    ctx.lineTo(26,0);
+    ctx.lineTo(20,10);
+    ctx.lineTo(-20,10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle='#414036';
+    ctx.fillRect(-18,-6,36,7);
+    ctx.restore();
+  }
+
+  function drawSoldier(s){
+    ctx.save();
+    ctx.translate(s.x,s.y);
+    const scale = 0.55 + (s.y/H)*0.9;
+    ctx.scale(scale,scale);
+    const flashed = s.hitFlash>0;
+    ctx.fillStyle = flashed ? '#ffffff' : '#5b6b3f';
+    // body
+    ctx.beginPath();
+    ctx.ellipse(0,0,7,10,0,0,Math.PI*2);
+    ctx.fill();
+    // head
+    ctx.beginPath();
+    ctx.arc(0,-13,4.5,0,Math.PI*2);
+    ctx.fill();
+    // hp pips for tougher enemies
+    if(s.maxHp>1){
+      ctx.fillStyle='#d43b2e';
+      for(let i=0;i<s.hp;i++){
+        ctx.fillRect(-6+i*4,-20,3,3);
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawMG(){
+    const mx=W*0.5, my=H;
+    ctx.save();
+    ctx.translate(mx,my);
+    const dx = state.aim.x-mx, dy = state.aim.y-my;
+    const ang = Math.atan2(dy,dx);
+    ctx.rotate(ang+Math.PI/2);
+    ctx.fillStyle='#171510';
+    ctx.beginPath();
+    ctx.moveTo(-10,20);
+    ctx.lineTo(10,20);
+    ctx.lineTo(4,-70);
+    ctx.lineTo(-4,-70);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = state.overheated ? '#d43b2e' : '#2a2823';
+    ctx.fillRect(-6,-78,12,14);
+    ctx.restore();
+  }
+
+  function drawCrosshair(x,y){
+    ctx.strokeStyle = state.overheated ? 'rgba(212,59,46,0.9)' : 'rgba(238,230,211,0.85)';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(x,y,16,0,Math.PI*2);
+    ctx.moveTo(x-24,y); ctx.lineTo(x-8,y);
+    ctx.moveTo(x+8,y); ctx.lineTo(x+24,y);
+    ctx.moveTo(x,y-24); ctx.lineTo(x,y-8);
+    ctx.moveTo(x,y+8); ctx.lineTo(x,y+24);
+    ctx.stroke();
+  }
+
+  // ---------- Loop ----------
+  let lastFrame = 0;
+  function loop(ts){
+    if(!lastFrame) lastFrame = ts;
+    const dt = Math.min(50, ts-lastFrame);
+    lastFrame = ts;
+    if(state.running){
+      update(dt);
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ---------- Input ----------
+  function pointFromEvent(e){
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches && e.touches[0];
+    const clientX = touch ? touch.clientX : e.clientX;
+    const clientY = touch ? touch.clientY : e.clientY;
+    return { x: clientX-rect.left, y: clientY-rect.top };
+  }
+
+  function onDown(e){
+    if(!state.running) return;
+    e.preventDefault();
+    const p = pointFromEvent(e);
+    state.aim.x=p.x; state.aim.y=p.y; state.aim.active=true;
+    state.firing = true;
+  }
+  function onMove(e){
+    if(!state.running || !state.aim.active) return;
+    e.preventDefault();
+    const p = pointFromEvent(e);
+    state.aim.x=p.x; state.aim.y=p.y;
+  }
+  function onUp(e){
+    state.firing = false;
+  }
+
+  canvas.addEventListener('touchstart', onDown, {passive:false});
+  canvas.addEventListener('touchmove', onMove, {passive:false});
+  canvas.addEventListener('touchend', onUp, {passive:false});
+  canvas.addEventListener('touchcancel', onUp, {passive:false});
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  // ---------- Screens ----------
+  const startScreen = document.getElementById('startScreen');
+  const overScreen = document.getElementById('overScreen');
+
+  function beginGame(){
+    resetGame();
+    startScreen.style.display='none';
+    overScreen.style.display='none';
+    state.running = true;
+    state.t = 0;
+    state.spawnQueue = [];
+    startWave();
+  }
+
+  function endGame(){
+    state.running = false;
+    state.firing = false;
+    flashOverheat(false);
+    document.getElementById('finalScore').textContent = state.score;
+    document.getElementById('finalWave').textContent = state.wave;
+    overScreen.style.display='flex';
+  }
+
+  document.getElementById('startBtn').addEventListener('click', beginGame);
+  document.getElementById('retryBtn').addEventListener('click', beginGame);
+
+})();
+</script>
+</body>
+</html>
