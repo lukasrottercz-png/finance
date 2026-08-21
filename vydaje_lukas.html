@@ -126,6 +126,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" style="font-size:11px;padding:4px 8px;border-radius:20px;border:1px solid #e0e0e0;color:#6c6c70;text-decoration:none">💰</a>
       <a href="https://lukasrottercz-png.github.io/finance/ukoly.html" style="font-size:11px;padding:4px 8px;border-radius:20px;border:1px solid #e0e0e0;color:#6c6c70;text-decoration:none">📋</a>
       <a href="https://lukasrottercz-png.github.io/finance/poznamky.html" style="font-size:11px;padding:4px 8px;border-radius:20px;border:1px solid #e0e0e0;color:#6c6c70;text-decoration:none">📝</a>
+      <button onclick="setNastenkaToken()" title="Token pro nástěnku" style="font-size:11px;padding:4px 8px;border-radius:20px;border:1px solid #e0e0e0;color:#6c6c70;background:none;cursor:pointer">📺</button>
       <button class="nav-btn" id="nav-action" onclick="openAdd()">+ Přidat</button>
     </div>
   </div>
@@ -425,6 +426,87 @@ function disconnectGoogle(){
   updateSyncIcon('local'); renderHome(); showToast('Odhlášeno — data zůstávají lokálně i na Disku');
 }
 
+// ── NÁSTĚNKA (data.json na GitHub Pages) ─────────────────────────────
+var GH_PAGES_REPO='lukasrottercz-png/finance';
+var GH_PAGES_TILES_FILE='data.json';
+
+function setNastenkaToken(){
+  var cur=localStorage.getItem('gh_pages_token')||'';
+  var val=prompt('GitHub token pro nástěnku (fine-grained PAT, repo '+GH_PAGES_REPO+', právo Contents: Read & write). Necháš prázdné = vypnuto.', cur);
+  if(val===null)return;
+  val=val.trim();
+  if(val){ localStorage.setItem('gh_pages_token',val); showToast('Token uložen ✓'); }
+  else{ localStorage.removeItem('gh_pages_token'); showToast('Token smazán — nástěnka se přestane aktualizovat'); }
+  syncNastenkaTiles(true);
+}
+
+// Zůstatek s Jitkou — stejný výpočet jako v renderJitka(), samostatně kvůli exportu bez zásahu do UI
+function jitkaNetGlobal(){
+  var byMonth={}, byMonthZ={};
+  exps.filter(function(e){return e.shared;}).forEach(function(e){
+    var m=e.date.slice(0,7); if(!byMonth[m])byMonth[m]=[]; byMonth[m].push(e);
+  });
+  exps.filter(function(e){return e.catKey==='za_jitku';}).forEach(function(e){
+    var m=e.date.slice(0,7); if(!byMonthZ[m])byMonthZ[m]=[]; byMonthZ[m].push(e);
+  });
+  var totalUnpaidShare=exps.filter(function(e){return e.shared&&!e.jitkaSettled;}).reduce(function(s,e){return s+jShare(e);},0);
+  var totalZUnpaid=0;
+  Object.keys(byMonthZ).forEach(function(m){
+    byMonthZ[m].forEach(function(e){ if(!e.jitkaSettled) totalZUnpaid+=(e.amount||0); });
+  });
+  var monthSet={};
+  Object.keys(byMonth).forEach(function(m){monthSet[m]=true;});
+  Object.keys(byMonthZ).forEach(function(m){monthSet[m]=true;});
+  var totalClaimUnpaid=0;
+  Object.keys(monthSet).forEach(function(m){
+    var openShared=(byMonth[m]||[]).some(function(e){return !e.jitkaSettled;});
+    var openZ=(byMonthZ[m]||[]).some(function(e){return !e.jitkaSettled;});
+    if(openShared||openZ) totalClaimUnpaid+=(jitkaClaims[m]||0);
+  });
+  return totalUnpaidShare + totalZUnpaid - totalClaimUnpaid/2;
+}
+
+function nastenkaTiles(){
+  var tiles=[];
+  var net=jitkaNetGlobal();
+  tiles.push({id:'jitka',label:'Zůstatek Jitka',value:Math.round(Math.abs(net)).toLocaleString('cs-CZ'),unit:'Kč',
+    delta:(net>=0?'Jitka dluží':'dlužíš Jitce'),trend:(net>=0?'up':'down')});
+  var b=budgetInfo();
+  if(b && b.limit>0){
+    var ahead=b.paceDiff>=0;
+    tiles.push({id:'pace',label:'Tempo rozpočtu',value:String(b.mesicSpentPct),unit:'%',
+      delta:(ahead?'napřed':'pozadu'),trend:(ahead?'up':'down')});
+  }
+  tiles.push({id:'savings',label:'Míra úspor',value:String(Math.round(savingsRate)),unit:'%',delta:'',trend:''});
+  return tiles.slice(0,3);
+}
+
+function b64EncodeUtf8(str){ return btoa(unescape(encodeURIComponent(str))); }
+
+async function syncNastenkaTiles(force){
+  var token=localStorage.getItem('gh_pages_token');
+  if(!token) return;
+  var payload=JSON.stringify({tiles:nastenkaTiles()});
+  if(!force){
+    var lastPayload=localStorage.getItem('nastenka_last_payload')||'';
+    var lastAt=parseInt(localStorage.getItem('nastenka_last_sync')||'0',10);
+    if(payload===lastPayload && (Date.now()-lastAt)<30*60000) return;
+  }
+  try{
+    var api='https://api.github.com/repos/'+GH_PAGES_REPO+'/contents/'+GH_PAGES_TILES_FILE;
+    var headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'};
+    var sha='';
+    var getRes=await fetch(api,{headers:headers});
+    if(getRes.ok){ var cur=await getRes.json(); sha=cur.sha; }
+    else if(getRes.status!==404){ throw new Error('GET '+getRes.status); }
+    var body={message:'nástěnka: aktualizace dat',content:b64EncodeUtf8(payload)};
+    if(sha) body.sha=sha;
+    var putRes=await fetch(api,{method:'PUT',headers:Object.assign({},headers,{'Content-Type':'application/json'}),body:JSON.stringify(body)});
+    if(!putRes.ok) throw new Error('PUT '+putRes.status);
+    localStorage.setItem('nastenka_last_payload',payload);
+    localStorage.setItem('nastenka_last_sync',String(Date.now()));
+  }catch(e){ console.warn('nástěnka sync:',e); }
+}
 
 function daysLeftInMonth(){
   var now=new Date();
@@ -1848,12 +1930,12 @@ function startupSync(tries){
   if(isConnected() && GOOGLE_CLIENT_ID){
     if(!gisReady()){
       if((tries||0)<20){ setTimeout(function(){startupSync((tries||0)+1);},250); return; }
-      updateSyncIcon('error'); renderHome(); return;
+      updateSyncIcon('error'); renderHome(); syncNastenkaTiles(); return;
     }
     updateSyncIcon('syncing');
-    Promise.all([ghLoad(),ghLoadTrvale(),ghLoadFinance(),ghLoadCfg()]).then(function(){renderHome();updateSyncIcon('ok');});
+    Promise.all([ghLoad(),ghLoadTrvale(),ghLoadFinance(),ghLoadCfg()]).then(function(){renderHome();updateSyncIcon('ok');syncNastenkaTiles();});
   } else {
-    updateSyncIcon('local'); renderHome();
+    updateSyncIcon('local'); renderHome(); syncNastenkaTiles();
   }
 }
 startupSync(0);
