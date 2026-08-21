@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0E100D">
+<title>Nástěnka</title>
+<style>
+:root{
+  --lcd-bg:#0E100D;
+  --lcd-panel:#161A14;
+  --lcd-edge:#242A21;
+  --seg-on:#DCE4CE;
+  --seg-ghost:#232A20;
+  --label:#7C8A72;
+  --backlight:#86E5B4;
+  --alert:#E2A343;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{height:100%;overflow:hidden;background:var(--lcd-bg)}
+
+body{
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  color:var(--seg-on);
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;
+}
+
+.frame{
+  height:100%;
+  padding:2.2vmin 2.6vmin;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:1.8vmin;
+}
+
+/* ---- status bar ---- */
+.status{
+  display:flex;align-items:baseline;justify-content:space-between;
+  font-size:1.7vmin;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--label);
+  padding-bottom:1.4vmin;
+  border-bottom:1px solid var(--lcd-edge);
+}
+.status .mode{color:var(--backlight)}
+.sync{display:flex;align-items:center;gap:.8vmin}
+.dot{
+  width:.9vmin;height:.9vmin;border-radius:50%;
+  background:var(--backlight);
+  transition:background .4s;
+}
+.sync.stale .dot{background:var(--alert)}
+.sync.stale{color:var(--alert)}
+.sync.dead .dot{background:var(--lcd-edge)}
+
+/* ---- main grid ---- */
+.main{
+  display:grid;
+  grid-template-columns:1.15fr 1fr;
+  gap:1.8vmin;
+  min-height:0;min-width:0;
+}
+.main > *{min-width:0;min-height:0}
+
+.panel{
+  background:var(--lcd-panel);
+  border:1px solid var(--lcd-edge);
+  border-radius:.6vmin;
+  padding:2.2vmin;
+  display:flex;flex-direction:column;
+  min-height:0;min-width:0;
+  overflow:hidden;
+}
+
+.cap{
+  font-size:1.5vmin;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--label);
+  margin-bottom:auto;
+}
+
+/* ---- clock: lit digits over unlit ghost segments ---- */
+.left{display:grid;grid-template-rows:auto 1fr auto;gap:1.5vmin;min-height:0}
+
+/* obě vrstvy leží ve stejné buňce gridu → identická sazba, žádné posuny.
+   Pořadí v HTML určuje, co je nahoře: ghost první, živé číslice druhé. */
+.clockwrap{display:grid;place-items:center;min-height:0;min-width:0}
+.clock{
+  grid-area:1/1;
+  font-size:min(15vw,22vh);
+  line-height:1;
+  font-weight:500;
+  letter-spacing:-.02em;
+  white-space:nowrap;
+}
+.clock.ghost{color:var(--seg-ghost);pointer-events:none}
+.clock.live{color:var(--seg-on)}
+.secs{
+  font-size:2.4vmin;letter-spacing:.2em;color:var(--label);
+  text-align:center;
+}
+
+.sun{
+  display:flex;justify-content:space-between;
+  border-top:1px solid var(--lcd-edge);
+  padding-top:1.6vmin;
+  font-size:2vmin;
+}
+.sun span{color:var(--label);letter-spacing:.18em;font-size:1.4vmin}
+.sun div{display:flex;flex-direction:column;gap:.5vmin}
+
+/* ---- weather ---- */
+.right{display:grid;grid-template-rows:1fr auto;gap:1.8vmin;min-height:0;min-width:0}
+.right > *{min-width:0;min-height:0}
+
+.now{display:flex;flex-direction:column;justify-content:center;gap:1vmin}
+.temp{font-size:min(9vw,14vh);line-height:1;font-weight:500;white-space:nowrap}
+.temp sup{font-size:.4em;vertical-align:super;color:var(--label)}
+.sky{font-size:2.4vmin;letter-spacing:.06em}
+.meta{
+  display:flex;gap:3vmin;flex-wrap:wrap;
+  font-size:1.8vmin;color:var(--label);letter-spacing:.1em;
+  margin-top:.6vmin;
+}
+.meta b{color:var(--seg-on);font-weight:500}
+
+.hours{display:flex;justify-content:space-between;gap:1vmin}
+.hour{text-align:center;display:flex;flex-direction:column;gap:.9vmin;flex:1}
+.hour .h{font-size:1.4vmin;color:var(--label);letter-spacing:.14em}
+.hour .t{font-size:2.4vmin}
+.hour .p{font-size:1.4vmin;color:var(--backlight);min-height:1.6vmin}
+
+/* ---- custom tiles ---- */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8vmin}
+.tile{
+  background:var(--lcd-panel);
+  border:1px solid var(--lcd-edge);
+  border-radius:.6vmin;
+  padding:1.8vmin 2vmin;
+  display:flex;flex-direction:column;gap:.8vmin;
+  min-height:11vh;
+}
+.tile .cap{margin-bottom:0}
+.tile .val{font-size:4.4vmin;line-height:1;font-weight:500}
+.tile .val small{font-size:.42em;color:var(--label);margin-left:.5vmin;letter-spacing:.1em}
+.tile .delta{font-size:1.7vmin;letter-spacing:.12em;color:var(--label)}
+.tile .delta.up{color:var(--backlight)}
+.tile .delta.down{color:var(--alert)}
+
+.empty{
+  grid-column:1/-1;
+  border:1px dashed var(--lcd-edge);
+  border-radius:.6vmin;
+  padding:2.4vmin;
+  display:flex;flex-direction:column;gap:1vmin;
+  color:var(--label);
+  font-size:1.8vmin;line-height:1.6;
+  letter-spacing:.04em;
+}
+.empty b{color:var(--seg-on);font-weight:500;letter-spacing:.16em;text-transform:uppercase;font-size:1.5vmin}
+.empty code{color:var(--backlight)}
+
+/* portrait */
+@media (orientation:portrait){
+  .main{grid-template-columns:1fr;grid-template-rows:1.1fr 1fr}
+  .clock{font-size:min(22vw,18vh)}
+  .temp{font-size:min(15vw,11vh)}
+  .tiles{grid-template-columns:1fr}
+  .tile{min-height:auto}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <div class="status">
+    <div id="date">—</div>
+    <div class="mode" id="place">—</div>
+    <div class="sync" id="sync"><span class="dot"></span><span id="synctext">start</span></div>
+  </div>
+
+  <div class="main">
+
+    <div class="panel left">
+      <div class="cap">Čas</div>
+      <div class="clockwrap">
+        <div class="clock ghost">88:88</div>
+        <div class="clock live" id="clock">--:--</div>
+      </div>
+      <div class="secs" id="secs">--</div>
+      <div class="sun">
+        <div><span>Východ</span><b id="sunrise">--:--</b></div>
+        <div><span>Délka dne</span><b id="daylen">--</b></div>
+        <div><span>Západ</span><b id="sunset">--:--</b></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel now">
+        <div class="cap">Nyní</div>
+        <div class="temp" id="temp">--<sup>°</sup></div>
+        <div class="sky" id="sky">načítám</div>
+        <div class="meta">
+          <div>pocitově <b id="feels">--°</b></div>
+          <div>vítr <b id="wind">--</b></div>
+          <div>vlhkost <b id="hum">--</b></div>
+          <div>dnes <b id="range">--</b></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="cap">Průběh dne</div>
+        <div class="hours" id="hours" style="margin-top:1.6vmin"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   NASTAVENÍ — tady si to uprav
+   ============================================================ */
+const CONFIG = {
+  lat: 49.8209,          // Ostrava
+  lon: 18.2625,
+  place: "Ostrava",
+  weatherEveryMin: 10,   // jak často stahovat počasí
+  tilesEveryMin: 5,      // jak často stahovat data.json
+  staleAfterMin: 35,     // po jak dlouhé době bez dat hlásit ZASTARALÉ
+  tilesUrl: "data.json"  // vlastní čísla, vedle tohoto souboru
+};
+
+/* ============================================================ */
+
+const SKY = {
+  0:"jasno", 1:"skoro jasno", 2:"polojasno", 3:"zataženo",
+  45:"mlha", 48:"námraza",
+  51:"mrholení", 53:"mrholení", 55:"silné mrholení",
+  56:"mrznoucí mrholení", 57:"mrznoucí mrholení",
+  61:"slabý déšť", 63:"déšť", 65:"vydatný déšť",
+  66:"mrznoucí déšť", 67:"mrznoucí déšť",
+  71:"slabé sněžení", 73:"sněžení", 75:"husté sněžení", 77:"sněhová zrna",
+  80:"přeháňky", 81:"přeháňky", 82:"silné přeháňky",
+  85:"sněhové přeháňky", 86:"sněhové přeháňky",
+  95:"bouřka", 96:"bouřka s kroupami", 99:"bouřka s kroupami"
+};
+
+const DAYS = ["NE","PO","ÚT","ST","ČT","PÁ","SO"];
+const MONTHS = ["LED","ÚNO","BŘE","DUB","KVĚ","ČVN","ČVC","SRP","ZÁŘ","ŘÍJ","LIS","PRO"];
+
+const $ = id => document.getElementById(id);
+let lastOk = null;
+
+/* ---------- hodiny ---------- */
+function tick(){
+  const n = new Date();
+  const hh = String(n.getHours()).padStart(2,"0");
+  const mm = String(n.getMinutes()).padStart(2,"0");
+  $("clock").textContent = hh + ":" + mm;
+  $("secs").textContent = String(n.getSeconds()).padStart(2,"0");
+  $("date").textContent = DAYS[n.getDay()] + " " + n.getDate() + " " + MONTHS[n.getMonth()];
+  $("place").textContent = CONFIG.place;
+  paintSync();
+}
+
+/* ---------- indikátor čerstvosti ---------- */
+function paintSync(){
+  const el = $("sync");
+  if(!lastOk){ el.className = "sync dead"; $("synctext").textContent = "bez dat"; return; }
+  const minAgo = Math.round((Date.now() - lastOk) / 60000);
+  const stale = minAgo > CONFIG.staleAfterMin;
+  el.className = "sync" + (stale ? " stale" : "");
+  $("synctext").textContent = stale
+    ? "zastaralé · " + minAgo + " min"
+    : (minAgo < 1 ? "právě teď" : "před " + minAgo + " min");
+}
+
+/* ---------- počasí ---------- */
+async function loadWeather(){
+  const u = "https://api.open-meteo.com/v1/forecast"
+    + "?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon
+    + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m"
+    + "&hourly=temperature_2m,precipitation_probability"
+    + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
+    + "&timezone=Europe%2FPrague&forecast_days=2";
+
+  try{
+    const r = await fetch(u, {cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const d = await r.json();
+
+    $("temp").innerHTML = Math.round(d.current.temperature_2m) + "<sup>°</sup>";
+    $("sky").textContent = SKY[d.current.weather_code] || "—";
+    $("feels").textContent = Math.round(d.current.apparent_temperature) + "°";
+    $("wind").textContent = Math.round(d.current.wind_speed_10m) + " km/h";
+    $("hum").textContent = d.current.relative_humidity_2m + " %";
+    $("range").textContent = Math.round(d.daily.temperature_2m_min[0]) + "° / "
+                           + Math.round(d.daily.temperature_2m_max[0]) + "°";
+
+    const rise = new Date(d.daily.sunrise[0]);
+    const set  = new Date(d.daily.sunset[0]);
+    const hm = t => String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0");
+    $("sunrise").textContent = hm(rise);
+    $("sunset").textContent  = hm(set);
+    const mins = Math.round((set - rise) / 60000);
+    $("daylen").textContent = Math.floor(mins/60) + "h " + (mins%60) + "m";
+
+    // příštích 6 tříhodinových kroků
+    const now = Date.now();
+    let i = d.hourly.time.findIndex(t => new Date(t).getTime() > now);
+    if(i < 0) i = 0;
+    let out = "";
+    for(let k = 0; k < 6; k++){
+      const j = i + k*3;
+      if(j >= d.hourly.time.length) break;
+      const t = new Date(d.hourly.time[j]);
+      const p = d.hourly.precipitation_probability[j];
+      out += '<div class="hour">'
+           +   '<div class="h">' + String(t.getHours()).padStart(2,"0") + "</div>"
+           +   '<div class="t">' + Math.round(d.hourly.temperature_2m[j]) + "°</div>"
+           +   '<div class="p">' + (p >= 20 ? p + "%" : "") + "</div>"
+           + "</div>";
+    }
+    $("hours").innerHTML = out;
+
+    lastOk = Date.now();
+    paintSync();
+  }catch(e){
+    console.warn("počasí:", e);
+    paintSync();
+  }
+}
+
+/* ---------- vlastní čísla z data.json ---------- */
+async function loadTiles(){
+  const box = $("tiles");
+  try{
+    const r = await fetch(CONFIG.tilesUrl + "?v=" + Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if(!d.tiles || !d.tiles.length) throw new Error("prázdné");
+
+    box.innerHTML = d.tiles.slice(0,3).map(t => {
+      const dir = t.trend === "up" ? "up" : t.trend === "down" ? "down" : "";
+      return '<div class="tile">'
+           +   '<div class="cap">' + esc(t.label || "") + "</div>"
+           +   '<div class="val">' + esc(t.value || "—")
+           +     (t.unit ? "<small>" + esc(t.unit) + "</small>" : "")
+           +   "</div>"
+           +   (t.delta ? '<div class="delta ' + dir + '">' + esc(t.delta) + "</div>" : "")
+           + "</div>";
+    }).join("");
+  }catch(e){
+    box.innerHTML =
+      '<div class="empty">'
+      + "<b>Vlastní panely</b>"
+      + "<div>Ulož vedle tohoto souboru <code>data.json</code> a objeví se tu tvoje čísla:</div>"
+      + '<div><code>{ "tiles": [ { "label": "Tržby týden", "value": "1,24", "unit": "M Kč", "delta": "+8 %", "trend": "up" } ] }</code></div>'
+      + "<div>Tři dlaždice maximálně. Čtvrtou už z chodby nepřečteš.</div>"
+      + "</div>";
+  }
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+/* ---------- držet displej vzhůru ---------- */
+async function keepAwake(){
+  try{
+    if("wakeLock" in navigator){
+      const lock = await navigator.wakeLock.request("screen");
+      lock.addEventListener("release", () => setTimeout(keepAwake, 1000));
+    }
+  }catch(e){ /* Safari to nemusí povolit, Auto-Lock: Nikdy to jistí */ }
+}
+
+/* ---------- start ---------- */
+tick();
+setInterval(tick, 1000);
+
+loadWeather();
+setInterval(loadWeather, CONFIG.weatherEveryMin * 60000);
+
+loadTiles();
+setInterval(loadTiles, CONFIG.tilesEveryMin * 60000);
+
+// po probuzení / návratu do popředí stáhnout hned
+document.addEventListener("visibilitychange", () => {
+  if(!document.hidden){ loadWeather(); loadTiles(); keepAwake(); }
+});
+
+keepAwake();
+</script>
+</body>
+</html>
