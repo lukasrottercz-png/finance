@@ -160,7 +160,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION='2026-08-21b'; // datum poslední úpravy — zvednout při každé změně, ať jde poznat, že se propsala nejnovější verze
+var APP_VERSION='2026-08-21c'; // datum poslední úpravy — zvednout při každé změně, ať jde poznat, že se propsala nejnovější verze
 var CATS=[
   {k:'bydleni',    i:'🏠',l:'Bydlení',       s:['Nájem / záloha','Elektřina','Plyn','Internet','Opravy','Vybavení','Zahrada']},
   {k:'doprava',    i:'🚗',l:'Doprava',        s:['CNG — Octavia','Benzín — RAV4','Nafta','Elektřina (nabíjení)','Pojištění','Servis','Dálniční známka','Parkování','MHD','Mytí auta','Pneumatiky']},
@@ -688,10 +688,28 @@ function saveTrvala(){
   if(!nazev){showToast('Zadej název');return;}
   if(castka<=0){showToast('Zadej částku');return;}
   var entry={id:Date.now().toString(),nazev:nazev,castka:castka,kat:kat,od:od,do:doc,rodinne:rodinne};
-  if(editTrvalaIdx>=0){trvale[editTrvalaIdx]=entry;}
-  else{trvale.push(entry);}
+  if(editTrvalaIdx>=0){
+    var original=trvale[editTrvalaIdx];
+    var curMonthStart=today().slice(0,7)+'-01';
+    var startedBeforeThisMonth=original.od && original.od.slice(0,7)<curMonthStart.slice(0,7);
+    if(original.rodinne!==rodinne && startedBeforeThisMonth){
+      // Rodinný flag se mění u platby, co už běžela v minulých měsících — rozděl na starý záznam
+      // (uzavřený koncem minulého měsíce, se starou hodnotou flagu) a nový (od tohoto měsíce),
+      // ať pozdější přepnutí flagu nepřepíše rodinný přehled minulých měsíců.
+      var prevEnd=new Date(); prevEnd.setDate(0); // poslední den minulého měsíce
+      trvale[editTrvalaIdx]=Object.assign({},original,{do:prevEnd.toISOString().slice(0,10)});
+      entry.od=od>curMonthStart?od:curMonthStart;
+      trvale.push(entry);
+      showToast('Platba rozdělena od tohoto měsíce — minulé zůstává beze změny ✓');
+    }else{
+      trvale[editTrvalaIdx]=entry;
+      showToast('Uloženo ✓');
+    }
+  }else{
+    trvale.push(entry);
+    showToast('Uloženo ✓');
+  }
   ghSaveTrvale();
-  showToast('Uloženo ✓');
   closeTrvale();
 }
 
