@@ -121,7 +121,8 @@ body{
 .now{display:flex;flex-direction:column;justify-content:center;gap:1vmin}
 .temp{font-size:min(9vw,14vh);line-height:1;font-weight:500;white-space:nowrap}
 .temp sup{font-size:.4em;vertical-align:super;color:var(--label)}
-.sky{font-size:2.4vmin;letter-spacing:.06em}
+.sky{font-size:2.4vmin;letter-spacing:.06em;display:flex;align-items:center;gap:.8vmin;height:1.3em}
+.wicon{font-size:1.6em;line-height:1em;height:1em;overflow:hidden;display:inline-flex;align-items:center}
 .meta{
   display:flex;gap:3vmin;flex-wrap:wrap;
   font-size:1.8vmin;color:var(--label);letter-spacing:.1em;
@@ -132,7 +133,8 @@ body{
 .hours{display:flex;justify-content:space-between;gap:1vmin}
 .hour{text-align:center;display:flex;flex-direction:column;gap:.9vmin;flex:1}
 .hour .h{font-size:1.4vmin;color:var(--label);letter-spacing:.14em}
-.hour .t{font-size:2.4vmin}
+.hour .t{font-size:2.4vmin;display:flex;align-items:center;justify-content:center;gap:.3vmin}
+.hicon{font-size:1.3em;line-height:1em;height:1em;overflow:hidden;display:inline-flex;align-items:center}
 .hour .p{font-size:1.4vmin;color:var(--backlight);min-height:1.6vmin}
 
 /* ---- custom tiles ---- */
@@ -217,7 +219,7 @@ body{
       <div class="panel now">
         <div class="cap">Nyní</div>
         <div class="temp" id="temp">--<sup>°</sup></div>
-        <div class="sky" id="sky">načítám</div>
+        <div class="sky"><span class="wicon" id="wicon"></span><span id="skytext">načítám</span></div>
         <div class="meta">
           <div>pocitově <b id="feels">--°</b></div>
           <div>vítr <b id="wind">--</b></div>
@@ -265,6 +267,19 @@ const SKY = {
   80:"přeháňky", 81:"přeháňky", 82:"silné přeháňky",
   85:"sněhové přeháňky", 86:"sněhové přeháňky",
   95:"bouřka", 96:"bouřka s kroupami", 99:"bouřka s kroupami"
+};
+
+const ICONS = {
+  0:"☀️", 1:"🌤️", 2:"⛅", 3:"☁️",
+  45:"🌫️", 48:"🌫️",
+  51:"🌦️", 53:"🌦️", 55:"🌧️",
+  56:"🌨️", 57:"🌨️",
+  61:"🌦️", 63:"🌧️", 65:"🌧️",
+  66:"🌨️", 67:"🌨️",
+  71:"🌨️", 73:"❄️", 75:"❄️", 77:"❄️",
+  80:"🌦️", 81:"🌧️", 82:"⛈️",
+  85:"🌨️", 86:"🌨️",
+  95:"⛈️", 96:"⛈️", 99:"⛈️"
 };
 
 const DAYS = ["NE","PO","ÚT","ST","ČT","PÁ","SO"];
@@ -317,7 +332,7 @@ async function loadWeather(){
   const u = "https://api.open-meteo.com/v1/forecast"
     + "?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon
     + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m"
-    + "&hourly=temperature_2m,precipitation_probability"
+    + "&hourly=temperature_2m,precipitation_probability,weather_code"
     + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
     + "&timezone=Europe%2FPrague&forecast_days=2";
 
@@ -327,7 +342,8 @@ async function loadWeather(){
     const d = await r.json();
 
     $("temp").innerHTML = Math.round(d.current.temperature_2m) + "<sup>°</sup>";
-    $("sky").textContent = SKY[d.current.weather_code] || "—";
+    $("wicon").textContent = ICONS[d.current.weather_code] || "";
+    $("skytext").textContent = SKY[d.current.weather_code] || "—";
     $("feels").textContent = Math.round(d.current.apparent_temperature) + "°";
     $("wind").textContent = Math.round(d.current.wind_speed_10m) + " km/h";
     $("hum").textContent = d.current.relative_humidity_2m + " %";
@@ -352,9 +368,10 @@ async function loadWeather(){
       if(j >= d.hourly.time.length) break;
       const t = new Date(d.hourly.time[j]);
       const p = d.hourly.precipitation_probability[j];
+      const ic = ICONS[d.hourly.weather_code[j]] || "";
       out += '<div class="hour">'
            +   '<div class="h">' + String(t.getHours()).padStart(2,"0") + "</div>"
-           +   '<div class="t">' + Math.round(d.hourly.temperature_2m[j]) + "°</div>"
+           +   '<div class="t"><span class="hicon">' + ic + "</span>" + Math.round(d.hourly.temperature_2m[j]) + "°</div>"
            +   '<div class="p">' + (p >= 20 ? p + "%" : "") + "</div>"
            + "</div>";
     }
