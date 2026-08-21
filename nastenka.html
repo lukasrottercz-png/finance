@@ -177,11 +177,18 @@ body{
 
 /* portrait */
 @media (orientation:portrait){
-  .main{grid-template-columns:1fr;grid-template-rows:1.1fr 1fr}
+  .main{grid-template-columns:1fr;grid-template-rows:1fr 1.25fr}
   .clock{font-size:min(22vw,18vh)}
   .temp{font-size:min(15vw,11vh)}
-  .tiles{grid-template-columns:1fr}
-  .tile{min-height:auto}
+  .right{grid-template-rows:1.6fr auto}
+  .meta{display:none}
+  .hours{gap:.6vmin}
+  .hour{gap:.4vmin}
+  .tiles{grid-template-columns:1fr;gap:.8vmin}
+  .tile{min-height:auto;padding:1.1vmin 1.5vmin;gap:.3vmin}
+  .tile .cap{font-size:1.2vmin}
+  .tile .val{font-size:3vmin}
+  .tile .delta{font-size:1.3vmin}
 }
 
 @media (prefers-reduced-motion:reduce){
