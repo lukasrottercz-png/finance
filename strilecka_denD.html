@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<title>Den D — Obrana pláže</title>
+<title>Pevnost Atlantik</title>
 <style>
   :root{
     --sand:#c9b183;
@@ -249,18 +249,38 @@
     });
   }
 
+  function pickSoldierType(){
+    const w = state.wave;
+    if(w>=5 && Math.random() < Math.min(0.05 + w*0.01, 0.22)) return 'grenadier';
+    if(w>=3 && Math.random() < Math.min(0.15 + w*0.02, 0.40)) return 'armored';
+    return 'rifle';
+  }
+
   function spawnSoldierFromBoat(boat){
-    const speed = 14 + state.wave*1.6 + Math.random()*8;
-    state.soldiers.push({
+    const type = pickSoldierType();
+    const baseHp = 1 + Math.floor(state.wave/4);
+    const baseSpeed = 14 + state.wave*1.6 + Math.random()*8;
+
+    let hp = baseHp, speed = baseSpeed;
+    if(type==='armored'){ hp = baseHp + 3; speed = baseSpeed*0.6; }
+    if(type==='grenadier'){ speed = baseSpeed*0.85; }
+
+    const soldier = {
+      type,
       x: boat.x + (Math.random()-0.5)*30,
       y: boat.y+10,
       vy: speed,
-      hp: 1 + Math.floor(state.wave/4),
-      maxHp: 1 + Math.floor(state.wave/4),
+      hp, maxHp: hp,
       alive:true,
       wobble: Math.random()*Math.PI*2,
       hitFlash:0
-    });
+    };
+    if(type==='grenadier'){
+      soldier.stopY = beachTopY() + (beachBotY()-beachTopY())*(0.35+Math.random()*0.25);
+      soldier.stopped = false;
+      soldier.throwTimer = 1500 + Math.random()*1000;
+    }
+    state.soldiers.push(soldier);
   }
 
   // ---------- Firing ----------
@@ -323,6 +343,11 @@
     updateHud();
   }
 
+  function spawnGrenadeArc(x,y){
+    state.tracers.push({x1:x,y1:y,x2:W*0.5,y2:bunkerY(),life:220,grenade:true});
+    spawnParticles(W*0.5,bunkerY(),'#d43b2e',10);
+  }
+
   function spawnParticles(x,y,color,count){
     for(let i=0;i<count;i++){
       const a = Math.random()*Math.PI*2;
@@ -372,6 +397,9 @@
           state.waveSoldiersSpawned++;
           boat.nextSpawn = 350 + Math.random()*450;
         }
+        if(boat.spawned >= boat.soldierCount){
+          boat.dead = true;
+        }
       }
     }
     state.boats = state.boats.filter(b => !(b.dead));
@@ -381,8 +409,24 @@
       if(!s.alive) continue;
       s.wobble += dtMs*0.004;
       s.x += Math.sin(s.wobble)*10*(dtMs/1000);
-      s.y += s.vy*(dtMs/1000);
       if(s.hitFlash>0) s.hitFlash -= dtMs;
+
+      if(s.type==='grenadier' && s.y >= s.stopY){
+        s.stopped = true;
+      } else {
+        s.y += s.vy*(dtMs/1000);
+      }
+
+      if(s.stopped){
+        s.throwTimer -= dtMs;
+        if(s.throwTimer <= 0){
+          state.health = Math.max(0, state.health - (5+state.wave*0.3));
+          spawnGrenadeArc(s.x, s.y);
+          s.throwTimer = 2600 + Math.random()*1400;
+          updateHud();
+        }
+      }
+
       if(s.y >= bunkerY()){
         s.alive=false;
         state.health = Math.max(0, state.health - (6+state.wave*0.4));
