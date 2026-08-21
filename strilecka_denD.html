@@ -54,33 +54,19 @@
     backdrop-filter: blur(4px);
   }
   .hud-box b{ font-size:16px; display:block; margin-top:2px;}
-  #heatWrap{
+  #healthWrap{
     position:fixed;
     left:14px; right:14px;
     bottom: calc(env(safe-area-inset-bottom) + 14px);
     pointer-events:none;
   }
-  #heatLabel{
+  #healthLabel{
     color:var(--text); font-size:11px; letter-spacing:1px;
     margin-bottom:4px; opacity:0.85;
     text-transform:uppercase;
   }
-  #heatBarBg{
-    width:100%; height:10px; border-radius:6px;
-    background:rgba(20,18,14,0.6);
-    border:1px solid rgba(238,230,211,0.15);
-    overflow:hidden;
-  }
-  #heatBarFill{
-    height:100%; width:0%;
-    background:linear-gradient(90deg,#e0c341,#d43b2e);
-    transition:width 0.05s linear;
-  }
-  #healthWrap{
-    margin-top:6px;
-  }
   #healthBarBg{
-    width:100%; height:8px; border-radius:6px;
+    width:100%; height:10px; border-radius:6px;
     background:rgba(20,18,14,0.6);
     border:1px solid rgba(238,230,211,0.15);
     overflow:hidden;
@@ -89,12 +75,6 @@
     height:100%; width:100%;
     background:linear-gradient(90deg,#4caf50,#8bc34a);
     transition:width 0.15s ease;
-  }
-  #overheatMsg{
-    position:fixed; top:44%; left:50%; transform:translate(-50%,-50%);
-    color:var(--accent); font-weight:700; font-size:22px;
-    letter-spacing:2px; text-shadow:0 2px 6px rgba(0,0,0,0.6);
-    opacity:0; pointer-events:none; transition:opacity 0.15s;
   }
   .screen{
     position:fixed; inset:0;
@@ -131,7 +111,7 @@
   #airstrikeWrap{
     position:fixed;
     right:16px;
-    bottom: calc(env(safe-area-inset-bottom) + 96px);
+    bottom: calc(env(safe-area-inset-bottom) + 74px);
     display:flex; flex-direction:column; align-items:center; gap:5px;
     z-index:5;
   }
@@ -182,8 +162,6 @@
   <div class="hud-box">VLNA<b id="waveVal">1</b></div>
 </div>
 
-<div id="overheatMsg">PŘEHŘÁTÁ HLAVEŇ!</div>
-
 <div id="airstrikeWrap">
   <button id="airstrikeBtn" aria-label="Vyžádat letecký úder">
     <svg class="ring-svg" viewBox="0 0 60 60">
@@ -195,18 +173,15 @@
   <div id="airstrikeLabel">Letecký úder</div>
 </div>
 
-<div id="heatWrap">
-  <div id="heatLabel">Teplota hlavně MG42</div>
-  <div id="heatBarBg"><div id="heatBarFill"></div></div>
-  <div id="healthWrap">
-    <div id="healthBarBg"><div id="healthBarFill"></div></div>
-  </div>
+<div id="healthWrap">
+  <div id="healthLabel">Zdraví bunkru</div>
+  <div id="healthBarBg"><div id="healthBarFill"></div></div>
 </div>
 
 <div class="screen" id="startScreen">
   <h1>DEN D</h1>
   <p>6. června 1944. Jsi v betonovém bunkru nad pláží Omaha.<br>Na obzoru se objevují vyloďovací čluny. Braň pozici tak dlouho, jak dokážeš.</p>
-  <p style="margin-top:-14px;">Dotykem miř a stiskni pro palbu z MG42. Držením hlaveň přehřeje — nech ji vychladnout.<br>Zásahy nabíjí letecký úder — jakmile je kruh vpravo dole plný, ťukni na něj a nech Luftwaffe smést pláž.</p>
+  <p style="margin-top:-14px;">Dotykem miř a drž pro nepřetržitou palbu z MG42.<br>Zásahy nabíjí letecký úder — jakmile je kruh vpravo dole plný, ťukni na něj a nech Luftwaffe smést pláž.</p>
   <button class="btn" id="startBtn">Zaujmout pozici</button>
 </div>
 
@@ -245,8 +220,6 @@
     score:0,
     wave:1,
     health:100,
-    heat:0,
-    overheated:false,
     aim:{x:0,y:0,active:false},
     firing:false,
     lastFireT:0,
@@ -274,7 +247,7 @@
   const bunkerY = ()=> H*0.86;
 
   function resetGame(){
-    state.score=0; state.wave=1; state.health=100; state.heat=0; state.overheated=false;
+    state.score=0; state.wave=1; state.health=100;
     state.soldiers=[]; state.boats=[]; state.particles=[]; state.tracers=[];
     state.waveActive=false; state.waveTimer=0;
     state.airstrikeCharge=0; state.airstrikeActive=false;
@@ -286,7 +259,6 @@
   function updateHud(){
     document.getElementById('scoreVal').textContent = state.score;
     document.getElementById('waveVal').textContent = state.wave;
-    document.getElementById('heatBarFill').style.width = Math.min(100,state.heat)+'%';
     document.getElementById('healthBarFill').style.width = Math.max(0,state.health)+'%';
 
     const pct = Math.min(100,state.airstrikeCharge)/100;
@@ -359,27 +331,12 @@
 
   // ---------- Firing ----------
   const FIRE_INTERVAL = 70; // ms between shots while holding
-  const HEAT_PER_SHOT = 3.4;
-  const HEAT_COOL_RATE = 22; // per second
-  const OVERHEAT_LOCK = 100;
-  const OVERHEAT_RECOVER = 25;
 
   function tryFire(dtMs){
-    if(!state.firing || state.overheated) return;
+    if(!state.firing) return;
     if(state.t - state.lastFireT < FIRE_INTERVAL) return;
     state.lastFireT = state.t;
-    state.heat += HEAT_PER_SHOT;
-    if(state.heat >= OVERHEAT_LOCK){
-      state.heat = OVERHEAT_LOCK;
-      state.overheated = true;
-      flashOverheat(true);
-    }
     fireShot();
-  }
-
-  function flashOverheat(show){
-    const el = document.getElementById('overheatMsg');
-    el.style.opacity = show? '1':'0';
   }
 
   // ---------- Airstrike ----------
@@ -478,15 +435,6 @@
   // ---------- Update ----------
   function update(dtMs){
     state.t += dtMs;
-
-    // heat cooldown
-    if(!state.firing || state.overheated){
-      state.heat = Math.max(0, state.heat - HEAT_COOL_RATE*(dtMs/1000)*(state.overheated?1.6:1));
-    }
-    if(state.overheated && state.heat <= OVERHEAT_RECOVER){
-      state.overheated = false;
-      flashOverheat(false);
-    }
 
     tryFire(dtMs);
     updateAirstrike(dtMs);
@@ -787,13 +735,13 @@
     ctx.lineTo(-4,-70);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = state.overheated ? '#d43b2e' : '#2a2823';
+    ctx.fillStyle = '#2a2823';
     ctx.fillRect(-6,-78,12,14);
     ctx.restore();
   }
 
   function drawCrosshair(x,y){
-    ctx.strokeStyle = state.overheated ? 'rgba(212,59,46,0.9)' : 'rgba(238,230,211,0.85)';
+    ctx.strokeStyle = 'rgba(238,230,211,0.85)';
     ctx.lineWidth=2;
     ctx.beginPath();
     ctx.arc(x,y,16,0,Math.PI*2);
@@ -869,7 +817,6 @@
   function endGame(){
     state.running = false;
     state.firing = false;
-    flashOverheat(false);
     document.getElementById('finalScore').textContent = state.score;
     document.getElementById('finalWave').textContent = state.wave;
     overScreen.style.display='flex';
