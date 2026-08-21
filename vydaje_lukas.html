@@ -239,6 +239,9 @@ var cfgUpdated=parseInt(localStorage.getItem('vyd_cfg_updated')||'0',10);
 // Co po mně chce Jitka za její nákupy, per měsíc {'YYYY-MM': castka} — sync v configu
 var jitkaClaims={};
 try{ jitkaClaims=JSON.parse(localStorage.getItem('vyd_jitka_claims')||'{}')||{}; }catch(e){ jitkaClaims={}; }
+// Zamrznuté částky vyúčtovaných měsíců — jednou vyúčtovaná suma se pozdější editací položek už nezmění
+var jitkaSettlements={};
+try{ jitkaSettlements=JSON.parse(localStorage.getItem('vyd_jitka_settlements')||'{}')||{}; }catch(e){ jitkaSettlements={}; }
 
 var tokenClient=null;
 var accessToken=localStorage.getItem('g_access_token')||'';
@@ -385,6 +388,7 @@ async function ghLoadCfg(){
         if(typeof r.data.expectedMzda==='number'){ expectedMzda=r.data.expectedMzda; localStorage.setItem('vyd_expected_mzda',expectedMzda); }
         if(typeof r.data.savingsRate==='number'){ savingsRate=r.data.savingsRate; localStorage.setItem('vyd_savings_rate',savingsRate); }
         if(r.data.jitkaClaims && typeof r.data.jitkaClaims==='object' && !Array.isArray(r.data.jitkaClaims)){ jitkaClaims=r.data.jitkaClaims; localStorage.setItem('vyd_jitka_claims',JSON.stringify(jitkaClaims)); }
+        if(r.data.jitkaSettlements && typeof r.data.jitkaSettlements==='object' && !Array.isArray(r.data.jitkaSettlements)){ jitkaSettlements=r.data.jitkaSettlements; localStorage.setItem('vyd_jitka_settlements',JSON.stringify(jitkaSettlements)); }
         cfgUpdated=remoteU; localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
       }
     }
@@ -393,7 +397,7 @@ async function ghLoadCfg(){
 async function ghSaveCfg(){
   cfgUpdated=Date.now(); localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
   if(!isConnected()) return;
-  try{ await driveWriteJSON(GH_FILE_CFG,{expectedMzda:expectedMzda,savingsRate:savingsRate,jitkaClaims:jitkaClaims,updatedAt:cfgUpdated}); }
+  try{ await driveWriteJSON(GH_FILE_CFG,{expectedMzda:expectedMzda,savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,updatedAt:cfgUpdated}); }
   catch(e){ console.error('driveSaveCfg:',e); }
 }
 
@@ -1286,11 +1290,19 @@ function renderJitka(){
     var claimM=jitkaClaims[m]||0;            // co po mně za tento měsíc chce Jitka
     var hasSharedActivity=items.length>0 || zItems.length>0 || claimM>0;
     var isSettled=hasSharedActivity && unpaidItems.length===0 && zUnpaidItems.length===0;
-    // otevřený měsíc počítá z toho, co zbývá; vyúčtovaný z celého měsíce (podle poměru u každé položky)
-    var monthShareTotal=items.reduce(function(s,e){return s+jShare(e)},0);
-    var unpaidShareTotal=unpaidItems.reduce(function(s,e){return s+jShare(e)},0);
-    var baseShare=isSettled?monthShareTotal:unpaidShareTotal;
-    var zBase=(isSettled?zTotal:zUnpaidTotal);   // v plné výši, nedělí se
+    // otevřený měsíc počítá z toho, co zbývá; vyúčtovaný měsíc má zamrznutou částku z okamžiku vyúčtování
+    // (pozdější editace položky — částky, poměru, flagu — už vyúčtovanou sumu nezmění; claim jde opravit i tak)
+    var snap=isSettled?jitkaSettlements[m]:null;
+    var baseShare, zBase;
+    if(snap){
+      baseShare=snap.baseShare;
+      zBase=snap.zBase;
+    }else{
+      var monthShareTotal=items.reduce(function(s,e){return s+jShare(e)},0);
+      var unpaidShareTotal=unpaidItems.reduce(function(s,e){return s+jShare(e)},0);
+      baseShare=isSettled?monthShareTotal:unpaidShareTotal;
+      zBase=(isSettled?zTotal:zUnpaidTotal);   // v plné výši, nedělí se
+    }
     var netM=baseShare + zBase - claimM/2;    // + = Jitka platí mně, − = platím Jitce
     var sectionId='jm-'+m.replace('-','');
 
@@ -1449,7 +1461,9 @@ function printMonth(m){
   var zTotalAll=zItems.reduce(function(s,e){return s+(e.amount||0)},0);
   var zUnpaidTotal=zItems.filter(function(e){return !e.jitkaSettled}).reduce(function(s,e){return s+(e.amount||0)},0);
   var isSettled=unpaid.length===0 && zItems.every(function(e){return e.jitkaSettled});
+  var snap=isSettled?jitkaSettlements[m]:null;
   var zBase=isSettled?zTotalAll:zUnpaidTotal;
+  if(snap){ totalAllShare=snap.baseShare; zBase=snap.zBase; }
 
   function row(e,settled){
     var cat=catByKey(e.catKey);
@@ -1635,6 +1649,20 @@ function unSettleExp(id){
   ghSave();renderHome();
 }
 
+function monthIsFullySettled(m){
+  var unpaidShared=exps.some(function(e){return e.shared&&!e.jitkaSettled&&e.date.slice(0,7)===m;});
+  var unpaidZa=exps.some(function(e){return e.catKey==='za_jitku'&&!e.jitkaSettled&&e.date.slice(0,7)===m;});
+  return !unpaidShared && !unpaidZa;
+}
+function snapshotMonth(m){
+  var items=exps.filter(function(e){return e.shared&&e.date.slice(0,7)===m});
+  var zItems=exps.filter(function(e){return e.catKey==='za_jitku'&&e.date.slice(0,7)===m});
+  var shareTotal=items.reduce(function(s,e){return s+jShare(e)},0);
+  var zTotal=zItems.reduce(function(s,e){return s+(e.amount||0)},0);
+  var claim=jitkaClaims[m]||0;
+  jitkaSettlements[m]={baseShare:shareTotal,zBase:zTotal,claimM:claim,netM:shareTotal+zTotal-claim/2,settledAt:today()};
+  localStorage.setItem('vyd_jitka_settlements',JSON.stringify(jitkaSettlements));
+}
 function settleMonth(m){
   var items=exps.filter(function(e){return e.shared&&!e.jitkaSettled&&e.date.slice(0,7)===m});
   var zItems=exps.filter(function(e){return e.catKey==='za_jitku'&&!e.jitkaSettled&&e.date.slice(0,7)===m});
@@ -1649,7 +1677,8 @@ function settleMonth(m){
   exps=exps.map(function(e){
     return ((e.shared||e.catKey==='za_jitku')&&!e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:true,settledDate:today()}):e;
   });
-  ghSave();renderHome();showToast(lbl+' vyúčtováno ✓');
+  snapshotMonth(m);
+  ghSave();ghSaveCfg();renderHome();showToast(lbl+' vyúčtováno ✓');
 }
 
 function unsettleMonth(m){
@@ -1659,7 +1688,9 @@ function unsettleMonth(m){
   exps=exps.map(function(e){
     return ((e.shared||e.catKey==='za_jitku')&&e.jitkaSettled&&e.date.slice(0,7)===m)?Object.assign({},e,{jitkaSettled:false,settledDate:''}):e;
   });
-  ghSave();renderHome();showToast(lbl+' znovu otevřeno');
+  delete jitkaSettlements[m];
+  localStorage.setItem('vyd_jitka_settlements',JSON.stringify(jitkaSettlements));
+  ghSave();ghSaveCfg();renderHome();showToast(lbl+' znovu otevřeno');
 }
 
 function setJitkaClaim(m,val){
@@ -1671,10 +1702,14 @@ function setJitkaClaim(m,val){
 }
 
 function settleAll(){
-  var unpaidShareTotal=exps.filter(function(e){return e.shared&&!e.jitkaSettled}).reduce(function(s,e){return s+jShare(e)},0);
+  var unpaid=exps.filter(function(e){return e.shared&&!e.jitkaSettled});
+  var unpaidShareTotal=unpaid.reduce(function(s,e){return s+jShare(e)},0);
   if(!confirm('Označit všechny nezaplacené jako vyúčtované?\nJitka zaplatí '+fmt(unpaidShareTotal)+'.'))return;
+  var affectedMonths={};
+  unpaid.forEach(function(e){affectedMonths[e.date.slice(0,7)]=true;});
   exps=exps.map(function(e){return (e.shared&&!e.jitkaSettled)?Object.assign({},e,{jitkaSettled:true,settledDate:today()}):e;});
-  ghSave();renderHome();showToast('Vše vyúčtováno ✓');
+  Object.keys(affectedMonths).forEach(function(m){ if(monthIsFullySettled(m)) snapshotMonth(m); });
+  ghSave();ghSaveCfg();renderHome();showToast('Vše vyúčtováno ✓');
 }
 
 function renderExport(){
