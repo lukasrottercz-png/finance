@@ -1,1 +1,1 @@
-{"tiles":[{"id":"today","label":"Dnes můžeš utratit","value":"1 634","unit":"Kč","delta":"","trend":"up"},{"id":"pace","label":"Tempo rozpočtu","value":"52","unit":"%","delta":"napřed","trend":"up"},{"id":"savings","label":"Míra úspor","value":"10","unit":"%","delta":"","trend":""}]}
+{"tiles":[{"id":"jitka","label":"Zůstatek Jitka","value":"0","unit":"Kč","delta":"Jitka dluží","trend":"up"},{"id":"pace","label":"Tempo rozpočtu","value":"43","unit":"%","delta":"napřed","trend":"up"},{"id":"savings","label":"Míra úspor","value":"0","unit":"%","delta":"","trend":""}]}
