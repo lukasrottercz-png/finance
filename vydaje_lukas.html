@@ -446,38 +446,14 @@ function setNastenkaToken(){
   syncNastenkaTiles(true);
 }
 
-// Zůstatek s Jitkou — stejný výpočet jako v renderJitka(), samostatně kvůli exportu bez zásahu do UI
-function jitkaNetGlobal(){
-  var byMonth={}, byMonthZ={};
-  exps.filter(function(e){return e.shared;}).forEach(function(e){
-    var m=e.date.slice(0,7); if(!byMonth[m])byMonth[m]=[]; byMonth[m].push(e);
-  });
-  exps.filter(function(e){return e.catKey==='za_jitku';}).forEach(function(e){
-    var m=e.date.slice(0,7); if(!byMonthZ[m])byMonthZ[m]=[]; byMonthZ[m].push(e);
-  });
-  var totalUnpaidShare=exps.filter(function(e){return e.shared&&!e.jitkaSettled;}).reduce(function(s,e){return s+jShare(e);},0);
-  var totalZUnpaid=0;
-  Object.keys(byMonthZ).forEach(function(m){
-    byMonthZ[m].forEach(function(e){ if(!e.jitkaSettled) totalZUnpaid+=(e.amount||0); });
-  });
-  var monthSet={};
-  Object.keys(byMonth).forEach(function(m){monthSet[m]=true;});
-  Object.keys(byMonthZ).forEach(function(m){monthSet[m]=true;});
-  var totalClaimUnpaid=0;
-  Object.keys(monthSet).forEach(function(m){
-    var openShared=(byMonth[m]||[]).some(function(e){return !e.jitkaSettled;});
-    var openZ=(byMonthZ[m]||[]).some(function(e){return !e.jitkaSettled;});
-    if(openShared||openZ) totalClaimUnpaid+=(jitkaClaims[m]||0);
-  });
-  return totalUnpaidShare + totalZUnpaid - totalClaimUnpaid/2;
-}
-
 function nastenkaTiles(){
   var tiles=[];
-  var net=jitkaNetGlobal();
-  tiles.push({id:'jitka',label:'Zůstatek Jitka',value:Math.round(Math.abs(net)).toLocaleString('cs-CZ'),unit:'Kč',
-    delta:(net>=0?'Jitka dluží':'dlužíš Jitce'),trend:(net>=0?'up':'down')});
   var b=budgetInfo();
+  if(b){
+    var over=b.dnesZbyva<0;
+    tiles.push({id:'today',label:'Dnes můžeš utratit',value:Math.round(Math.abs(b.dnesZbyva)).toLocaleString('cs-CZ'),unit:'Kč',
+      delta:(over?'přes rozpočet':''),trend:(over?'down':'up')});
+  }
   if(b && b.limit>0){
     var ahead=b.paceDiff>=0;
     tiles.push({id:'pace',label:'Tempo rozpočtu',value:String(b.mesicSpentPct),unit:'%',
