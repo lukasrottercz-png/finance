@@ -127,6 +127,48 @@
     box-shadow:0 4px 14px rgba(212,59,46,0.35);
   }
   button.btn:active{ transform:scale(0.97); }
+
+  #airstrikeWrap{
+    position:fixed;
+    right:16px;
+    bottom: calc(env(safe-area-inset-bottom) + 96px);
+    display:flex; flex-direction:column; align-items:center; gap:5px;
+    z-index:5;
+  }
+  #airstrikeBtn{
+    position:relative;
+    width:60px; height:60px;
+    border-radius:50%;
+    background:var(--hud-bg);
+    border:1px solid rgba(238,230,211,0.15);
+    display:flex; align-items:center; justify-content:center;
+    padding:0;
+  }
+  #airstrikeBtn .ring-svg{
+    position:absolute; inset:0; width:100%; height:100%;
+    transform:rotate(-90deg);
+  }
+  #airstrikeBtn .ring-bg{ fill:none; stroke:rgba(238,230,211,0.14); stroke-width:4; }
+  #airstrikeBtn .ring-fill{
+    fill:none; stroke:var(--accent); stroke-width:4; stroke-linecap:round;
+    stroke-dasharray:163.36; stroke-dashoffset:163.36;
+    transition:stroke-dashoffset 0.15s linear, stroke 0.2s ease;
+  }
+  #airstrikeBtn .plane-icon{
+    width:24px; height:24px; fill:var(--muted);
+    transition:fill 0.2s ease;
+  }
+  #airstrikeBtn.ready{
+    box-shadow:0 0 16px rgba(212,59,46,0.55);
+  }
+  #airstrikeBtn.ready .plane-icon{ fill:var(--text); }
+  #airstrikeBtn.ready .ring-fill{ stroke:#e0c341; }
+  #airstrikeLabel{
+    font-size:10px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--muted); text-shadow:0 1px 3px rgba(0,0,0,0.6);
+  }
+  #airstrikeLabel.ready{ color:#e0c341; font-weight:700; }
+
   #hidden{ display:none; }
 </style>
 </head>
@@ -142,6 +184,17 @@
 
 <div id="overheatMsg">PŘEHŘÁTÁ HLAVEŇ!</div>
 
+<div id="airstrikeWrap">
+  <button id="airstrikeBtn" aria-label="Vyžádat letecký úder">
+    <svg class="ring-svg" viewBox="0 0 60 60">
+      <circle class="ring-bg" cx="30" cy="30" r="26"></circle>
+      <circle class="ring-fill" id="airstrikeRing" cx="30" cy="30" r="26"></circle>
+    </svg>
+    <svg class="plane-icon" viewBox="0 0 24 24"><path d="M12 2l1.8 6.2L22 11l-8.2 1.2L13 18l2.6 2v1.2L12 20l-3.6 1.2V20L11 18l-.2-4.8L2 11l8.2-2.8L12 2z"></path></svg>
+  </button>
+  <div id="airstrikeLabel">Letecký úder</div>
+</div>
+
 <div id="heatWrap">
   <div id="heatLabel">Teplota hlavně MG42</div>
   <div id="heatBarBg"><div id="heatBarFill"></div></div>
@@ -153,7 +206,7 @@
 <div class="screen" id="startScreen">
   <h1>DEN D</h1>
   <p>6. června 1944. Jsi v betonovém bunkru nad pláží Omaha.<br>Na obzoru se objevují vyloďovací čluny. Braň pozici tak dlouho, jak dokážeš.</p>
-  <p style="margin-top:-14px;">Dotykem miř a stiskni pro palbu z MG42. Držením hlaveň přehřeje — nech ji vychladnout.</p>
+  <p style="margin-top:-14px;">Dotykem miř a stiskni pro palbu z MG42. Držením hlaveň přehřeje — nech ji vychladnout.<br>Zásahy nabíjí letecký úder — jakmile je kruh vpravo dole plný, ťukni na něj a nech Luftwaffe smést pláž.</p>
   <button class="btn" id="startBtn">Zaujmout pozici</button>
 </div>
 
@@ -204,8 +257,16 @@
     spawnQueue:[],
     waveTimer:0,
     waveActive:false,
-    t:0
+    t:0,
+    airstrikeCharge:0,
+    airstrikeActive:false,
+    airstrikePlaneX:0,
+    airstrikePlaneY:0,
+    airstrikeHit:null
   };
+
+  const AIRSTRIKE_CHARGE_PER_KILL = 7;
+  const AIRSTRIKE_CROSS_TIME = 1300; // ms to cross the screen
 
   const seaY = ()=> H*0.30;
   const beachTopY = ()=> H*0.30;
@@ -216,14 +277,27 @@
     state.score=0; state.wave=1; state.health=100; state.heat=0; state.overheated=false;
     state.soldiers=[]; state.boats=[]; state.particles=[]; state.tracers=[];
     state.waveActive=false; state.waveTimer=0;
+    state.airstrikeCharge=0; state.airstrikeActive=false;
     updateHud();
   }
+
+  const AIRSTRIKE_RING_CIRC = 2*Math.PI*26;
 
   function updateHud(){
     document.getElementById('scoreVal').textContent = state.score;
     document.getElementById('waveVal').textContent = state.wave;
     document.getElementById('heatBarFill').style.width = Math.min(100,state.heat)+'%';
     document.getElementById('healthBarFill').style.width = Math.max(0,state.health)+'%';
+
+    const pct = Math.min(100,state.airstrikeCharge)/100;
+    const ring = document.getElementById('airstrikeRing');
+    ring.style.strokeDashoffset = AIRSTRIKE_RING_CIRC*(1-pct);
+    const btn = document.getElementById('airstrikeBtn');
+    const label = document.getElementById('airstrikeLabel');
+    const ready = pct>=1 && !state.airstrikeActive;
+    btn.classList.toggle('ready', ready);
+    label.classList.toggle('ready', ready);
+    label.textContent = ready ? 'Připraven — ťukni' : 'Letecký úder';
   }
 
   // ---------- Wave spawning ----------
@@ -308,6 +382,45 @@
     el.style.opacity = show? '1':'0';
   }
 
+  // ---------- Airstrike ----------
+  function triggerAirstrike(){
+    if(state.airstrikeCharge < 100 || state.airstrikeActive || !state.running) return;
+    state.airstrikeCharge = 0;
+    state.airstrikeActive = true;
+    state.airstrikePlaneX = -60;
+    state.airstrikePlaneBaseY = beachTopY() + (beachBotY()-beachTopY())*0.42;
+    state.airstrikeHit = new Set();
+    updateHud();
+  }
+
+  function updateAirstrike(dtMs){
+    if(!state.airstrikeActive) return;
+    const speed = (W+120)/(AIRSTRIKE_CROSS_TIME/1000);
+    const prevX = state.airstrikePlaneX;
+    state.airstrikePlaneX += speed*(dtMs/1000);
+    const progress = Math.min(1, Math.max(0, state.airstrikePlaneX/W));
+    state.airstrikePlaneY = state.airstrikePlaneBaseY - Math.sin(progress*Math.PI)*34;
+
+    const tolerance = Math.max(20, speed*(dtMs/1000));
+    for(const s of state.soldiers){
+      if(!s.alive || state.airstrikeHit.has(s)) continue;
+      if(Math.abs(s.x - state.airstrikePlaneX) < tolerance){
+        state.airstrikeHit.add(s);
+        killSoldier(s, true);
+        spawnParticles(s.x, s.y, '#e0c341', 14);
+      }
+    }
+    if(Math.round(state.airstrikePlaneX) % 46 < tolerance){
+      spawnParticles(state.airstrikePlaneX, beachBotY()-20, '#8a7350', 3);
+    }
+
+    if(state.airstrikePlaneX - W > 100){
+      state.airstrikeActive = false;
+      state.airstrikeHit = null;
+      updateHud();
+    }
+  }
+
   function fireShot(){
     const ax = state.aim.x, ay = state.aim.y;
     // spread near muzzle for feel
@@ -336,9 +449,12 @@
     }
   }
 
-  function killSoldier(s){
+  function killSoldier(s, fromAirstrike){
     s.alive=false;
     state.score += 10 + state.wave;
+    if(!fromAirstrike){
+      state.airstrikeCharge = Math.min(100, state.airstrikeCharge + AIRSTRIKE_CHARGE_PER_KILL);
+    }
     spawnParticles(s.x,s.y,'#8a7350',10);
     updateHud();
   }
@@ -373,6 +489,7 @@
     }
 
     tryFire(dtMs);
+    updateAirstrike(dtMs);
 
     // spawn queue
     for(let i=state.spawnQueue.length-1;i>=0;i--){
@@ -537,14 +654,18 @@
 
     // tracers
     for(const tr of state.tracers){
-      const alpha = Math.max(0,tr.life/80);
-      ctx.strokeStyle = `rgba(255,230,150,${alpha})`;
-      ctx.lineWidth = 2;
+      const life0 = tr.grenade ? 220 : 80;
+      const alpha = Math.max(0,Math.min(1,tr.life/life0));
+      ctx.strokeStyle = tr.grenade ? `rgba(212,59,46,${alpha})` : `rgba(255,230,150,${alpha})`;
+      ctx.lineWidth = tr.grenade ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(tr.x1,tr.y1);
       ctx.lineTo(tr.x2,tr.y2);
       ctx.stroke();
     }
+
+    // airstrike plane
+    if(state.airstrikeActive) drawAirstrikePlane();
 
     // MG42 mount silhouette
     drawMG();
@@ -553,6 +674,36 @@
     if(state.aim.active){
       drawCrosshair(state.aim.x, state.aim.y);
     }
+  }
+
+  function drawAirstrikePlane(){
+    const x = state.airstrikePlaneX, y = state.airstrikePlaneY;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(238,230,211,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x-140,y+10);
+    ctx.lineTo(x-20,y+2);
+    ctx.stroke();
+
+    ctx.translate(x,y);
+    ctx.fillStyle = '#2a2823';
+    ctx.beginPath();
+    ctx.ellipse(0,0,20,5,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-4,0); ctx.lineTo(2,-16); ctx.lineTo(6,-16); ctx.lineTo(2,0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-4,0); ctx.lineTo(2,16); ctx.lineTo(6,16); ctx.lineTo(2,0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#d43b2e';
+    ctx.beginPath();
+    ctx.arc(-16,0,2.5,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawHedgehog(x,y,size){
@@ -585,19 +736,36 @@
     const scale = 0.55 + (s.y/H)*0.9;
     ctx.scale(scale,scale);
     const flashed = s.hitFlash>0;
-    ctx.fillStyle = flashed ? '#ffffff' : '#5b6b3f';
+
+    let bodyColor = '#5b6b3f', bodyR = 7, bodyRy = 10;
+    if(s.type==='armored'){ bodyColor = '#6e7378'; bodyR = 8.5; bodyRy = 11; }
+    if(s.type==='grenadier'){ bodyColor = '#7a5230'; }
+
+    ctx.fillStyle = flashed ? '#ffffff' : bodyColor;
     // body
     ctx.beginPath();
-    ctx.ellipse(0,0,7,10,0,0,Math.PI*2);
+    ctx.ellipse(0,0,bodyR,bodyRy,0,0,Math.PI*2);
     ctx.fill();
     // head
     ctx.beginPath();
     ctx.arc(0,-13,4.5,0,Math.PI*2);
     ctx.fill();
+
+    if(!flashed && s.type==='armored'){
+      ctx.fillStyle='#3a3d40';
+      ctx.fillRect(-4,-15,8,3);
+    }
+    if(!flashed && s.type==='grenadier'){
+      ctx.fillStyle = s.stopped ? '#e0c341' : '#d43b2e';
+      ctx.beginPath();
+      ctx.arc(6,2,3,0,Math.PI*2);
+      ctx.fill();
+    }
+
     // hp pips for tougher enemies
     if(s.maxHp>1){
       ctx.fillStyle='#d43b2e';
-      for(let i=0;i<s.hp;i++){
+      for(let i=0;i<Math.min(s.hp,8);i++){
         ctx.fillRect(-6+i*4,-20,3,3);
       }
     }
@@ -709,6 +877,10 @@
 
   document.getElementById('startBtn').addEventListener('click', beginGame);
   document.getElementById('retryBtn').addEventListener('click', beginGame);
+
+  const airstrikeBtn = document.getElementById('airstrikeBtn');
+  airstrikeBtn.addEventListener('touchstart', (e)=>{ e.preventDefault(); e.stopPropagation(); triggerAirstrike(); }, {passive:false});
+  airstrikeBtn.addEventListener('click', (e)=>{ e.stopPropagation(); triggerAirstrike(); });
 
 })();
 </script>
