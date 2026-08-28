@@ -1,32 +1,24 @@
 {
-  "updated": "2026-08-28T13:24:37+00:00",
+  "updated": "2026-08-28T13:34:57+00:00",
   "items": [
     {
-      "label": "Kuchyň",
-      "value": "OK",
-      "unit": "",
-      "alert": false
-    },
-    {
-      "label": "Kuchyň baterie",
-      "value": "87",
-      "unit": "%"
-    },
-    {
-      "label": "Žebřík",
+      "label": "Koupelna",
       "value": "vypnuto",
       "unit": "",
       "alert": false
     },
     {
-      "label": "Obývák teplota",
-      "value": "24.5",
-      "unit": "°C"
+      "label": "Kuchyň",
+      "value": "OK",
+      "unit": "",
+      "alert": false,
+      "sub": "baterie 87 %"
     },
     {
-      "label": "Obývák vlhkost",
-      "value": "56",
-      "unit": "%"
+      "label": "Obývák",
+      "value": "24.5",
+      "unit": "°C",
+      "sub": "56 % vlhkost"
     }
   ]
 }
