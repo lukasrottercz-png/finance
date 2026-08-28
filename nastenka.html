@@ -130,6 +130,9 @@ body{
 }
 .meta b{color:var(--seg-on);font-weight:500}
 
+.alerts{display:flex;flex-direction:column;gap:.8vmin;margin-top:1.6vmin}
+.alert-item{font-size:1.9vmin;letter-spacing:.06em;color:var(--alert)}
+
 .hours{display:flex;justify-content:space-between;gap:1vmin}
 .hour{text-align:center;display:flex;flex-direction:column;gap:.9vmin;flex:1}
 .hour .h{font-size:1.4vmin;color:var(--label);letter-spacing:.14em}
@@ -240,6 +243,7 @@ body{
           <div>vlhkost <b id="hum">--</b></div>
           <div>dnes <b id="range">--</b></div>
         </div>
+        <div class="alerts" id="alerts"></div>
       </div>
       <div class="panel">
         <div class="cap">Průběh dne</div>
@@ -305,6 +309,38 @@ const ICONS = {
 const DAYS = ["NE","PO","ÚT","ST","ČT","PÁ","SO"];
 const MONTHS = ["LED","ÚNO","BŘE","DUB","KVĚ","ČVN","ČVC","SRP","ZÁŘ","ŘÍJ","LIS","PRO"];
 
+/* ---------- mimořádné jevy v počasí (déšť, vítr, sníh, bouřka, mráz) ---------- */
+const RAIN_CODES = new Set([51,53,55,56,57,61,63,65,66,67,80,81,82]);
+const SNOW_CODES = new Set([71,73,75,77,85,86]);
+const STORM_CODES = new Set([95,96,99]);
+const WIND_LIMIT_KMH = 40;      // od kolika km/h se vítr počítá za silný
+const RAIN_PROB_LIMIT = 50;     // od jaké pravděpodobnosti (%) se déšť/sníh hlásí
+
+function buildAlerts(hourly, startIdx){
+  const n = hourly.time.length;
+  const end = Math.min(startIdx + 24, n); // sleduje nejbližších ~24 hodin
+  let storm = null, rain = null, snow = null, wind = null, frost = null;
+  for(let j = startIdx; j < end; j++){
+    const code = hourly.weather_code[j];
+    const prob = hourly.precipitation_probability[j];
+    const w = hourly.wind_speed_10m ? hourly.wind_speed_10m[j] : null;
+    const t = hourly.temperature_2m[j];
+    if(storm === null && STORM_CODES.has(code)) storm = j;
+    if(rain === null && RAIN_CODES.has(code) && prob >= RAIN_PROB_LIMIT) rain = j;
+    if(snow === null && SNOW_CODES.has(code) && prob >= RAIN_PROB_LIMIT) snow = j;
+    if(wind === null && w != null && w >= WIND_LIMIT_KMH) wind = j;
+    if(frost === null && t <= 0) frost = j;
+  }
+  const at = j => String(new Date(hourly.time[j]).getHours()).padStart(2,"0") + ":00";
+  const out = [];
+  if(storm !== null) out.push("⛈️ Bouřka od " + at(storm));
+  if(rain !== null)  out.push("🌧️ Bude pršet od " + at(rain));
+  if(snow !== null)  out.push("❄️ Sněžení od " + at(snow));
+  if(wind !== null)  out.push("💨 Silný vítr od " + at(wind));
+  if(frost !== null) out.push("🥶 Mráz od " + at(frost));
+  return out;
+}
+
 const $ = id => document.getElementById(id);
 let lastOk = null;
 let lastTilesOk = null;
@@ -352,7 +388,7 @@ async function loadWeather(){
   const u = "https://api.open-meteo.com/v1/forecast"
     + "?latitude=" + CONFIG.lat + "&longitude=" + CONFIG.lon
     + "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m"
-    + "&hourly=temperature_2m,precipitation_probability,weather_code"
+    + "&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m"
     + "&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
     + "&timezone=Europe%2FPrague&forecast_days=2";
 
@@ -396,6 +432,9 @@ async function loadWeather(){
            + "</div>";
     }
     $("hours").innerHTML = out;
+
+    const alerts = buildAlerts(d.hourly, i);
+    $("alerts").innerHTML = alerts.map(a => '<div class="alert-item">' + esc(a) + "</div>").join("");
 
     lastOk = Date.now();
     paintSync();
