@@ -4,14 +4,24 @@ Stáhne stav zařízení z tvého Shelly Cloud účtu a zapíše shelly.json
 vedle nástěnky (nastenka.html ho pak čte).
 
 Potřebuje dvě proměnné prostředí:
-  SHELLY_AUTH_KEY  - autorizační cloud klíč (Shelly app -> Nastavení účtu -> Autorizace cloud klíč)
-  SHELLY_SERVER    - adresa serveru bez https:// (tamtéž, např. shelly-103-eu.shelly.cloud)
+  SHELLY_AUTH_KEY  - autorizační cloud klíč (Shelly app -> Nastavení účtu -> Domov -> Cloudový klíč)
+  SHELLY_SERVER    - adresa serveru bez https:// (např. shelly-103-eu.shelly.cloud)
 
-Je to prvotní verze parseru: Shelly nemá jednotný formát mezi generacemi
-zařízení (Gen1 / Gen2 / Gen3), takže skript prochází celou odpověď a hledá
-známé názvy polí (teplota, vlhkost, výkon, energie) kdekoliv ve stromu.
-Pokud se štítky nebo hodnoty nezobrazují přesně podle očekávání, zkontroluj
-"Syrová odpověď Shelly Cloud" v logu tohoto Action běhu a uprav METRICS níže.
+Zařízení jsou napevno vyjmenovaná v DEVICES níže (ID, český název, druh) -
+takhle žádné se neztratí kvůli nějakému stropu na počet položek a ke
+každému druhu se čte přesně to pole, které v reálné odpovědi vážně existuje
+(ověřeno na skutečných datech z tohoto účtu, ne odhadem):
+
+  switch  - relé/zásuvka s měřením (Plus 1PM, Plus/Gen3 Plug S)
+            -> switch:0.apower (W), switch:0.aenergy.total (Wh)
+            (jejich "temperature" pole je teplota vlastní elektroniky, ne
+            okolí, proto se schválně nepoužívá - bylo by to zavádějící)
+  flood   - Shelly Flood, čidlo na baterii
+            -> tmp.tC (°C), bat.value (%)
+  ht      - Shelly Plus H&T
+            -> temperature:0.tC (°C), humidity:0.rh (%)
+
+Pokud přibude další zařízení, stačí ho přidat do DEVICES.
 """
 
 import json
@@ -21,14 +31,22 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-MAX_ITEMS = 6  # kolik položek se maximálně zapíše do shelly.json
-
 AUTH_KEY = os.environ.get("SHELLY_AUTH_KEY", "").strip()
 SERVER = os.environ.get("SHELLY_SERVER", "").strip().replace("https://", "").replace("http://", "")
 
 if not AUTH_KEY or not SERVER:
     print("Chybí SHELLY_AUTH_KEY nebo SHELLY_SERVER (nastav je jako GitHub secrets repozitáře).")
     sys.exit(1)
+
+# id zařízení -> (český název, druh)
+DEVICES = {
+    "612b9d":       ("Kuchyň",  "flood"),   # čidlo úniku vody
+    "441793a60d5c": ("Žebřík",  "switch"),  # topný žebřík
+    "80646fd6abd4": ("TV",      "switch"),  # zásuvka obývací pokoj
+    "b48a0a1bc100": ("Router",  "switch"),  # zásuvka obývací pokoj
+    "28372f2f2eac": ("Pokojík", "switch"),  # zásuvka
+    "80646fcbd588": ("Obývák",  "ht"),      # teplota a vlhkost
+}
 
 url = "https://" + SERVER + "/device/all_status?" + urllib.parse.urlencode({
     "show_info": "true",
@@ -43,8 +61,8 @@ except Exception as e:
     print("Chyba při volání Shelly Cloud API:", e)
     sys.exit(1)
 
-print("Syrová odpověď Shelly Cloud (pro ladění, zkráceno na 4000 znaků):")
-print(raw[:4000])
+print("Syrová odpověď Shelly Cloud (pro ladění, zkráceno na 8000 znaků):")
+print(raw[:8000])
 
 try:
     data = json.loads(raw)
@@ -56,75 +74,45 @@ if not data.get("isok", True):
     print("Shelly Cloud vrátilo chybu:", data)
     sys.exit(1)
 
-# název pole -> (české slovo, jednotka, počet desetinných míst)
-METRICS = {
-    "tC": ("teplota", "°C", 1),
-    "temperature": ("teplota", "°C", 1),
-    "ext_temperature": ("teplota", "°C", 1),
-    "rh": ("vlhkost", "%", 0),
-    "humidity": ("vlhkost", "%", 0),
-    "ext_humidity": ("vlhkost", "%", 0),
-    "apower": ("výkon", "W", 0),
-    "power": ("výkon", "W", 0),
-}
-ENERGY_KEYS = ("total", "total_act_energy")  # uvnitř aenergy/energy bloku, ve Wh
+devices = ((data.get("data") or {}).get("devices_status")) or {}
+
+
+def num(v, nd=1):
+    return f"{v:.{nd}f}"
+
 
 items = []
-seen = set()
 
+for dev_id, (label, kind) in DEVICES.items():
+    dev = devices.get(dev_id)
+    if not isinstance(dev, dict):
+        print(f"Zařízení {dev_id} ({label}) teď není v odpovědi - přeskočeno.")
+        continue
 
-def add_item(label, value, unit):
-    key = (label, unit)
-    if key in seen:
-        return
-    seen.add(key)
-    items.append({"label": label, "value": value, "unit": unit})
+    if kind == "switch":
+        sw = dev.get("switch:0") or {}
+        apower = sw.get("apower")
+        energy = (sw.get("aenergy") or {}).get("total")
+        if isinstance(apower, (int, float)):
+            items.append({"label": label + " výkon", "value": num(apower, 0), "unit": "W"})
+        if isinstance(energy, (int, float)):
+            items.append({"label": label + " energie", "value": num(energy / 1000, 1), "unit": "kWh"})
 
+    elif kind == "flood":
+        tmp = (dev.get("tmp") or {}).get("tC")
+        bat = (dev.get("bat") or {}).get("value")
+        if isinstance(tmp, (int, float)):
+            items.append({"label": label + " teplota", "value": num(tmp, 1), "unit": "°C"})
+        if isinstance(bat, (int, float)):
+            items.append({"label": label + " baterie", "value": num(bat, 0), "unit": "%"})
 
-def device_label(dev_id, node):
-    info = node.get("info") if isinstance(node, dict) else None
-    if isinstance(info, dict) and info.get("name"):
-        return info["name"]
-    return dev_id
-
-
-def walk(node, label):
-    if isinstance(node, dict):
-        for k, v in node.items():
-            if k in ("aenergy", "energy") and isinstance(v, dict):
-                for ek in ENERGY_KEYS:
-                    val = v.get(ek)
-                    if isinstance(val, (int, float)):
-                        add_item((label + " energie").strip(), f"{val / 1000:.1f}", "kWh")
-                        break
-                continue
-            if k in METRICS and isinstance(v, (int, float)):
-                suffix, unit, nd = METRICS[k]
-                add_item((label + " " + suffix).strip(), f"{v:.{nd}f}", unit)
-                continue
-            walk(v, label)
-    elif isinstance(node, list):
-        for v in node:
-            walk(v, label)
-
-
-devices = None
-payload = data.get("data")
-if isinstance(payload, dict):
-    devices = payload.get("devices_status") or payload.get("device_status")
-
-if isinstance(devices, dict):
-    for dev_id, dev in devices.items():
-        if not isinstance(dev, dict):
-            continue
-        walk(dev, device_label(dev_id, dev))
-elif isinstance(payload, dict):
-    # odpověď obsahovala rovnou jedno zařízení
-    walk(payload, "zařízení")
-else:
-    print("Neočekávaný tvar odpovědi, shelly.json bude prázdný.")
-
-items = items[:MAX_ITEMS]
+    elif kind == "ht":
+        tmp = (dev.get("temperature:0") or {}).get("tC")
+        hum = (dev.get("humidity:0") or {}).get("rh")
+        if isinstance(tmp, (int, float)):
+            items.append({"label": label + " teplota", "value": num(tmp, 1), "unit": "°C"})
+        if isinstance(hum, (int, float)):
+            items.append({"label": label + " vlhkost", "value": num(hum, 0), "unit": "%"})
 
 out = {
     "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
