@@ -1,12 +1,11 @@
 {
-  "updated": "2026-08-28T13:42:16+00:00",
+  "updated": "2026-08-28T13:50:35+00:00",
   "items": [
     {
       "label": "Koupelna",
-      "value": "topí",
+      "value": "vypnuto",
       "unit": "",
-      "alert": true,
-      "icon": "🔥"
+      "alert": false
     },
     {
       "label": "Kuchyň",
