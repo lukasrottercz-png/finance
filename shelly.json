@@ -1,10 +1,11 @@
 {
-  "updated": "2026-08-28T13:12:04+00:00",
+  "updated": "2026-08-28T13:24:37+00:00",
   "items": [
     {
-      "label": "Kuchyň teplota",
-      "value": "24.4",
-      "unit": "°C"
+      "label": "Kuchyň",
+      "value": "OK",
+      "unit": "",
+      "alert": false
     },
     {
       "label": "Kuchyň baterie",
@@ -12,24 +13,10 @@
       "unit": "%"
     },
     {
-      "label": "Žebřík příkon",
-      "value": "0",
-      "unit": "W"
-    },
-    {
-      "label": "TV příkon",
-      "value": "8",
-      "unit": "W"
-    },
-    {
-      "label": "Router příkon",
-      "value": "9",
-      "unit": "W"
-    },
-    {
-      "label": "Pokojík příkon",
-      "value": "0",
-      "unit": "W"
+      "label": "Žebřík",
+      "value": "vypnuto",
+      "unit": "",
+      "alert": false
     },
     {
       "label": "Obývák teplota",
