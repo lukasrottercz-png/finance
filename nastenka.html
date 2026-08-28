@@ -162,6 +162,13 @@ body{
 }
 .tiles-sync.stale{color:var(--alert)}
 
+.house{padding:1.6vmin 2.2vmin}
+.house .meta{margin-top:.6vmin!important}
+
+@media (orientation:portrait){
+  .house{padding:1vmin 1.5vmin}
+}
+
 .empty{
   grid-column:1/-1;
   border:1px dashed var(--lcd-edge);
@@ -245,6 +252,11 @@ body{
   <div class="tiles" id="tiles"></div>
   <div class="tiles-sync" id="tilesSync"></div>
 
+  <div class="panel house" id="housePanel" style="display:none">
+    <div class="cap">Dům</div>
+    <div class="meta" id="houseMeta" style="margin-top:.6vmin"></div>
+  </div>
+
 </div>
 
 <script>
@@ -258,7 +270,8 @@ const CONFIG = {
   weatherEveryMin: 10,   // jak často stahovat počasí
   tilesEveryMin: 5,      // jak často stahovat data.json
   staleAfterMin: 35,     // po jak dlouhé době bez dat hlásit ZASTARALÉ
-  tilesUrl: "data.json"  // vlastní čísla, vedle tohoto souboru
+  tilesUrl: "data.json",  // vlastní čísla, vedle tohoto souboru
+  houseUrl: "shelly.json" // data ze Shelly, plní GitHub Action
 };
 
 /* ============================================================ */
@@ -426,6 +439,27 @@ async function loadTiles(){
   }
 }
 
+/* ---------- Shelly (dům) ze shelly.json ---------- */
+async function loadHouse(){
+  const panel = $("housePanel");
+  const box = $("houseMeta");
+  try{
+    const r = await fetch(CONFIG.houseUrl + "?v=" + Date.now(), {cache:"no-store"});
+    if(!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    if(!d.items || !d.items.length) throw new Error("prázdné");
+
+    box.innerHTML = d.items.map(it =>
+      "<div>" + esc(it.label || "") + " <b>" + esc(it.value || "--")
+      + (it.unit ? " " + esc(it.unit) : "") + "</b></div>"
+    ).join("");
+    panel.style.display = "";
+  }catch(e){
+    // dokud shelly.json neexistuje nebo nic nevrací, panel se prostě nezobrazí
+    panel.style.display = "none";
+  }
+}
+
 function esc(s){
   return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
@@ -450,9 +484,12 @@ setInterval(loadWeather, CONFIG.weatherEveryMin * 60000);
 loadTiles();
 setInterval(loadTiles, CONFIG.tilesEveryMin * 60000);
 
+loadHouse();
+setInterval(loadHouse, CONFIG.tilesEveryMin * 60000);
+
 // po probuzení / návratu do popředí stáhnout hned
 document.addEventListener("visibilitychange", () => {
-  if(!document.hidden){ loadWeather(); loadTiles(); keepAwake(); }
+  if(!document.hidden){ loadWeather(); loadTiles(); loadHouse(); keepAwake(); }
 });
 
 keepAwake();
