@@ -10,20 +10,30 @@ Potřebuje dvě proměnné prostředí:
 Zařízení jsou napevno vyjmenovaná v DEVICES níže (ID, český název, druh) -
 takhle žádné se neztratí kvůli nějakému stropu na počet položek a ke
 každému druhu se čte přesně to pole, které v reálné odpovědi vážně existuje
-(ověřeno na skutečných datech z tohoto účtu, ne odhadem):
+(ověřeno na skutečných datech z tohoto účtu, ne odhadem).
 
-  switch  - relé/zásuvka s měřením (Plus 1PM, Plus/Gen3 Plug S)
-            -> switch:0.apower (W) - jen aktuální příkon
-            (switch:0.aenergy.total je kumulativní součet od nasazení
-            zařízení, ne za nějaké aktuální období, proto se nepoužívá;
-            jejich "temperature" pole je teplota vlastní elektroniky, ne
-            okolí, proto se taky schválně nepoužívá - bylo by to zavádějící)
-  flood   - Shelly Flood, čidlo na baterii
-            -> tmp.tC (°C), bat.value (%)
+Nástěnka se aktualizuje jednou za 10 minut, takže tu má smysl mít jen
+hodnoty, které se za tu dobu buď mění pomalu (teplota, vlhkost), nebo jsou
+binární stav, kde je zajímavé i to, jak to bylo před chvílí (teče/neteče,
+topí/netopí) - ne syrová čísla jako okamžitý příkon zásuvek, co je skoro
+pořád stejný a nic neřekne.
+
+  flood   - Shelly Flood, čidlo úniku vody
+            -> "flood" (bool, detekován únik) - hlavní hodnota, se
+               zvýrazněním (alert: true), když je True
+            -> bat.value (%) - stav baterie
+  heater  - spínač topení s měřením (u nás žebřík na Plus 1PM)
+            -> switch:0.apower (W) se převádí na stav "topí"/"vypnuto"
+               (zvýrazněné, když topí) - samotné watty nikoho nezajímají,
+               zajímá "je zapnuté, nebo ne"
   ht      - Shelly Plus H&T
             -> temperature:0.tC (°C), humidity:0.rh (%)
 
-Pokud přibude další zařízení, stačí ho přidat do DEVICES.
+Položka v shelly.json může mít "alert": true - nástěnka ji pak zobrazí
+zvýrazněnou barvou (viz nastenka.html, .house-alert).
+
+Pokud přibude další zařízení, stačí ho přidat do DEVICES (případně přidat
+nový druh podobně jako "heater"/"flood" výše).
 """
 
 import json
@@ -42,12 +52,9 @@ if not AUTH_KEY or not SERVER:
 
 # id zařízení -> (český název, druh)
 DEVICES = {
-    "612b9d":       ("Kuchyň",  "flood"),   # čidlo úniku vody
-    "441793a60d5c": ("Žebřík",  "switch"),  # topný žebřík
-    "80646fd6abd4": ("TV",      "switch"),  # zásuvka obývací pokoj
-    "b48a0a1bc100": ("Router",  "switch"),  # zásuvka obývací pokoj
-    "28372f2f2eac": ("Pokojík", "switch"),  # zásuvka
-    "80646fcbd588": ("Obývák",  "ht"),      # teplota a vlhkost
+    "612b9d":       ("Kuchyň", "flood"),   # čidlo úniku vody
+    "441793a60d5c": ("Žebřík", "heater"),  # topný žebřík
+    "80646fcbd588": ("Obývák", "ht"),      # teplota a vlhkost
 }
 
 url = "https://" + SERVER + "/device/all_status?" + urllib.parse.urlencode({
@@ -91,21 +98,28 @@ for dev_id, (label, kind) in DEVICES.items():
         print(f"Zařízení {dev_id} ({label}) teď není v odpovědi - přeskočeno.")
         continue
 
-    if kind == "switch":
-        # jen aktuální příkon - kumulativní energie od nasazení zařízení
-        # (aenergy.total) nemá pro tenhle přehled vypovídací hodnotu
+    if kind == "flood":
+        # hlavní hodnota je binární stav úniku, ne teplota čidla (ta se
+        # za 10 minut skoro nezmění a nikoho nezajímá)
+        is_flood = dev.get("flood")
+        bat = (dev.get("bat") or {}).get("value")
+        if isinstance(is_flood, bool):
+            if is_flood:
+                items.append({"label": label, "value": "ÚNIK VODY!", "unit": "", "alert": True})
+            else:
+                items.append({"label": label, "value": "OK", "unit": "", "alert": False})
+        if isinstance(bat, (int, float)):
+            items.append({"label": label + " baterie", "value": num(bat, 0), "unit": "%"})
+
+    elif kind == "heater":
+        # samotné watty nikoho nezajímají, zajímá jestli topí, nebo ne
         sw = dev.get("switch:0") or {}
         apower = sw.get("apower")
         if isinstance(apower, (int, float)):
-            items.append({"label": label + " příkon", "value": num(apower, 0), "unit": "W"})
-
-    elif kind == "flood":
-        tmp = (dev.get("tmp") or {}).get("tC")
-        bat = (dev.get("bat") or {}).get("value")
-        if isinstance(tmp, (int, float)):
-            items.append({"label": label + " teplota", "value": num(tmp, 1), "unit": "°C"})
-        if isinstance(bat, (int, float)):
-            items.append({"label": label + " baterie", "value": num(bat, 0), "unit": "%"})
+            if apower > 0:
+                items.append({"label": label, "value": "topí", "unit": "", "alert": True})
+            else:
+                items.append({"label": label, "value": "vypnuto", "unit": "", "alert": False})
 
     elif kind == "ht":
         tmp = (dev.get("temperature:0") or {}).get("tC")
