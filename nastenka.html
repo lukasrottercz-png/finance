@@ -167,8 +167,9 @@ body{
 
 .house{padding:1.6vmin 2.2vmin}
 .house .meta{margin-top:.6vmin!important}
-.house .meta .house-alert{color:var(--alert);font-weight:500}
+.house .meta .house-alert{color:var(--alert);font-weight:600;font-size:2.4vmin}
 .house .meta .house-alert b{color:var(--alert)}
+.house .meta .house-sub{font-size:1.3vmin;color:var(--label);margin-left:.5vmin}
 
 @media (orientation:portrait){
   .house{padding:1vmin 1.5vmin}
@@ -259,7 +260,7 @@ body{
   <div class="tiles-sync" id="tilesSync"></div>
 
   <div class="panel house" id="housePanel" style="display:none">
-    <div class="cap">Dům</div>
+    <div class="cap">Byt</div>
     <div class="meta" id="houseMeta" style="margin-top:.6vmin"></div>
   </div>
 
@@ -480,7 +481,7 @@ async function loadTiles(){
   }
 }
 
-/* ---------- Shelly (dům) ze shelly.json ---------- */
+/* ---------- Shelly (byt) ze shelly.json ---------- */
 async function loadHouse(){
   const panel = $("housePanel");
   const box = $("houseMeta");
@@ -490,10 +491,16 @@ async function loadHouse(){
     const d = await r.json();
     if(!d.items || !d.items.length) throw new Error("prázdné");
 
-    box.innerHTML = d.items.map(it =>
+    // aktivní alert (únik, topení) jde nahoru, ať na první pohled nezapadne
+    const sorted = d.items.slice().sort((a, b) => (b.alert ? 1 : 0) - (a.alert ? 1 : 0));
+
+    box.innerHTML = sorted.map(it =>
       "<div" + (it.alert ? " class=\"house-alert\"" : "") + ">"
+      + (it.icon ? esc(it.icon) + " " : "")
       + esc(it.label || "") + " <b>" + esc(it.value || "--")
-      + (it.unit ? " " + esc(it.unit) : "") + "</b></div>"
+      + (it.unit ? " " + esc(it.unit) : "") + "</b>"
+      + (it.sub ? "<span class=\"house-sub\"> · " + esc(it.sub) + "</span>" : "")
+      + "</div>"
     ).join("");
     panel.style.display = "";
   }catch(e){
