@@ -23,24 +23,24 @@ pořád stejný a nic neřekne.
   flood   - Shelly Flood, čidlo úniku vody (koupelnu má na starosti "heater",
             tohle je kuchyň)
             -> "flood" (bool, detekován únik) - hlavní hodnota, se
-               zvýrazněním (alert: true) a ikonou, když je True
+               zvýrazněním (alert: true), když je True
             -> bat.value (%) - stav baterie toho čidla, připojený jako
                vedlejší údaj na stejný řádek (pole "sub"), ať se název
                místnosti nepíše na nástěnce dvakrát pod sebou
   heater  - spínač topení s měřením (u nás žebřík v koupelně, Plus 1PM)
             -> switch:0.apower (W) se převádí na stav "topí"/"vypnuto"
-               (zvýrazněné a s ikonou, když topí) - samotné watty nikoho
-               nezajímají, zajímá "je zapnuté, nebo ne"
+               (zvýrazněné, když topí) - samotné watty nikoho nezajímají,
+               zajímá "je zapnuté, nebo ne"
   ht      - Shelly Plus H&T (u nás obývák)
             -> temperature:0.tC (°C) jako hlavní hodnota, humidity:0.rh (%)
                připojená jako vedlejší údaj na stejný řádek (pole "sub"),
                ze stejného důvodu jako u flood
 
 Položka v shelly.json může mít "alert": true - nástěnka ji pak zobrazí
-zvýrazněnou barvou a větším písmem (viz nastenka.html, .house-alert) a
-posune ji na první místo v panelu. Volitelné pole "icon" (emoji) se
-zobrazí jen u aktivních alertů. Volitelné pole "sub" je drobný dovětek na
-stejném řádku (baterie, vlhkost).
+zvýrazněnou barvou, větším písmem a oranžovou tečkou před textem (čistě
+CSS, viz nastenka.html, .house-alert), a posune ji na první místo
+v panelu. Volitelné pole "sub" je drobný dovětek na stejném řádku
+(baterie, vlhkost).
 
 Pokud přibude další zařízení, stačí ho přidat do DEVICES (případně přidat
 nový druh podobně jako "heater"/"flood" výše).
@@ -118,8 +118,6 @@ for dev_id, (label, kind) in DEVICES.items():
         if isinstance(is_flood, bool):
             item = {"label": label, "value": "ÚNIK VODY!" if is_flood else "OK",
                      "unit": "", "alert": is_flood}
-            if is_flood:
-                item["icon"] = "💧"
             if isinstance(bat, (int, float)):
                 item["sub"] = "baterie " + num(bat, 0) + " %"
             items.append(item)
@@ -130,11 +128,8 @@ for dev_id, (label, kind) in DEVICES.items():
         apower = sw.get("apower")
         if isinstance(apower, (int, float)):
             is_on = apower > 0
-            item = {"label": label, "value": "topí" if is_on else "vypnuto",
-                     "unit": "", "alert": is_on}
-            if is_on:
-                item["icon"] = "🔥"
-            items.append(item)
+            items.append({"label": label, "value": "topí" if is_on else "vypnuto",
+                           "unit": "", "alert": is_on})
 
     elif kind == "ht":
         # teplota a vlhkost na jeden řádek, ať se název místnosti nepíše
