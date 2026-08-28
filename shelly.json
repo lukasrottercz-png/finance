@@ -1,35 +1,65 @@
 {
-  "updated": "2026-08-28T12:14:51+00:00",
+  "updated": "2026-08-28T12:45:46+00:00",
   "items": [
     {
-      "label": "612b9d teplota",
+      "label": "Kuchyň teplota",
       "value": "24.4",
       "unit": "°C"
     },
     {
-      "label": "441793a60d5c energie",
-      "value": "77.2",
-      "unit": "kWh"
+      "label": "Kuchyň baterie",
+      "value": "87",
+      "unit": "%"
     },
     {
-      "label": "441793a60d5c výkon",
+      "label": "Žebřík výkon",
       "value": "0",
       "unit": "W"
     },
     {
-      "label": "441793a60d5c teplota",
-      "value": "55.4",
-      "unit": "°C"
+      "label": "Žebřík energie",
+      "value": "77.2",
+      "unit": "kWh"
     },
     {
-      "label": "80646fd6abd4 energie",
+      "label": "TV výkon",
+      "value": "8",
+      "unit": "W"
+    },
+    {
+      "label": "TV energie",
       "value": "167.3",
       "unit": "kWh"
     },
     {
-      "label": "80646fd6abd4 výkon",
-      "value": "8",
+      "label": "Router výkon",
+      "value": "9",
       "unit": "W"
+    },
+    {
+      "label": "Router energie",
+      "value": "60.9",
+      "unit": "kWh"
+    },
+    {
+      "label": "Pokojík výkon",
+      "value": "0",
+      "unit": "W"
+    },
+    {
+      "label": "Pokojík energie",
+      "value": "49.8",
+      "unit": "kWh"
+    },
+    {
+      "label": "Obývák teplota",
+      "value": "24.3",
+      "unit": "°C"
+    },
+    {
+      "label": "Obývák vlhkost",
+      "value": "56",
+      "unit": "%"
     }
   ]
 }
