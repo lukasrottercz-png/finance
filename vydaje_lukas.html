@@ -110,6 +110,8 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .jitka-sum{text-align:center;padding:20px 16px 4px}
 .jitka-amt{font-size:40px;font-weight:200;letter-spacing:-1px;color:#ff2d78}
 .jitka-lbl{font-size:13px;color:#6c6c70;margin-top:3px}
+.veh-chip{display:inline-flex;align-items:center;gap:4px;background:#f2f2f7;border:1px solid #e0e0e0;border-radius:20px;padding:6px 12px;font-size:13px;color:#3c3c3c;cursor:pointer;margin:0 6px 6px 0}
+.veh-chip.on{background:#007aff;border-color:#007aff;color:#fff}
 
 .home-link{cursor:pointer;transition:opacity .15s}
 .home-link:hover{opacity:.55}
@@ -161,22 +163,22 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION='2026-08-21c'; // datum poslední úpravy — zvednout při každé změně, ať jde poznat, že se propsala nejnovější verze
+var APP_VERSION='2026-08-28-kategorie'; // datum poslední úpravy — zvednout při každé změně, ať jde poznat, že se propsala nejnovější verze
 var CATS=[
-  {k:'bydleni',    i:'🏠',l:'Bydlení',       s:['Nájem / záloha','Elektřina','Plyn','Internet','Opravy','Vybavení','Zahrada']},
-  {k:'doprava',    i:'🚗',l:'Doprava',        s:['CNG — Octavia','Benzín — RAV4','Nafta','Elektřina (nabíjení)','Pojištění','Servis','Dálniční známka','Parkování','MHD','Mytí auta','Pneumatiky']},
+  {k:'bydleni',    i:'🏠',l:'Bydlení',       s:['Nájem / záloha','Elektřina','Plyn','Internet','Opravy','Zahrada','Vyúčtování / nedoplatky']},
+  {k:'doprava',    i:'🚗',l:'Doprava',        s:['Benzín','CNG','Nafta','Elektřina (nabíjení)','Pojištění','Servis','Dálniční známka','Parkování','MHD','Mytí auta','Pneumatiky','Doplňky a výbava','Nákup vozidla','Taxi','Ostatní'], vehicles:['RAV4','Octavia','Honda NX500','Hyundai Tucson']},
   {k:'potraviny',  i:'🛒',l:'Potraviny',      s:['Supermarket','Tržnice','Drogerie','Alkohol']},
-  {k:'stravovani', i:'🍽',l:'Stravování',     s:['Restaurace','Kavárna','Rozvoz','Fast food']},
-  {k:'deti',       i:'👶',l:'Děti',           s:['Jesle / školka','Kroužky','Oblečení','Hračky','Lékaři','Kapesné','Výlety']},
+  {k:'stravovani', i:'🍽',l:'Stravování',     s:['Restaurace','Kavárna','Rozvoz','Fast food','Doplňky stravy']},
+  {k:'deti',       i:'👶',l:'Děti',           s:['Jesle / školka','Škola','Kroužky','Oblečení','Hračky','Lékaři','Kapesné','Výlety','Ostatní']},
   {k:'pece',       i:'💇',l:'Péče o sebe',    s:['Kadeřník','Kosmetika','Manikúra / pedikúra','Optika','Gym / sport','Masáž']},
-  {k:'zdravi',     i:'🏥',l:'Zdraví',         s:['Lékař','Lékárna','Stomatolog','Psycholog','Vitamíny']},
+  {k:'zdravi',     i:'🏥',l:'Zdraví',         s:['Lékař','Lékárna','Stomatolog','Psycholog','Vitamíny','Dentální hygiena']},
   {k:'obleceni',   i:'👕',l:'Oblečení',       s:['Oblečení','Obuv','Čistírna','Doplňky']},
   {k:'cestovani',  i:'✈️',l:'Cestování',      s:['Dovolená','Letenky','Hotel','Výlety','Víkendy']},
-  {k:'zabava',     i:'🎮',l:'Zábava',         s:['Kino / divadlo','Koncerty','Hry','Sport / stadion','Knížky / časopisy']},
+  {k:'zabava',     i:'🎮',l:'Zábava',         s:['Kino / divadlo','Koncerty','Hry','Sport / stadion','Knížky / časopisy','Filmy (půjčení/streaming)']},
   {k:'predplatne', i:'📱',l:'Předplatné',     s:['Streaming','Software','Telefon','Noviny / média']},
-  {k:'pojisteni',  i:'🛡',l:'Pojištění',      s:['Životní','Právní (DAS)','Cestovní','Jiné']},
+  {k:'pojisteni',  i:'🛡',l:'Pojištění',      s:['Životní','Právní (DAS)','Cestovní','Zdravotní (VZP/OSVČ)','Jiné']},
   {k:'sporeni',    i:'💰',l:'Spoření',        s:['Stavební spoření','Penzijní','Investice']},
-  {k:'domacnost',  i:'🔧',l:'Domácnost',      s:['Elektro','Nábytek','Nářadí','Mazlíčci','Čisticí prostředky']},
+  {k:'domacnost',  i:'🔧',l:'Domácnost',      s:['Elektro','Nábytek','Nářadí','Nádobí','Mazlíčci','Čisticí prostředky']},
   {k:'darky',      i:'🎁',l:'Dárky a oslavy',s:['Narozeniny','Svátky','Charita','Různé']},
   {k:'za_jitku',   i:'💸',l:'Za Jitku',       s:['Nákup','Služby','Zdraví','Oblečení','Různé']},
   {k:'vyrovnani',  i:'🤝',l:'Vyrovnání Jitka', s:['Podíl Jitka']},
@@ -193,6 +195,7 @@ var selShared=false;
 var selMimoradny=false;
 var selRodinny=false;
 var selSplitPct=50;
+var selVehicle='';
 
 function toggleShared(){
   selShared=!selShared;
@@ -813,7 +816,7 @@ function goHome(){
 }
 
 function openAdd(){
-  selCat='';selSub='';selShared=false;selMimoradny=false;selRodinny=false;selSplitPct=50;
+  selCat='';selSub='';selVehicle='';selShared=false;selMimoradny=false;selRodinny=false;selSplitPct=50;
   document.getElementById('home-page').style.display='none';
   document.getElementById('add-page').style.display='block';
   buildAddForm();
@@ -838,6 +841,7 @@ function buildAddForm(){
   }
   html+='</div>'
     +'<div id="sub-section"></div>'
+    +'<div id="vehicle-section"></div>'
     +'<div class="sec-hdr">Poznámka</div>'
     +'<textarea id="note" class="note-inp" placeholder="Volitelná poznámka…"></textarea>'
     +'<div class="shared-toggle" id="shared-toggle" onclick="toggleShared()">'
@@ -884,12 +888,37 @@ function saveCustomSubs(catKey, subs) {
 }
 
 function pickCat(k){
-  selCat=k;selSub='';
+  selCat=k;selSub='';selVehicle='';
   for(var i=0;i<CATS.length;i++){
     var el=document.getElementById('cb-'+CATS[i].k);
     if(el)el.className='cat-btn'+(CATS[i].k===k?' on':'');
   }
   renderSubcats(k);
+  renderVehicles(k);
+}
+
+function renderVehicles(k){
+  var sec=document.getElementById('vehicle-section');
+  if(!sec)return;
+  var cat=catByKey(k);
+  if(!cat||!cat.vehicles||!cat.vehicles.length){ sec.innerHTML=''; return; }
+  var html='<div class="sec-hdr">Vozidlo <span style="text-transform:none;font-weight:400">(volitelné)</span></div><div style="margin-bottom:16px">';
+  cat.vehicles.forEach(function(v){
+    html+='<span class="veh-chip" id="veh-'+v.replace(/[^a-zA-Z0-9]/g,'')+'" onclick="pickVehicle(\''+v.replace(/'/g,"\\'")+'\')">'+v+'</span>';
+  });
+  html+='</div>';
+  sec.innerHTML=html;
+}
+
+function pickVehicle(v){
+  selVehicle=(selVehicle===v)?'':v;
+  var cat=catByKey(selCat);
+  if(cat&&cat.vehicles){
+    cat.vehicles.forEach(function(vv){
+      var el=document.getElementById('veh-'+vv.replace(/[^a-zA-Z0-9]/g,''));
+      if(el)el.className='veh-chip'+(vv===selVehicle?' on':'');
+    });
+  }
 }
 
 function renderSubcats(k) {
@@ -1021,6 +1050,7 @@ function openEditExp(id) {
   selMimoradny = e.mimoradny || false;
   selRodinny = e.rodinny || false;
   selSplitPct = splitPctOf(e);
+  selVehicle = e.vehicle || '';
   document.getElementById('home-page').style.display='none';
   document.getElementById('add-page').style.display='block';
   buildAddForm();
@@ -1055,7 +1085,7 @@ function openEditExp(id) {
     }
     // Zvýrazni kategorii
     pickCat(e.catKey);
-    setTimeout(function(){ if(e.subcat) pickSub(e.subcat); }, 50);
+    setTimeout(function(){ if(e.subcat) pickSub(e.subcat); if(e.vehicle) pickVehicle(e.vehicle); }, 50);
     // Změň text tlačítka
     var saveBtn = document.querySelector('.save-btn');
     if (saveBtn) saveBtn.textContent = 'Uložit změny';
@@ -1079,7 +1109,7 @@ function doSave(){
   if (editExpId) {
     // Editace existujícího záznamu
     exps = exps.map(function(e){
-      return e.id===editExpId ? {id:e.id,amount:amount,catKey:selCat,subcat:selSub,note:noteEl?noteEl.value:'',date:dtEl?dtEl.value:today(),shared:selShared,mimoradny:selMimoradny,rodinny:selRodinny,splitPct:splitPct} : e;
+      return e.id===editExpId ? {id:e.id,amount:amount,catKey:selCat,subcat:selSub,vehicle:selVehicle,note:noteEl?noteEl.value:'',date:dtEl?dtEl.value:today(),shared:selShared,mimoradny:selMimoradny,rodinny:selRodinny,splitPct:splitPct} : e;
     });
     editExpId = null;
   } else {
@@ -1088,6 +1118,7 @@ function doSave(){
       amount:amount,
       catKey:selCat,
       subcat:selSub,
+      vehicle:selVehicle,
       note:noteEl?noteEl.value:'',
       date:dtEl?dtEl.value:today(),
       shared:selShared,
@@ -1160,7 +1191,7 @@ function renderPrehled(){
         +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
         +'<div class="exp-info">'
         +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka &amp; Lukáš</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
-        +'<div class="exp-sub">'+(e.subcat||'')+(e.note?' · '+e.note:'')+'</div>'
+        +'<div class="exp-sub">'+(e.subcat||'')+(e.vehicle?' · '+e.vehicle:'')+(e.note?' · '+e.note:'')+'</div>'
         +'</div>'
         +'<div class="exp-amt">'+fmt(e.amount)+'</div>'
         +'<button onclick="event.stopPropagation();toggleRodinnyInline(\''+e.id+'\')" title="Rodinný výdaj" style="background:'+(e.rodinny?'#ff9500':'#f2f2f7')+';border:1px solid '+(e.rodinny?'#ff9500':'#e0e0e0')+';border-radius:8px;cursor:pointer;font-size:14px;padding:4px 7px;flex-shrink:0;line-height:1;margin-left:2px;opacity:'+(e.rodinny?'1':'.4')+'">👪</button>'
@@ -1261,16 +1292,32 @@ function renderKat(){
         +'<div style="font-size:11px;color:#8e8e93">'+spct+' %</div>'
         +'</div>'
         +'</div>';
-      // Výdaje s poznámkou v této podkategorii
-      [].concat(sd.items).filter(function(e){return e.note;}).sort(function(a,b){return b.date.localeCompare(a.date)}).forEach(function(e){
+      // Výdaje s poznámkou nebo vozidlem v této podkategorii
+      [].concat(sd.items).filter(function(e){return e.note||e.vehicle;}).sort(function(a,b){return b.date.localeCompare(a.date)}).forEach(function(e){
         var dt2=new Date(e.date+'T12:00:00');
         var dayLbl=dt2.toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
         h+='<div class="exp-row" style="padding-left:60px;background:#fcfcfc">'
-          +'<div class="exp-info"><div class="exp-sub" style="white-space:normal;color:#6c6c70">📝 '+e.note+' <span style="color:#aeaeb2">· '+dayLbl+'</span></div></div>'
+          +'<div class="exp-info"><div class="exp-sub" style="white-space:normal;color:#6c6c70">'+(e.vehicle?'🚙 '+e.vehicle+' · ':'')+(e.note?'📝 '+e.note+' ':'')+'<span style="color:#aeaeb2">· '+dayLbl+'</span></div></div>'
           +'<div style="font-size:12px;color:#8e8e93;flex-shrink:0">'+fmt(e.amount)+'</div>'
           +'</div>';
       });
     });
+    if(k==='doprava'){
+      var byVeh={};
+      thisM.filter(function(e){return e.catKey==='doprava';}).forEach(function(e){
+        var vk=e.vehicle||'Bez vozidla';
+        byVeh[vk]=(byVeh[vk]||0)+(e.amount||0);
+      });
+      var vehEntries=Object.entries(byVeh).sort(function(a,b){return b[1]-a[1]});
+      if(vehEntries.length){
+        h+='<div style="padding:10px 16px;border-top:0.5px solid #f0f0f0;background:#f5f5f7">'
+          +'<div style="font-size:11px;color:#8e8e93;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Podle vozidla</div>';
+        vehEntries.forEach(function(vp){
+          h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#3c3c3c;padding:2px 0"><span>'+vp[0]+'</span><span style="font-weight:600">'+fmt(vp[1])+'</span></div>';
+        });
+        h+='</div>';
+      }
+    }
     h+='</div></div>';
   });
   return h;
@@ -1551,7 +1598,7 @@ function printMonth(m){
   function row(e,settled){
     var cat=catByKey(e.catKey);
     var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
-    var desc=(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.note?' — '+e.note:'');
+    var desc=(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.vehicle?' ('+e.vehicle+')':'')+(e.note?' — '+e.note:'');
     var color='#222';
     var halfColor='#222';
     var strike='';
@@ -1864,6 +1911,7 @@ function handleImport(input){
         var shared=cols[5]?cols[5].trim()==='ano':false;
         var jitkaSettled=cols[6]?cols[6].trim()==='ano':false;
         var rodinny=cols[7]?cols[7].trim()==='ano':false;
+        var vehicle=cols[8]?cols[8].trim():'';
         if(!date||amount<=0)continue;
         var catKey='ostatni';
         for(var j=0;j<CATS.length;j++){
@@ -1874,7 +1922,7 @@ function handleImport(input){
           if(exps[k].date===date&&exps[k].amount===amount&&exps[k].catKey===catKey){dup=true;break}
         }
         if(!dup){
-          exps.push({id:Date.now().toString()+i,amount:amount,catKey:catKey,subcat:subcat,note:note,date:date,shared:shared,jitkaSettled:jitkaSettled,rodinny:rodinny});
+          exps.push({id:Date.now().toString()+i,amount:amount,catKey:catKey,subcat:subcat,vehicle:vehicle,note:note,date:date,shared:shared,jitkaSettled:jitkaSettled,rodinny:rodinny});
           imported++;
         }
       }
@@ -1892,11 +1940,11 @@ function handleImport(input){
 
 function exportCSV(){
   if(!exps.length){showToast('Žádná data');return}
-  var hdr=['datum','kategorie','podkategorie','castka','poznamka','sdileno_jitka','vyuctovano','rodinny'];
+  var hdr=['datum','kategorie','podkategorie','castka','poznamka','sdileno_jitka','vyuctovano','rodinny','vozidlo'];
   var rows=[hdr.join(';')];
   [].concat(exps).sort(function(a,b){return a.date.localeCompare(b.date)}).forEach(function(e){
     var cat=catByKey(e.catKey);
-    rows.push([e.date,cat?cat.l:e.catKey,e.subcat||'',e.amount,e.note||'',e.shared?'ano':'ne',e.jitkaSettled?'ano':'ne',e.rodinny?'ano':'ne'].join(';'));
+    rows.push([e.date,cat?cat.l:e.catKey,e.subcat||'',e.amount,e.note||'',e.shared?'ano':'ne',e.jitkaSettled?'ano':'ne',e.rodinny?'ano':'ne',e.vehicle||''].join(';'));
   });
   var blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);
