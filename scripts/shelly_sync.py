@@ -13,9 +13,11 @@ každému druhu se čte přesně to pole, které v reálné odpovědi vážně e
 (ověřeno na skutečných datech z tohoto účtu, ne odhadem):
 
   switch  - relé/zásuvka s měřením (Plus 1PM, Plus/Gen3 Plug S)
-            -> switch:0.apower (W), switch:0.aenergy.total (Wh)
-            (jejich "temperature" pole je teplota vlastní elektroniky, ne
-            okolí, proto se schválně nepoužívá - bylo by to zavádějící)
+            -> switch:0.apower (W) - jen aktuální příkon
+            (switch:0.aenergy.total je kumulativní součet od nasazení
+            zařízení, ne za nějaké aktuální období, proto se nepoužívá;
+            jejich "temperature" pole je teplota vlastní elektroniky, ne
+            okolí, proto se taky schválně nepoužívá - bylo by to zavádějící)
   flood   - Shelly Flood, čidlo na baterii
             -> tmp.tC (°C), bat.value (%)
   ht      - Shelly Plus H&T
@@ -90,13 +92,12 @@ for dev_id, (label, kind) in DEVICES.items():
         continue
 
     if kind == "switch":
+        # jen aktuální příkon - kumulativní energie od nasazení zařízení
+        # (aenergy.total) nemá pro tenhle přehled vypovídací hodnotu
         sw = dev.get("switch:0") or {}
         apower = sw.get("apower")
-        energy = (sw.get("aenergy") or {}).get("total")
         if isinstance(apower, (int, float)):
             items.append({"label": label + " příkon", "value": num(apower, 0), "unit": "W"})
-        if isinstance(energy, (int, float)):
-            items.append({"label": label + " energie", "value": num(energy / 1000, 1), "unit": "kWh"})
 
     elif kind == "flood":
         tmp = (dev.get("tmp") or {}).get("tC")
