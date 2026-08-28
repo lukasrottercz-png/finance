@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-28T12:45:46+00:00",
+  "updated": "2026-08-28T13:12:04+00:00",
   "items": [
     {
       "label": "Kuchyň teplota",
@@ -12,48 +12,28 @@
       "unit": "%"
     },
     {
-      "label": "Žebřík výkon",
+      "label": "Žebřík příkon",
       "value": "0",
       "unit": "W"
     },
     {
-      "label": "Žebřík energie",
-      "value": "77.2",
-      "unit": "kWh"
-    },
-    {
-      "label": "TV výkon",
+      "label": "TV příkon",
       "value": "8",
       "unit": "W"
     },
     {
-      "label": "TV energie",
-      "value": "167.3",
-      "unit": "kWh"
-    },
-    {
-      "label": "Router výkon",
+      "label": "Router příkon",
       "value": "9",
       "unit": "W"
     },
     {
-      "label": "Router energie",
-      "value": "60.9",
-      "unit": "kWh"
-    },
-    {
-      "label": "Pokojík výkon",
+      "label": "Pokojík příkon",
       "value": "0",
       "unit": "W"
     },
     {
-      "label": "Pokojík energie",
-      "value": "49.8",
-      "unit": "kWh"
-    },
-    {
       "label": "Obývák teplota",
-      "value": "24.3",
+      "value": "24.5",
       "unit": "°C"
     },
     {
