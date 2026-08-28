@@ -94,7 +94,7 @@ for dev_id, (label, kind) in DEVICES.items():
         apower = sw.get("apower")
         energy = (sw.get("aenergy") or {}).get("total")
         if isinstance(apower, (int, float)):
-            items.append({"label": label + " výkon", "value": num(apower, 0), "unit": "W"})
+            items.append({"label": label + " příkon", "value": num(apower, 0), "unit": "W"})
         if isinstance(energy, (int, float)):
             items.append({"label": label + " energie", "value": num(energy / 1000, 1), "unit": "kWh"})
 
