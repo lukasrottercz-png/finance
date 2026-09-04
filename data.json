@@ -1,1 +1,1 @@
-{"tiles":[{"id":"today","label":"Dnes můžeš utratit","value":"1 843","unit":"Kč","delta":"","trend":"up"},{"id":"pace","label":"Tempo rozpočtu","value":"2","unit":"%","delta":"napřed","trend":"up"},{"id":"savings","label":"Míra úspor","value":"0","unit":"%","delta":"","trend":""}]}
+{"tiles":[{"id":"today","label":"Dnes můžeš utratit","value":"163","unit":"Kč","delta":"přes rozpočet","trend":"down"},{"id":"pace","label":"Tempo rozpočtu","value":"5","unit":"%","delta":"napřed","trend":"up"},{"id":"savings","label":"Míra úspor","value":"0","unit":"%","delta":"","trend":""}]}
