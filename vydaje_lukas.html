@@ -251,7 +251,6 @@ var GH_FILE_CFG='vydaje_config.json';// nastavení (očekávaná výplata, cíl 
 var finance=[];
 try{ finance=JSON.parse(localStorage.getItem('lk_finance_cache')||'[]'); }catch(e){ finance=[]; }
 var savingsRate=parseFloat(localStorage.getItem('vyd_savings_rate')||'30');
-var expectedMzda=parseFloat(localStorage.getItem('vyd_expected_mzda')||'0')||0;
 var cfgUpdated=parseInt(localStorage.getItem('vyd_cfg_updated')||'0',10);
 // Co po mně chce Jitka za její nákupy, per měsíc {'YYYY-MM': castka} — sync v configu
 var jitkaClaims={};
@@ -418,7 +417,6 @@ async function ghLoadCfg(){
     if(r.exists && r.data && typeof r.data==='object' && !Array.isArray(r.data)){
       var remoteU=r.data.updatedAt||0;
       if(remoteU>=cfgUpdated){
-        if(typeof r.data.expectedMzda==='number'){ expectedMzda=r.data.expectedMzda; localStorage.setItem('vyd_expected_mzda',expectedMzda); }
         if(typeof r.data.savingsRate==='number'){ savingsRate=r.data.savingsRate; localStorage.setItem('vyd_savings_rate',savingsRate); }
         if(r.data.jitkaClaims && typeof r.data.jitkaClaims==='object' && !Array.isArray(r.data.jitkaClaims)){ jitkaClaims=r.data.jitkaClaims; localStorage.setItem('vyd_jitka_claims',JSON.stringify(jitkaClaims)); }
         if(r.data.jitkaSettlements && typeof r.data.jitkaSettlements==='object' && !Array.isArray(r.data.jitkaSettlements)){ jitkaSettlements=r.data.jitkaSettlements; localStorage.setItem('vyd_jitka_settlements',JSON.stringify(jitkaSettlements)); }
@@ -430,7 +428,7 @@ async function ghLoadCfg(){
 async function ghSaveCfg(){
   cfgUpdated=Date.now(); localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
   if(isConnected()){
-    try{ await driveWriteJSON(GH_FILE_CFG,{expectedMzda:expectedMzda,savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,updatedAt:cfgUpdated}); }
+    try{ await driveWriteJSON(GH_FILE_CFG,{savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,updatedAt:cfgUpdated}); }
     catch(e){ console.error('driveSaveCfg:',e); }
   }
   syncNastenkaTiles();
@@ -524,6 +522,11 @@ function daysLeftInMonth(){
 }
 function currentMzda(){
   var now=new Date();
+  var thisM=prijmy.filter(function(p){
+    var d=new Date(p.date);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+  if(thisM.length) return thisM.reduce(function(s,p){return s+(p.castka||0)},0);
   for(var i=0;i<finance.length;i++){
     var p=finance[i];
     var d=new Date(p.date+'T12:00:00');
@@ -532,10 +535,8 @@ function currentMzda(){
   return null;
 }
 function budgetInfo(){
-  var realMzda=currentMzda();
-  var mzda=realMzda||expectedMzda;
+  var mzda=currentMzda();
   if(!mzda)return null;
-  var odhad=!realMzda;
   var now=new Date();
   var trvaleTotal=trvale.filter(isActive).reduce(function(s,t){return s+(t.castka||0)},0);
   var bezne=0, todayTotal=0, tod=today();
@@ -559,7 +560,7 @@ function budgetInfo(){
   var ocekavano=limit*denVMesici/dnuVMesici;
   var paceDiff=ocekavano-bezne;                               // + = napřed, − = pozadu
   var spentPct=limit>0?Math.round(bezne/limit*100):0;         // kolik z limitu projeto
-  return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
+  return {mzda:mzda,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
           dnuVMesici:dnuVMesici,denVMesici:denVMesici,pacePct:pacePct,ocekavano:ocekavano,paceDiff:paceDiff,mesicSpentPct:spentPct};
 }
 function setSavingsRate(){
@@ -572,20 +573,10 @@ function setSavingsRate(){
   ghSaveCfg();
   renderHome();
 }
-function setExpectedMzda(){
-  var val=prompt('Očekávaná čistá výplata (Kč)?\nPoužije se pro denní rozpočet, dokud nezadáš skutečnou mzdu pro tento měsíc ve Finance trackeru.', expectedMzda||'');
-  if(val===null)return;
-  var n=parseFloat(String(val).replace(/\s/g,'').replace(',','.'));
-  if(isNaN(n)||n<0){showToast('Zadej částku ≥ 0');return;}
-  expectedMzda=n;
-  localStorage.setItem('vyd_expected_mzda',n);
-  ghSaveCfg();
-  renderHome();
-}
 function budgetBannerHtml(){
   var b=budgetInfo();
   if(!b){
-    return '<div class="budget-banner"><div class="bb-note">Pro denní rozpočet <span class="bb-rate" onclick="setExpectedMzda()">zadej očekávanou výplatu ✎</span><br>nebo skutečnou mzdu pro tento měsíc ve Finance trackeru. <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div></div>';
+    return '<div class="budget-banner"><div class="bb-note">Pro denní rozpočet <span class="bb-rate" onclick="openAddPrijem()">zadej příjem za tento měsíc ✎</span> <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div></div>';
   }
   var over=b.dnesZbyva<0;
   var color=over?'#ff3b30':(b.dnesZbyva<b.denni*0.25?'#ff9500':'#34c759');
@@ -593,7 +584,6 @@ function budgetBannerHtml(){
   return '<div class="budget-banner">'
     +'<div class="bb-big" style="color:'+color+'">'+(over?'−':'')+amt+' Kč</div>'
     +'<div class="bb-cap">'+(over?'dnes jsi přes denní rozpočet':'můžeš dnes ještě utratit')
-      +(b.odhad?' · <span class="bb-rate" onclick="setExpectedMzda()">odhad výplaty ✎</span>':'')
       +' · <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div>'
     +'<div class="bb-sub">Dnes '+fmt(b.todayTotal)+' z denního rozpočtu '+fmt(b.denni)+' · do konce měsíce zbývá '+fmt(b.zbyvaMesic)+'</div>'
     +paceHtml(b)
@@ -834,27 +824,49 @@ function openAddTrvala(){
 
 // ── PŘÍJMY ─────────────────────────────────────────────────────────
 function renderPrijmy(){
-  if(!prijmy.length) return '<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Žádné příjmy</div><div class="empty-sub">Klepni na + Přidat nahoře</div></div>';
-  var now=new Date();
-  var thisM=prijmy.filter(function(p){
-    var d=new Date(p.date);
-    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  // Historii doplň i o starší mzdy zadané ve Finance trackeru (finance_data.json),
+  // pro měsíce, kde ještě průběžný záznam příjmů neexistoval.
+  var loggedMonths={};
+  prijmy.forEach(function(p){ loggedMonths[(p.date||'').slice(0,7)]=true; });
+  var historic=finance.filter(function(p){ return p.mzda && !loggedMonths[(p.date||'').slice(0,7)]; })
+    .map(function(p){ return {date:p.date,label:'Mzda',castka:p.mzda,historic:true}; });
+  var all=[].concat(prijmy,historic);
+  if(!all.length) return '<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Žádné příjmy</div><div class="empty-sub">Klepni na + Přidat nahoře</div></div>';
+  var byMonth={};
+  all.forEach(function(p){
+    var ym=(p.date||'').slice(0,7);
+    if(!byMonth[ym])byMonth[ym]=[];
+    byMonth[ym].push(p);
   });
-  var total=thisM.reduce(function(s,p){return s+(p.castka||0)},0);
-  var monthLbl=now.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-  var sorted=[].concat(prijmy).sort(function(a,b){return b.date.localeCompare(a.date)});
-  var h='<div class="sec-hdr"><span>'+monthLbl+'</span><span style="color:#34c759">'+fmt(total)+'</span></div><div class="card">';
-  sorted.forEach(function(p){
-    var idx=prijmy.indexOf(p);
-    var dt=new Date(p.date+'T12:00:00');
-    h+='<div class="exp-row">'
-      +'<div class="exp-info"><div class="exp-cat">'+(p.label||'Příjem')+'</div>'
-      +'<div class="exp-sub">'+dt.toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'})+'</div></div>'
-      +'<div class="exp-amt" style="color:#34c759">'+fmt(p.castka)+'</div>'
-      +'<button onclick="event.stopPropagation();showPrijemMenu('+idx+',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
-      +'</div>';
+  var months=Object.keys(byMonth).sort().reverse();
+  var h='';
+  months.forEach(function(ym){
+    var items=byMonth[ym].slice().sort(function(a,b){return b.date.localeCompare(a.date)});
+    var mTotal=items.reduce(function(s,p){return s+(p.castka||0)},0);
+    var y=+ym.slice(0,4), mo=+ym.slice(5,7)-1;
+    var mLbl=new Date(y,mo,1).toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+    h+='<div class="sec-hdr"><span style="text-transform:capitalize">'+mLbl+'</span><span style="color:#34c759">'+fmt(mTotal)+'</span></div><div class="card">';
+    items.forEach(function(p){
+      var dt=new Date(p.date+'T12:00:00');
+      var dayLbl=dt.toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+      if(p.historic){
+        h+='<div class="exp-row" style="opacity:.6">'
+          +'<div class="exp-info"><div class="exp-cat">'+p.label+' <span style="font-size:11px;color:#8e8e93;font-weight:400">· Finance tracker</span></div>'
+          +'<div class="exp-sub">'+dayLbl+'</div></div>'
+          +'<div class="exp-amt" style="color:#34c759">'+fmt(p.castka)+'</div>'
+          +'</div>';
+      }else{
+        var idx=prijmy.indexOf(p);
+        h+='<div class="exp-row">'
+          +'<div class="exp-info"><div class="exp-cat">'+(p.label||'Příjem')+'</div>'
+          +'<div class="exp-sub">'+dayLbl+'</div></div>'
+          +'<div class="exp-amt" style="color:#34c759">'+fmt(p.castka)+'</div>'
+          +'<button onclick="event.stopPropagation();showPrijemMenu('+idx+',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
+          +'</div>';
+      }
+    });
+    h+='</div>';
   });
-  h+='</div>';
   return h;
 }
 
