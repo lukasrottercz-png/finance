@@ -206,7 +206,7 @@ const PRODUCTS = [
 const CK = (b,p) => b + '_' + p;
 
 function makeEmpty(date) {
-  const d = { date, eur_kurz: 25.0, data: {}, events: [], note: '' };
+  const d = { date, eur_kurz: 25.0, data: {}, events: [], note: '', prijmy: [] };
   BANKS.forEach(b => PRODUCTS.forEach(p => { d.data[CK(b.key,p.key)] = 0; }));
   return d;
 }
@@ -352,6 +352,10 @@ async function readTrvaleFromDrive(){
 async function readVydajeFromDrive(){
   try{ const r=await driveReadJSON('vydaje_data.json'); return {exists:r.exists, list:(r.exists&&Array.isArray(r.data))?r.data:[]}; }
   catch(e){ console.error('readVydaje:',e); return {exists:false, list:[]}; }
+}
+async function readPrijmyFromDrive(){
+  try{ const r=await driveReadJSON('prijmy_data.json'); return {exists:r.exists, list:(r.exists&&Array.isArray(r.data))?r.data:[]}; }
+  catch(e){ console.error('readPrijmy:',e); return {exists:false, list:[]}; }
 }
 
 function updateSyncIcon(state){
@@ -799,14 +803,20 @@ async function loadVydaje() {
       const vydajeTotal = total;
       const utraceno = vydajeTotal + trvaleTotal;
 
-      // Řádek mzdy + zbývá + progress bar — jen pokud mzda zadána pro tento měsíc
+      // Řádek příjmů (rozpad, pokud je víc zdrojů) + zbývá + progress bar — jen pokud mzda zadána pro tento měsíc
+      const prijmy = (p2 && p2.prijmy && p2.prijmy.length) ? p2.prijmy : null;
       const mzdaRow = mzda ? `
+        ${prijmy && prijmy.length > 1 ? prijmy.map(it => `
+        <div class="row" style="margin-bottom:4px">
+          <div class="row-lbl" style="color:var(--text2)">${it.label || 'Příjem'}</div>
+          <div class="row-val" style="color:var(--text2)">${fmt(it.castka||0)}</div>
+        </div>`).join('') : ''}
         <div class="row" style="margin-bottom:8px">
-          <div class="row-lbl">💼 Čistá mzda</div>
+          <div class="row-lbl">💰 Příjmy celkem</div>
           <div class="row-val pos">${fmt(mzda)}</div>
         </div>` : `
         <div style="font-size:12px;color:var(--text3);margin-bottom:8px;padding:6px 0">
-          ℹ️ Mzda pro ${nowForMzda.toLocaleDateString('cs-CZ', {month:'long', year:'numeric'})} zatím nezadána
+          ℹ️ Příjmy pro ${nowForMzda.toLocaleDateString('cs-CZ', {month:'long', year:'numeric'})} zatím nezadány
         </div>`;
 
       const zbyvaSekce = mzda ? (() => {
@@ -821,7 +831,7 @@ async function loadVydaje() {
         <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:6px">
           <div style="height:100%;width:${barPct}%;background:${barPct > 90 ? 'var(--red)' : barPct > 75 ? 'var(--orange)' : 'var(--green)'};border-radius:4px;transition:width 0.3s"></div>
         </div>
-        <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % mzdy · míra úspor ${pctUspor} %</div>`;
+        <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % příjmů · míra úspor ${pctUspor} %</div>`;
       })() : '';
 
       usporEl.innerHTML = mzdaRow + `
@@ -928,7 +938,7 @@ function renderDashboard() {
       })()}
       <div class="card c-liab"><div class="card-lbl">Hypotéka</div><div class="card-val danger">${fmt(hyp)}</div>${diff(hyp,pHyp,true,true)}<div style="font-size:13px;margin-top:4px;color:var(--text3)">zbývá splatit</div></div>
       <div class="card c-flow"><div class="card-lbl">Změna oproti min. období</div><div class="card-val ${dif!=null?(dif>=0?'pos':'neg'):''}">${dif!=null?(dif>=0?'+':'')+fmt(dif):'—'}</div><div style="font-size:13px;margin-top:4px;color:var(--text3)">dostupné finance vs. minule</div></div>
-      ${p.mzda ? `<div class="card c-flow"><div class="card-lbl">Čistá mzda / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div></div>` : ''}
+      ${p.mzda ? `<div class="card c-flow"><div class="card-lbl">Příjmy / měs.</div><div class="card-val pos">${fmt(p.mzda)}</div>${p.prijmy && p.prijmy.length > 1 ? `<div style="font-size:13px;margin-top:4px;color:var(--text3)">${p.prijmy.length} zdroje</div>` : ''}</div>` : ''}
     </div>
     ${(() => {
       const inv = loadInv();
@@ -1062,8 +1072,18 @@ function renderVyvoj() {
 }
 
 // ── WIZARD ────────────────────────────────────────────────────────────
-function startWiz(isEdit) {
+async function startWiz(isEdit) {
   const base = isEdit ? JSON.parse(JSON.stringify(periods[selIdx])) : makeEmpty(new Date().toISOString().slice(0,10));
+  if (!base.prijmy || !base.prijmy.length) {
+    // Zkus předvyplnit z příjmů zadaných průběžně ve Výdajích (appka vydaje_lukas.html) pro měsíc tohoto období
+    let fromLog = [];
+    try {
+      const _p = await readPrijmyFromDrive();
+      const ym = base.date.slice(0,7);
+      fromLog = _p.list.filter(it => (it.date||'').slice(0,7) === ym).map(it => ({ label: it.label || 'Příjem', castka: it.castka || 0 }));
+    } catch(e) { console.error('prefill prijmy:', e); }
+    base.prijmy = fromLog.length ? fromLog : [{ label: 'Hlavní mzda', castka: base.mzda || 0 }];
+  }
   wiz = { p: base, step: -1, isEdit, editIdx: isEdit ? selIdx : -1 };
   view = isEdit ? 'edit' : 'zadat';
   renderTabs(); rc();
@@ -1075,7 +1095,7 @@ function wizNext() {
     if (!d) { toast('Zadej datum'); return; }
     wiz.p.date = d;
     wiz.p.eur_kurz = parseFloat(document.getElementById('w_kurz').value) || 25;
-    wiz.p.mzda = parseFloat(document.getElementById('w_mzda').value) || 0;
+    savePrijmyStep();
   } else if (wiz.step === BANKS.length) {
     saveEventsStep();
   } else {
@@ -1137,6 +1157,33 @@ function fetchKurz(date) {
   window.open('https://www.kurzy.cz/kurzy-men/aktualni/czk-eur/', '_blank');
 }
 
+function addPrijem() {
+  if (!wiz.p.prijmy) wiz.p.prijmy = [];
+  savePrijmyStep();
+  wiz.p.prijmy.push({ label: '', castka: 0 });
+  rc();
+}
+function removePrijem(i) {
+  savePrijmyStep();
+  wiz.p.prijmy.splice(i, 1);
+  rc();
+}
+function savePrijmyStep() {
+  if (wiz.step !== -1) return;
+  const dateEl = document.getElementById('w_date');
+  const kurzEl = document.getElementById('w_kurz');
+  if (dateEl) wiz.p.date = dateEl.value;
+  if (kurzEl) wiz.p.eur_kurz = parseFloat(kurzEl.value) || 25;
+  const pr = wiz.p.prijmy || [];
+  pr.forEach((it, i) => {
+    const lbl = document.getElementById('pr_label_' + i);
+    const amt = document.getElementById('pr_amt_' + i);
+    if (lbl) it.label = lbl.value;
+    if (amt) it.castka = parseFloat(amt.value) || 0;
+  });
+  wiz.p.mzda = pr.reduce((s, it) => s + (it.castka || 0), 0);
+}
+
 function addEvent() {
   if (!wiz.p.events) wiz.p.events = [];
   saveEventsStep();
@@ -1187,9 +1234,20 @@ function renderWizard() {
       </div>
     </div>
     <div class="fg" style="margin-top:14px">
-      <label>Čistá mzda (Kč)</label>
-      <input type="number" id="w_mzda" value="${wiz.p.mzda||''}" placeholder="0" step="1" inputmode="numeric">
-      <div class="hint">Čistá mzda za toto období — slouží k výpočtu míry úspor</div>
+      <label>Příjmy za toto období</label>
+      ${(() => {
+        const pr = wiz.p.prijmy && wiz.p.prijmy.length ? wiz.p.prijmy : [{ label: 'Hlavní mzda', castka: 0 }];
+        const total = pr.reduce((s, it) => s + (parseFloat(it.castka) || 0), 0);
+        const rows = pr.map((it, i) => `
+          <div style="display:grid;grid-template-columns:1fr 140px 32px;gap:8px;align-items:center;margin-bottom:8px">
+            <input type="text" id="pr_label_${i}" value="${it.label||''}" placeholder="Např. hlavní mzda, brigáda, pronájem..." style="font-size:14px;padding:9px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+            <input type="number" id="pr_amt_${i}" value="${it.castka||''}" placeholder="0" step="1" inputmode="numeric" style="font-size:14px;padding:9px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+            ${pr.length > 1 ? `<button onclick="removePrijem(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0">✕</button>` : '<span></span>'}
+          </div>`).join('');
+        return `<div id="pr-rows">${rows}</div>
+          <button class="btn" type="button" onclick="addPrijem()" style="align-self:flex-start;margin-top:4px">+ Přidat příjem</button>
+          <div class="hint" style="margin-top:8px">Součet příjmů za toto období: <strong>${Math.round(total).toLocaleString('cs-CZ')} Kč</strong> — slouží k výpočtu míry úspor</div>`;
+      })()}
     </div>`;
   } else if (isBankStep) {
     const b = BANKS[wiz.step];

@@ -137,6 +137,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
     <button class="tbi" id="tab2" onclick="tab(2)"><span class="tbi-icon">📅</span><span class="tbi-label">Trvalé</span></button>
     <button class="tbi" id="tab3" onclick="tab(3)"><span class="tbi-icon">👫</span><span class="tbi-label">Jitka &amp; Lukáš</span></button>
     <button class="tbi" id="tab4" onclick="tab(4)"><span class="tbi-icon">⬇️</span><span class="tbi-label">Export</span></button>
+    <button class="tbi" id="tab5" onclick="tab(5)"><span class="tbi-icon">💰</span><span class="tbi-label">Příjmy</span></button>
   </div>
 </div>
 
@@ -156,6 +157,15 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
     <button class="nav-btn" onclick="saveTrvala()">Uložit</button>
   </div>
   <div class="content" id="trvale-form-content"></div>
+</div>
+
+<div id="prijem-page" style="display:none">
+  <div class="navbar">
+    <button class="back-btn" onclick="closePrijem()">‹ Zpět</button>
+    <span class="navbar-title" id="prijem-page-title">Nový příjem</span>
+    <button class="nav-btn" onclick="savePrijem()">Uložit</button>
+  </div>
+  <div class="content" id="prijem-form-content"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -224,12 +234,17 @@ var trvale=[];
 try{trvale=JSON.parse(localStorage.getItem('lk_trvale')||'[]')}catch(e){trvale=[]}
 var editTrvalaIdx=-1;
 
+var prijmy=[];
+try{prijmy=JSON.parse(localStorage.getItem('lk_prijmy')||'[]')}catch(e){prijmy=[]}
+var editPrijemIdx=-1;
+
 // ── GOOGLE DRIVE SYNC ─────────────────────────────────────────────────
 var GOOGLE_CLIENT_ID='549502284523-okg9u0p3almkgr1q2to17phr9fks270e.apps.googleusercontent.com';
 var DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 
 var GH_FILE='vydaje_data.json';      // vlastní (čtení+zápis)
 var GH_FILE_T='trvale_data.json';    // vlastní (čtení+zápis)
+var GH_FILE_PR='prijmy_data.json';   // vlastní (čtení+zápis) — čte i appka Finance (sestavení období)
 var GH_FILE_F='finance_data.json';   // patří appce Finance (jen čtení)
 var GH_FILE_CFG='vydaje_config.json';// nastavení (očekávaná výplata, cíl úspor) — sync napříč zařízeními
 
@@ -375,6 +390,18 @@ async function ghLoadTrvale(){
   catch(e){ console.error('driveLoadTrvale:',e); }
 }
 
+// Příjmy (vlastní soubor) — čte i finance_tracker.html při sestavování období
+async function ghSavePrijmy(){
+  if(!isConnected()){ localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); return; }
+  try{ await driveWriteJSON(GH_FILE_PR, prijmy); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
+  catch(e){ console.error('driveSavePrijmy:',e); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
+}
+async function ghLoadPrijmy(){
+  if(!isConnected()) return;
+  try{ var r=await driveReadJSON(GH_FILE_PR); if(r.exists && Array.isArray(r.data)){ prijmy=r.data; localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); } }
+  catch(e){ console.error('driveLoadPrijmy:',e); }
+}
+
 // Finance (patří appce Finance) — jen čtení; když soubor na Disku ještě není
 // (Finance zatím nemigrované), necháme cachovaná data, nic nemažeme.
 async function ghLoadFinance(){
@@ -422,8 +449,8 @@ async function connectGoogle(){
   try{ await getAccessToken(true); }
   catch(e){ console.error(e); showToast('Přihlášení se nezdařilo'); return; }
   updateSyncIcon('syncing');
-  await Promise.all([ghLoad(),ghLoadTrvale(),ghLoadFinance(),ghLoadCfg()]); // stáhni, co na Disku je
-  await ghSave(); await ghSaveTrvale(); await ghSaveCfg();                  // nahraj lokální data (vytvoří soubory)
+  await Promise.all([ghLoad(),ghLoadTrvale(),ghLoadPrijmy(),ghLoadFinance(),ghLoadCfg()]); // stáhni, co na Disku je
+  await ghSave(); await ghSaveTrvale(); await ghSavePrijmy(); await ghSaveCfg();                  // nahraj lokální data (vytvoří soubory)
   renderHome(); updateSyncIcon('ok'); showToast('Připojeno k Google Drive ✓');
 }
 function disconnectGoogle(){
@@ -602,7 +629,7 @@ async function syncNow(){
   if(!isConnected()){ await connectGoogle(); return; }
   var btn=document.getElementById('nav-sync'); if(btn)btn.style.opacity='0.4';
   updateSyncIcon('syncing');
-  await Promise.all([ghLoad(),ghLoadTrvale(),ghLoadFinance(),ghLoadCfg()]);
+  await Promise.all([ghLoad(),ghLoadTrvale(),ghLoadPrijmy(),ghLoadFinance(),ghLoadCfg()]);
   renderHome(); showToast('Synchronizováno ✓');
   if(btn)btn.style.opacity='1'; updateSyncIcon('ok');
 }
@@ -621,7 +648,7 @@ function showToast(m){
 
 function tab(i){
   curTab=i;
-  for(var j=0;j<5;j++){
+  for(var j=0;j<6;j++){
     var el=document.getElementById('tab'+j);
     if(el)el.className='tbi'+(i===j?' on':'');
   }
@@ -789,7 +816,7 @@ function closeTrvale(){
   document.getElementById('trvale-page').style.display='none';
   document.getElementById('home-page').style.display='block';
   curTab=2; // Vrať se na záložku Trvalé
-  for(var j=0;j<4;j++){
+  for(var j=0;j<6;j++){
     var el=document.getElementById('tab'+j);
     if(el)el.className='tbi'+(j===2?' on':'');
   }
@@ -803,6 +830,129 @@ function openAddTrvala(){
   buildTrvalaForm(null);
   document.getElementById('home-page').style.display='none';
   document.getElementById('trvale-page').style.display='block';
+}
+
+// ── PŘÍJMY ─────────────────────────────────────────────────────────
+function renderPrijmy(){
+  if(!prijmy.length) return '<div class="empty"><div class="empty-icon">💰</div><div class="empty-title">Žádné příjmy</div><div class="empty-sub">Klepni na + Přidat nahoře</div></div>';
+  var now=new Date();
+  var thisM=prijmy.filter(function(p){
+    var d=new Date(p.date);
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+  var total=thisM.reduce(function(s,p){return s+(p.castka||0)},0);
+  var monthLbl=now.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  var sorted=[].concat(prijmy).sort(function(a,b){return b.date.localeCompare(a.date)});
+  var h='<div class="sec-hdr"><span>'+monthLbl+'</span><span style="color:#34c759">'+fmt(total)+'</span></div><div class="card">';
+  sorted.forEach(function(p){
+    var idx=prijmy.indexOf(p);
+    var dt=new Date(p.date+'T12:00:00');
+    h+='<div class="exp-row">'
+      +'<div class="exp-info"><div class="exp-cat">'+(p.label||'Příjem')+'</div>'
+      +'<div class="exp-sub">'+dt.toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'})+'</div></div>'
+      +'<div class="exp-amt" style="color:#34c759">'+fmt(p.castka)+'</div>'
+      +'<button onclick="event.stopPropagation();showPrijemMenu('+idx+',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
+      +'</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function showPrijemMenu(idx, btn) {
+  document.getElementById('card-menu') && document.getElementById('card-menu').remove();
+  var rect = btn.getBoundingClientRect();
+  var menu = document.createElement('div');
+  menu.id = 'card-menu';
+  menu.style.cssText = 'position:fixed;top:'+(rect.bottom+4)+'px;right:'+(window.innerWidth-rect.right)+'px;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:13px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:300;min-width:140px;overflow:hidden';
+  var editBtn = document.createElement('button');
+  editBtn.textContent = '✏️ Upravit';
+  editBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;border-bottom:0.5px solid #f0f0f0;text-align:left;font-size:15px;font-family:inherit;color:#1c1c1e;cursor:pointer';
+  editBtn.onclick = function(){ menu.remove(); openEditPrijem(idx); };
+  var delBtn = document.createElement('button');
+  delBtn.textContent = '🗑 Smazat';
+  delBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:#ff3b30;cursor:pointer';
+  delBtn.onclick = function(){ menu.remove(); deletePrijem(idx); };
+  menu.appendChild(editBtn);
+  menu.appendChild(delBtn);
+  document.body.appendChild(menu);
+  setTimeout(function(){ document.addEventListener('click', function h(){ menu.remove(); document.removeEventListener('click',h); }); }, 10);
+}
+
+function openAddPrijem(){
+  curTab=5;
+  editPrijemIdx=-1;
+  document.getElementById('prijem-page-title').textContent='Nový příjem';
+  buildPrijemForm(null);
+  document.getElementById('home-page').style.display='none';
+  document.getElementById('prijem-page').style.display='block';
+}
+
+function openEditPrijem(idx){
+  editPrijemIdx=idx;
+  document.getElementById('prijem-page-title').textContent='Upravit příjem';
+  buildPrijemForm(prijmy[idx]);
+  document.getElementById('home-page').style.display='none';
+  document.getElementById('prijem-page').style.display='block';
+}
+
+function buildPrijemForm(p){
+  var castka=p?p.castka:'';
+  var label=p?p.label:'';
+  var date=p?p.date:today();
+  var html='<div class="amount-box">'
+    +'<input id="p_castka" class="amt-inp" type="number" inputmode="decimal" placeholder="0" value="'+(castka||'')+'">'
+    +'<div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px">'
+    +'<span style="font-size:13px;color:#6c6c70">📅</span>'
+    +'<input id="p_date" type="date" value="'+date+'" style="font-size:15px;color:#1c1c1e;border:none;background:none;outline:none;font-family:inherit">'
+    +'</div>'
+    +'</div>'
+    +'<div class="card" style="padding:0;margin-bottom:16px">'
+    +'<div style="padding:14px 16px">'
+    +'<div style="font-size:13px;color:#6c6c70;margin-bottom:6px">Popis</div>'
+    +'<input id="p_label" type="text" value="'+label+'" placeholder="Např. Hlavní mzda, brigáda, pronájem…" style="width:100%;font-size:17px;border:none;outline:none;color:#1c1c1e;background:none">'
+    +'</div>'
+    +'</div>';
+  if(editPrijemIdx>=0){
+    html+='<button onclick="deletePrijem('+editPrijemIdx+')" style="width:100%;padding:14px;background:none;color:#ff3b30;border:1px solid #ff3b30;border-radius:13px;font-size:16px;cursor:pointer;font-family:inherit;margin-bottom:12px">Smazat příjem</button>';
+  }
+  document.getElementById('prijem-form-content').innerHTML=html;
+}
+
+function savePrijem(){
+  var castka=parseFloat(document.getElementById('p_castka').value)||0;
+  var date=document.getElementById('p_date').value||today();
+  var label=document.getElementById('p_label').value.trim();
+  if(castka<=0){showToast('Zadej částku');return;}
+  if(!label){showToast('Zadej popis');return;}
+  var entry={id:Date.now().toString(),date:date,label:label,castka:castka};
+  if(editPrijemIdx>=0){
+    entry.id=prijmy[editPrijemIdx].id;
+    prijmy[editPrijemIdx]=entry;
+  }else{
+    prijmy.push(entry);
+  }
+  ghSavePrijmy();
+  showToast('Uloženo ✓');
+  closePrijem();
+}
+
+function deletePrijem(idx){
+  if(!confirm('Smazat tento příjem?'))return;
+  prijmy.splice(idx,1);
+  ghSavePrijmy();
+  showToast('Smazáno');
+  closePrijem();
+}
+
+function closePrijem(){
+  document.getElementById('prijem-page').style.display='none';
+  document.getElementById('home-page').style.display='block';
+  curTab=5; // Vrať se na záložku Příjmy
+  for(var j=0;j<6;j++){
+    var el=document.getElementById('tab'+j);
+    if(el)el.className='tbi'+(j===5?' on':'');
+  }
+  renderHome();
 }
 
 function goHome(){
@@ -1109,6 +1259,7 @@ function renderHome(){
   var navBtn=document.getElementById('nav-action');
   if(navBtn){
     if(curTab===2){navBtn.textContent='+ Přidat';navBtn.onclick=openAddTrvala;}
+    else if(curTab===5){navBtn.textContent='+ Přidat';navBtn.onclick=openAddPrijem;}
     else{navBtn.textContent='+ Přidat';navBtn.onclick=openAdd;}
     navBtn.style.display=(curTab===4)?'none':'block';
   }
@@ -1116,6 +1267,7 @@ function renderHome(){
   else if(curTab===1)el.innerHTML=renderKat();
   else if(curTab===2)el.innerHTML=renderTrvale();
   else if(curTab===3)el.innerHTML=renderJitka();
+  else if(curTab===5)el.innerHTML=renderPrijmy();
   else el.innerHTML=renderExport();
 }
 
@@ -1915,7 +2067,7 @@ function startupSync(tries){
       updateSyncIcon('error'); renderHome(); syncNastenkaTiles(); return;
     }
     updateSyncIcon('syncing');
-    Promise.all([ghLoad(),ghLoadTrvale(),ghLoadFinance(),ghLoadCfg()]).then(function(){renderHome();updateSyncIcon('ok');syncNastenkaTiles();});
+    Promise.all([ghLoad(),ghLoadTrvale(),ghLoadPrijmy(),ghLoadFinance(),ghLoadCfg()]).then(function(){renderHome();updateSyncIcon('ok');syncNastenkaTiles();});
   } else {
     updateSyncIcon('local'); renderHome(); syncNastenkaTiles();
   }
