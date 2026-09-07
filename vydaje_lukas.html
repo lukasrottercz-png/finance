@@ -92,6 +92,12 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .rodinny-hint{font-size:11px;font-weight:400;color:#8e8e93}
 .rodinny-toggle .toggle-sw.on{background:#ff9500}
 .badge-rodinny{display:inline-flex;align-items:center;gap:3px;background:#ff9500;color:#fff;border-radius:6px;font-size:10px;font-weight:600;padding:2px 6px;margin-left:6px;flex-shrink:0}
+.jisty-toggle{display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:13px;padding:14px 16px;margin-bottom:16px;border:1px solid #e0e0e0;cursor:pointer}
+.jisty-toggle.on{border-color:#7c3aed;background:#f5f0ff}
+.jisty-label{font-size:16px;font-weight:500;color:#1c1c1e;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.jisty-toggle.on .jisty-label{color:#7c3aed}
+.jisty-hint{font-size:11px;font-weight:400;color:#8e8e93}
+.jisty-toggle .toggle-sw.on{background:#7c3aed}
 .rod-bar{height:14px;border-radius:7px;overflow:hidden;display:flex;background:#f0f0f3}
 .rod-catbar{height:5px;background:#f0f0f3;border-radius:3px;margin-top:5px;overflow:hidden}
 .rod-catfill{height:100%;background:#ff9500;border-radius:3px}
@@ -520,10 +526,12 @@ function daysLeftInMonth(){
   var last=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   return last-now.getDate()+1; // včetně dneška
 }
-// Měsíční součty příjmů (prijmy má přednost, finance.mzda dorovnává starší měsíce bez záznamu)
+// Měsíční součty příjmů pro rozpočet — jen jisté (mzda), ne příležitostné (brigáda, pronájem...),
+// protože ty nejsou smluvně podchycené. prijmy má přednost, finance.mzda dorovnává starší měsíce bez záznamu.
 function monthlyIncomeTotals(){
   var byMonth={};
   prijmy.forEach(function(p){
+    if(p.jisty===false) return;
     var ym=(p.date||'').slice(0,7);
     byMonth[ym]=(byMonth[ym]||0)+(p.castka||0);
   });
@@ -871,7 +879,7 @@ function renderPrijmy(){
       }else{
         var idx=prijmy.indexOf(p);
         h+='<div class="exp-row">'
-          +'<div class="exp-info"><div class="exp-cat">'+(p.label||'Příjem')+'</div>'
+          +'<div class="exp-info"><div class="exp-cat">'+(p.label||'Příjem')+(p.jisty===false?' <span style="font-size:11px;color:#8e8e93;font-weight:400">· nepočítá se do rozpočtu</span>':'')+'</div>'
           +'<div class="exp-sub">'+dayLbl+'</div></div>'
           +'<div class="exp-amt" style="color:#34c759">'+fmt(p.castka)+'</div>'
           +'<button onclick="event.stopPropagation();showPrijemMenu('+idx+',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aeaeb2;padding:0 4px;flex-shrink:0">···</button>'
@@ -920,10 +928,19 @@ function openEditPrijem(idx){
   document.getElementById('prijem-page').style.display='block';
 }
 
+var selPrijemJisty=true;
+function togglePrijemJisty(){
+  selPrijemJisty=!selPrijemJisty;
+  var tog=document.getElementById('jisty-toggle');
+  var sw=document.getElementById('jisty-sw');
+  if(tog)tog.className='jisty-toggle'+(selPrijemJisty?' on':'');
+  if(sw)sw.className='toggle-sw'+(selPrijemJisty?' on':'');
+}
 function buildPrijemForm(p){
   var castka=p?p.castka:'';
   var label=p?p.label:'';
   var date=p?p.date:today();
+  selPrijemJisty=p?(p.jisty!==false):true;
   var html='<div class="amount-box">'
     +'<input id="p_castka" class="amt-inp" type="number" inputmode="decimal" placeholder="0" value="'+(castka||'')+'">'
     +'<div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px">'
@@ -936,6 +953,10 @@ function buildPrijemForm(p){
     +'<div style="font-size:13px;color:#6c6c70;margin-bottom:6px">Popis</div>'
     +'<input id="p_label" type="text" value="'+label+'" placeholder="Např. Hlavní mzda, brigáda, pronájem…" style="width:100%;font-size:17px;border:none;outline:none;color:#1c1c1e;background:none">'
     +'</div>'
+    +'</div>'
+    +'<div class="jisty-toggle'+(selPrijemJisty?' on':'')+'" id="jisty-toggle" onclick="togglePrijemJisty()">'
+    +'<span class="jisty-label"><span>📋</span> Počítat do rozpočtu <span class="jisty-hint">(jistý příjem, např. mzda)</span></span>'
+    +'<div class="toggle-sw'+(selPrijemJisty?' on':'')+'" id="jisty-sw"><div class="toggle-knob"></div></div>'
     +'</div>';
   if(editPrijemIdx>=0){
     html+='<button onclick="deletePrijem('+editPrijemIdx+')" style="width:100%;padding:14px;background:none;color:#ff3b30;border:1px solid #ff3b30;border-radius:13px;font-size:16px;cursor:pointer;font-family:inherit;margin-bottom:12px">Smazat příjem</button>';
@@ -949,7 +970,7 @@ function savePrijem(){
   var label=document.getElementById('p_label').value.trim();
   if(castka<=0){showToast('Zadej částku');return;}
   if(!label){showToast('Zadej popis');return;}
-  var entry={id:Date.now().toString(),date:date,label:label,castka:castka};
+  var entry={id:Date.now().toString(),date:date,label:label,castka:castka,jisty:selPrijemJisty};
   if(editPrijemIdx>=0){
     entry.id=prijmy[editPrijemIdx].id;
     prijmy[editPrijemIdx]=entry;
