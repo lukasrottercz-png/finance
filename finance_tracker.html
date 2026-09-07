@@ -501,21 +501,43 @@ async function loadAiComment() {
 
   el.innerHTML = `<span style="color:var(--text3);font-size:13px">⏳ Claude analyzuje vaše finance…</span>`;
 
+  // Jistý příjem (mzda) vs. ostatní/nejistý příjem — jen položky s "mzda" v názvu se počítají
+  // jako smluvně podchycený, spolehlivý příjem. Starší období bez rozpadu `prijmy` berou celé `mzda` jako jisté.
+  function guaranteedIncome(p) {
+    if (p.prijmy && p.prijmy.length) return p.prijmy.filter(it => /mzda/i.test(it.label||'')).reduce((s,it) => s+(it.castka||0), 0);
+    return p.mzda || 0;
+  }
+  function otherIncome(p) {
+    if (p.prijmy && p.prijmy.length) return p.prijmy.filter(it => !/mzda/i.test(it.label||'')).reduce((s,it) => s+(it.castka||0), 0);
+    return 0;
+  }
+
   const history = periods.map((p, i) => {
     const prev = i > 0 ? periods[i-1] : null;
     const cel = Math.round(calcCelkem(p));
     const bez = Math.round(calcBez(p));
     const hyp = Math.round(calcHyp(p));
     const difBez = prev ? Math.round(calcBez(p) - calcBez(prev)) : null;
-    const evStr = (p.events||[]).length
-      ? ' | Události: ' + p.events.map(e => `${e.cat}${e.amount?' '+Math.round(e.amount).toLocaleString('cs-CZ')+' Kč':''} — ${e.desc}`).join('; ')
+    const gi = guaranteedIncome(p), oi = otherIncome(p);
+    const incomeStr = (gi || oi)
+      ? ` | jistý příjem (mzda) ${Math.round(gi).toLocaleString('cs-CZ')} Kč${oi ? ` + ostatní nejistý příjem ${Math.round(oi).toLocaleString('cs-CZ')} Kč` : ''}`
+      : '';
+    // Události kategorie "Investice" jsou přesun aktiv, ne výdaj — odděleně od reálných výdajových událostí
+    const realEvents = (p.events||[]).filter(e => e.cat !== 'Investice');
+    const investEvents = (p.events||[]).filter(e => e.cat === 'Investice');
+    const evStr = realEvents.length
+      ? ' | Události: ' + realEvents.map(e => `${e.cat}${e.amount?' '+Math.round(e.amount).toLocaleString('cs-CZ')+' Kč':''} — ${e.desc}`).join('; ')
+      : '';
+    const investEvStr = investEvents.length
+      ? ' | Přesun do investic z tohoto období (NENÍ výdaj): ' + investEvents.map(e => `${e.amount?Math.round(e.amount).toLocaleString('cs-CZ')+' Kč':''} — ${e.desc}`).join('; ')
       : '';
     const noteStr = p.note ? ` | Poznámka: ${p.note}` : '';
-    return `${p.date}: dostupné finance bez investic ${cel.toLocaleString('cs-CZ')} Kč | bez hypotéky ${bez.toLocaleString('cs-CZ')} Kč | hypotéka ${hyp.toLocaleString('cs-CZ')} Kč${difBez !== null ? ` | změna ${difBez >= 0 ? '+' : ''}${difBez.toLocaleString('cs-CZ')} Kč` : ''}${evStr}${noteStr}`;
+    return `${p.date}: dostupné finance bez investic ${cel.toLocaleString('cs-CZ')} Kč | bez hypotéky ${bez.toLocaleString('cs-CZ')} Kč | hypotéka ${hyp.toLocaleString('cs-CZ')} Kč${difBez !== null ? ` | změna ${difBez >= 0 ? '+' : ''}${difBez.toLocaleString('cs-CZ')} Kč` : ''}${incomeStr}${evStr}${investEvStr}${noteStr}`;
   }).join('\n');
 
   // Načti trvalé platby pro AI kontext
   let trvaleInfo = '';
+  let trvaleTotal = 0;
   try {
     const _t = await readTrvaleFromDrive();
     const trvale = _t.list;
@@ -526,11 +548,55 @@ async function loadAiComment() {
       return true;
     });
     if (aktivni.length) {
-      const totalTrvale = aktivni.reduce((s,t) => s + (t.castka||0), 0);
-      trvaleInfo = `\n\nTrvalé měsíční platby (celkem ${Math.round(totalTrvale).toLocaleString('cs-CZ')} Kč/měsíc):\n` +
+      trvaleTotal = aktivni.reduce((s,t) => s + (t.castka||0), 0);
+      trvaleInfo = `\n\nTrvalé měsíční platby (celkem ${Math.round(trvaleTotal).toLocaleString('cs-CZ')} Kč/měsíc):\n` +
         aktivni.map(t => `- ${t.nazev} (${t.kat}): ${Math.round(t.castka).toLocaleString('cs-CZ')} Kč`).join('\n');
     }
   } catch(e) { console.error('AI trvale load:', e); }
+
+  // Načti kategorizované běžné výdaje tohoto měsíce (bez mimořádných) pro AI kontext
+  let vydajeInfo = '';
+  let bezneVydajeMesic = 0;
+  try {
+    const _rv = await readVydajeFromDrive();
+    const now = new Date();
+    const thisM = _rv.list.filter(e => {
+      const d = new Date(e.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && !e.mimoradny;
+    });
+    if (thisM.length) {
+      const byCat = {};
+      thisM.forEach(e => { byCat[e.catKey] = (byCat[e.catKey]||0) + (e.amount||0); });
+      bezneVydajeMesic = Object.values(byCat).reduce((s,v) => s+v, 0);
+      const sorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+      vydajeInfo = `\n\nBěžné výdaje tento měsíc podle kategorie (celkem ${Math.round(bezneVydajeMesic).toLocaleString('cs-CZ')} Kč, mimořádné výdaje vyloučené):\n` +
+        sorted.map(([k,v]) => `- ${k}: ${Math.round(v).toLocaleString('cs-CZ')} Kč`).join('\n');
+    }
+  } catch(e) { console.error('AI vydaje load:', e); }
+
+  // Načti cíl úspor z appky Výdaje pro AI kontext
+  let cfgInfo = '';
+  let savingsGoalPct = null;
+  try {
+    const _cfg = await driveReadJSON('vydaje_config.json');
+    if (_cfg.exists && _cfg.data && typeof _cfg.data.savingsRate === 'number') {
+      savingsGoalPct = _cfg.data.savingsRate;
+      cfgInfo = `\n\nCíl míry úspor nastavený v appce Výdaje: ${savingsGoalPct} % z jistého příjmu (mzdy).`;
+    }
+  } catch(e) { console.error('AI cfg load:', e); }
+
+  // Spočítej skutečnou míru úspor za aktuální měsíc — jen z jistého příjmu (mzdy), aby AI nemusela hádat
+  let realSavingsInfo = '';
+  const nowP = periods.length ? periods[periods.length-1] : null;
+  const nowD = new Date();
+  if (nowP && new Date(nowP.date).getMonth() === nowD.getMonth() && new Date(nowP.date).getFullYear() === nowD.getFullYear()) {
+    const gi = guaranteedIncome(nowP);
+    if (gi > 0) {
+      const zbyva = gi - bezneVydajeMesic - trvaleTotal;
+      const pct = Math.round(zbyva / gi * 100);
+      realSavingsInfo = `\n\nSkutečná míra úspor tento měsíc (počítáno JEN z jistého příjmu/mzdy ${Math.round(gi).toLocaleString('cs-CZ')} Kč, minus běžné výdaje ${Math.round(bezneVydajeMesic).toLocaleString('cs-CZ')} Kč a trvalé platby ${Math.round(trvaleTotal).toLocaleString('cs-CZ')} Kč): ${zbyva>=0?'+':''}${Math.round(zbyva).toLocaleString('cs-CZ')} Kč, tj. ${pct} %.${savingsGoalPct!=null ? ` Cíl je ${savingsGoalPct} %.` : ''} Použij přímo toto číslo, nepočítej míru úspor znovu sám z rozdílu zůstatků.`;
+    }
+  }
 
   // Načti investiční portfolio pro AI kontext
   let invInfo = '';
@@ -556,12 +622,13 @@ Důležité vysvětlení struktury dat:
 - "Dostupné finance bez investic" = součet všech peněz na bankovních účtech, spořících účtech, penzijním spoření a stavebním spoření. Jsou to reálně dostupné prostředky (bez investičního portfolia).
 - "Bez hypotéky" = hypotetický čistý majetek v případě okamžitého splacení hypotéky (Dostupné finance bez investic mínus hypotéka). Jde o informativní číslo, ne reálný stav.
 - Hypotéka je dlouhodobý závazek — nesouvisí přímo s každodenní likviditou.
-- "Investiční portfolio" = peníze investované přes XTB (samostatné od dostupných financí). Když Lukáš přesune peníze z účtu do investic, "Dostupné finance bez investic" klesnou, ale NEJDE o výdaj — peníze se jen přesunuly do portfolia a stále je má. Vždy zkontroluj, zda v období poklesu dostupných financí proběhla investiční tranše, a o tuto částku ponižuj domnělé "utrácení".
+- "Investiční portfolio" a "Přesun do investic" = peníze investované přes XTB (samostatné od dostupných financí). Když Lukáš přesune peníze z účtu do investic, "Dostupné finance bez investic" klesnou, ale NEJDE o výdaj ani "mimořádný výdaj" — peníze se jen přesunuly do portfolia a stále je má. NIKDY nepiš o investiční tranši jako o výdaji nebo ji neslučuj do jedné věty s reálnými výdaji (např. nákup věci) — je to jiná kategorie, přesun aktiv. Vždy zkontroluj, zda v období poklesu dostupných financí proběhla investiční tranše, a o tuto částku ponižuj domnělé "utrácení".
+- "Jistý příjem (mzda)" = jediný smluvně podchycený, spolehlivý příjem. "Ostatní nejistý příjem" = vedlejší příjmy bez smluvní jistoty (brigáda, jednorázovka apod.) — zmiň je jen jako bonus navíc, NIKDY je nezapočítávej do míry úspor, do "spolehlivého příjmu" ani do doporučení o rezervách. Pro veškeré hodnocení finančního zdraví, míry úspor a doporučení používej výhradně jistý příjem (mzdu).
 
 Data (chronologicky):
-${history}${trvaleInfo}${invInfo}
+${history}${trvaleInfo}${vydajeInfo}${cfgInfo}${realSavingsInfo}${invInfo}
 
-Zaměř se na: vývoj dostupných prostředků (Dostupné finance bez investic), tempo splácení hypotéky, finanční zdraví a konkrétní doporučení. Rozlišuj mezi skutečnými výdaji a přesunem peněz do investic (tranše) — investice nezahrnuj do utrácení. Zohledni trvalé platby jako měsíční zátěž. Zohledni zaznamenané události. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
+Zaměř se na: vývoj dostupných prostředků (Dostupné finance bez investic), tempo splácení hypotéky, skutečnou míru úspor (viz číslo výše — použij ho přímo, nepočítej vlastní odhad z rozdílu zůstatků) a konkrétní doporučení podle kategorií běžných výdajů. Rozlišuj přísně mezi skutečnými výdaji a přesunem peněz do investic (tranše) — investice nikdy nezahrnuj do utrácení ani "mimořádných výdajů". Zohledni trvalé platby jako měsíční zátěž. Zohledni zaznamenané události. Buď konkrétní, uváděj čísla. Nepoužívej markdown ani odrážky — piš přirozenými větami.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
