@@ -520,23 +520,35 @@ function daysLeftInMonth(){
   var last=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   return last-now.getDate()+1; // včetně dneška
 }
+// Měsíční součty příjmů (prijmy má přednost, finance.mzda dorovnává starší měsíce bez záznamu)
+function monthlyIncomeTotals(){
+  var byMonth={};
+  prijmy.forEach(function(p){
+    var ym=(p.date||'').slice(0,7);
+    byMonth[ym]=(byMonth[ym]||0)+(p.castka||0);
+  });
+  finance.forEach(function(p){
+    var ym=(p.date||'').slice(0,7);
+    if(p.mzda && !byMonth[ym]) byMonth[ym]=p.mzda;
+  });
+  return byMonth;
+}
 function currentMzda(){
   var now=new Date();
-  var thisM=prijmy.filter(function(p){
-    var d=new Date(p.date);
-    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-  });
-  if(thisM.length) return thisM.reduce(function(s,p){return s+(p.castka||0)},0);
-  for(var i=0;i<finance.length;i++){
-    var p=finance[i];
-    var d=new Date(p.date+'T12:00:00');
-    if(d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()&&p.mzda) return p.mzda;
-  }
+  var ym=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2);
+  var byMonth=monthlyIncomeTotals();
+  if(byMonth[ym]) return {value:byMonth[ym], odhad:false};
+  // Zatím nic zadáno pro tento měsíc — vezmi poslední známý měsíc jako odhad,
+  // ať nejedeme kus měsíce úplně bez rozpočtu.
+  var past=Object.keys(byMonth).filter(function(k){return k<ym;}).sort();
+  if(past.length) return {value:byMonth[past[past.length-1]], odhad:true};
   return null;
 }
 function budgetInfo(){
-  var mzda=currentMzda();
-  if(!mzda)return null;
+  var mz=currentMzda();
+  if(!mz)return null;
+  var mzda=mz.value;
+  var odhad=mz.odhad;
   var now=new Date();
   var trvaleTotal=trvale.filter(isActive).reduce(function(s,t){return s+(t.castka||0)},0);
   var bezne=0, todayTotal=0, tod=today();
@@ -560,7 +572,7 @@ function budgetInfo(){
   var ocekavano=limit*denVMesici/dnuVMesici;
   var paceDiff=ocekavano-bezne;                               // + = napřed, − = pozadu
   var spentPct=limit>0?Math.round(bezne/limit*100):0;         // kolik z limitu projeto
-  return {mzda:mzda,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
+  return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
           dnuVMesici:dnuVMesici,denVMesici:denVMesici,pacePct:pacePct,ocekavano:ocekavano,paceDiff:paceDiff,mesicSpentPct:spentPct};
 }
 function setSavingsRate(){
@@ -584,6 +596,7 @@ function budgetBannerHtml(){
   return '<div class="budget-banner">'
     +'<div class="bb-big" style="color:'+color+'">'+(over?'−':'')+amt+' Kč</div>'
     +'<div class="bb-cap">'+(over?'dnes jsi přes denní rozpočet':'můžeš dnes ještě utratit')
+      +(b.odhad?' · <span class="bb-rate" onclick="openAddPrijem()">odhad z minulého měsíce ✎</span>':'')
       +' · <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div>'
     +'<div class="bb-sub">Dnes '+fmt(b.todayTotal)+' z denního rozpočtu '+fmt(b.denni)+' · do konce měsíce zbývá '+fmt(b.zbyvaMesic)+'</div>'
     +paceHtml(b)
