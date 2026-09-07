@@ -501,14 +501,15 @@ async function loadAiComment() {
 
   el.innerHTML = `<span style="color:var(--text3);font-size:13px">⏳ Claude analyzuje vaše finance…</span>`;
 
-  // Jistý příjem (mzda) vs. ostatní/nejistý příjem — jen položky s "mzda" v názvu se počítají
-  // jako smluvně podchycený, spolehlivý příjem. Starší období bez rozpadu `prijmy` berou celé `mzda` jako jisté.
+  // Jistý příjem (mzda) vs. ostatní/nejistý příjem — podle `jisty` flagu na položce příjmu
+  // (nastavuje se přepínačem "Počítat do rozpočtu" ve Výdajích, viz prijmy_data.json).
+  // Starší období bez rozpadu `prijmy` berou celé `mzda` jako jisté.
   function guaranteedIncome(p) {
-    if (p.prijmy && p.prijmy.length) return p.prijmy.filter(it => /mzda/i.test(it.label||'')).reduce((s,it) => s+(it.castka||0), 0);
+    if (p.prijmy && p.prijmy.length) return p.prijmy.filter(it => it.jisty !== false).reduce((s,it) => s+(it.castka||0), 0);
     return p.mzda || 0;
   }
   function otherIncome(p) {
-    if (p.prijmy && p.prijmy.length) return p.prijmy.filter(it => !/mzda/i.test(it.label||'')).reduce((s,it) => s+(it.castka||0), 0);
+    if (p.prijmy && p.prijmy.length) return p.prijmy.filter(it => it.jisty === false).reduce((s,it) => s+(it.castka||0), 0);
     return 0;
   }
 
@@ -875,7 +876,7 @@ async function loadVydaje() {
       const mzdaRow = mzda ? `
         ${prijmy && prijmy.length > 1 ? prijmy.map(it => `
         <div class="row" style="margin-bottom:4px">
-          <div class="row-lbl" style="color:var(--text2)">${it.label || 'Příjem'}</div>
+          <div class="row-lbl" style="color:var(--text2)">${it.label || 'Příjem'}${it.jisty===false ? ' <span style="font-size:11px;color:var(--text3)">· nejistý</span>' : ''}</div>
           <div class="row-val" style="color:var(--text2)">${fmt(it.castka||0)}</div>
         </div>`).join('') : ''}
         <div class="row" style="margin-bottom:8px">
@@ -1147,7 +1148,7 @@ async function startWiz(isEdit) {
     try {
       const _p = await readPrijmyFromDrive();
       const ym = base.date.slice(0,7);
-      fromLog = _p.list.filter(it => (it.date||'').slice(0,7) === ym).map(it => ({ label: it.label || 'Příjem', castka: it.castka || 0 }));
+      fromLog = _p.list.filter(it => (it.date||'').slice(0,7) === ym).map(it => ({ label: it.label || 'Příjem', castka: it.castka || 0, jisty: it.jisty !== false }));
     } catch(e) { console.error('prefill prijmy:', e); }
     base.prijmy = fromLog.length ? fromLog : [{ label: 'Hlavní mzda', castka: base.mzda || 0 }];
   }
@@ -1227,7 +1228,7 @@ function fetchKurz(date) {
 function addPrijem() {
   if (!wiz.p.prijmy) wiz.p.prijmy = [];
   savePrijmyStep();
-  wiz.p.prijmy.push({ label: '', castka: 0 });
+  wiz.p.prijmy.push({ label: '', castka: 0, jisty: true });
   rc();
 }
 function removePrijem(i) {
@@ -1245,8 +1246,10 @@ function savePrijmyStep() {
   pr.forEach((it, i) => {
     const lbl = document.getElementById('pr_label_' + i);
     const amt = document.getElementById('pr_amt_' + i);
+    const jst = document.getElementById('pr_jisty_' + i);
     if (lbl) it.label = lbl.value;
     if (amt) it.castka = parseFloat(amt.value) || 0;
+    if (jst) it.jisty = jst.checked;
   });
   wiz.p.mzda = pr.reduce((s, it) => s + (it.castka || 0), 0);
 }
@@ -1306,10 +1309,16 @@ function renderWizard() {
         const pr = wiz.p.prijmy && wiz.p.prijmy.length ? wiz.p.prijmy : [{ label: 'Hlavní mzda', castka: 0 }];
         const total = pr.reduce((s, it) => s + (parseFloat(it.castka) || 0), 0);
         const rows = pr.map((it, i) => `
-          <div style="display:grid;grid-template-columns:1fr 140px 32px;gap:8px;align-items:center;margin-bottom:8px">
-            <input type="text" id="pr_label_${i}" value="${it.label||''}" placeholder="Např. hlavní mzda, brigáda, pronájem..." style="font-size:14px;padding:9px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
-            <input type="number" id="pr_amt_${i}" value="${it.castka||''}" placeholder="0" step="1" inputmode="numeric" style="font-size:14px;padding:9px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
-            ${pr.length > 1 ? `<button onclick="removePrijem(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0">✕</button>` : '<span></span>'}
+          <div style="border:0.5px solid var(--border2);border-radius:var(--r);padding:8px;margin-bottom:8px">
+            <div style="display:grid;grid-template-columns:1fr 140px 32px;gap:8px;align-items:center;margin-bottom:6px">
+              <input type="text" id="pr_label_${i}" value="${it.label||''}" placeholder="Např. hlavní mzda, brigáda, pronájem..." style="font-size:14px;padding:9px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+              <input type="number" id="pr_amt_${i}" value="${it.castka||''}" placeholder="0" step="1" inputmode="numeric" style="font-size:14px;padding:9px 12px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">
+              ${pr.length > 1 ? `<button onclick="removePrijem(${i})" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0">✕</button>` : '<span></span>'}
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer">
+              <input type="checkbox" id="pr_jisty_${i}" ${it.jisty!==false?'checked':''} style="margin:0">
+              Jistý příjem (mzda) — počítat do míry úspor a AI analýzy
+            </label>
           </div>`).join('');
         return `<div id="pr-rows">${rows}</div>
           <button class="btn" type="button" onclick="addPrijem()" style="align-self:flex-start;margin-top:4px">+ Přidat příjem</button>
