@@ -1,11 +1,11 @@
 {
-  "updated": "2026-09-08T04:37:24+00:00",
+  "updated": "2026-09-08T09:03:24+00:00",
   "items": [
     {
       "label": "Koupelna",
-      "value": "topí",
+      "value": "vypnuto",
       "unit": "",
-      "alert": true
+      "alert": false
     },
     {
       "label": "Kuchyň",
@@ -16,9 +16,9 @@
     },
     {
       "label": "Obývák",
-      "value": "23.3",
+      "value": "23.2",
       "unit": "°C",
-      "sub": "51 % vlhkost"
+      "sub": "52 % vlhkost"
     }
   ]
 }
