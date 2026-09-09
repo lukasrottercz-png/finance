@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-09T09:16:25+00:00",
+  "updated": "2026-09-09T13:45:15+00:00",
   "items": [
     {
       "label": "Koupelna",
@@ -16,9 +16,9 @@
     },
     {
       "label": "Obývák",
-      "value": "23.8",
+      "value": "24.1",
       "unit": "°C",
-      "sub": "60 % vlhkost"
+      "sub": "57 % vlhkost"
     }
   ]
 }
