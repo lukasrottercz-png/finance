@@ -865,6 +865,7 @@ function backToList(){
 // ── CARD MENU ─────────────────────────────────────────────────────────
 let _cardMenu=null;
 let _dateEditor=null;
+let _dateEditorOutsideHandler=null;
 
 function showCardMenu(id, btn){
   closeCardMenu();
@@ -903,13 +904,18 @@ function showDateEditor(id, btn){
   box.addEventListener('click',e=>e.stopPropagation());
   document.body.appendChild(box);
   _dateEditor=box;
-  setTimeout(()=>document.addEventListener('click',closeDateEditor,{once:true}),10);
+  _dateEditorOutsideHandler=()=>closeDateEditor();
+  setTimeout(()=>document.addEventListener('click',_dateEditorOutsideHandler,{once:true}),10);
 }
 
 function closeDateEditor(){
   const m=document.getElementById('date-editor');
   if(m) m.remove();
   _dateEditor=null;
+  if(_dateEditorOutsideHandler){
+    document.removeEventListener('click',_dateEditorOutsideHandler);
+    _dateEditorOutsideHandler=null;
+  }
 }
 
 function saveCardDate(id){
