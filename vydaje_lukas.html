@@ -141,7 +141,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
     <button class="tbi on" id="tab0" onclick="tab(0)"><span class="tbi-icon">🏠</span><span class="tbi-label">Přehled</span></button>
     <button class="tbi" id="tab1" onclick="tab(1)"><span class="tbi-icon">📊</span><span class="tbi-label">Kategorie</span></button>
     <button class="tbi" id="tab2" onclick="tab(2)"><span class="tbi-icon">📅</span><span class="tbi-label">Trvalé</span></button>
-    <button class="tbi" id="tab3" onclick="tab(3)"><span class="tbi-icon">👫</span><span class="tbi-label">Jitka &amp; Lukáš</span></button>
+    <button class="tbi" id="tab3" onclick="tab(3)"><span class="tbi-icon">⚖️</span><span class="tbi-label">Jitka &amp; Lukáš</span></button>
     <button class="tbi" id="tab4" onclick="tab(4)"><span class="tbi-icon">⬇️</span><span class="tbi-label">Export</span></button>
     <button class="tbi" id="tab5" onclick="tab(5)"><span class="tbi-icon">💰</span><span class="tbi-label">Příjmy</span></button>
   </div>
@@ -1055,7 +1055,7 @@ function buildAddForm(){
     +'<div class="sec-hdr">Poznámka</div>'
     +'<textarea id="note" class="note-inp" placeholder="Volitelná poznámka…"></textarea>'
     +'<div class="shared-toggle" id="shared-toggle" onclick="toggleShared()">'
-    +'<span class="shared-label"><span>👫</span> Sdíleno s Jitkou</span>'
+    +'<span class="shared-label"><span>⚖️</span> Sdíleno s Jitkou</span>'
     +'<div class="toggle-sw" id="shared-sw"><div class="toggle-knob"></div></div>'
     +'</div>'
     +'<div id="split-row" style="display:none;align-items:center;gap:8px;background:#fff;border-radius:13px;padding:10px 16px;margin:-8px 0 16px;border:1px solid #e0e0e0">'
@@ -1375,7 +1375,7 @@ function renderPrehled(){
       h+='<div class="exp-row">'
         +'<div class="exp-ico">'+(cat?cat.i:'❓')+'</div>'
         +'<div class="exp-info">'
-        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">👫 Jitka &amp; Lukáš</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
+        +'<div class="exp-cat">'+(cat?cat.l:e.catKey)+(e.shared?'<span class="badge-shared">⚖️ Jitka &amp; Lukáš</span>':'')+(e.mimoradny?'<span class="badge-mimoradny">⭐ mimořádný</span>':'')+'</div>'
         +'<div class="exp-sub">'+(e.subcat||'')+(e.note?' · '+e.note:'')+'</div>'
         +'</div>'
         +'<div class="exp-amt">'+fmt(e.amount)+'</div>'
@@ -1549,7 +1549,7 @@ function renderJitka(){
   var famExps=exps.filter(function(e){return e.rodinny&&!e.shared;});
   var directExps=exps.filter(function(e){return e.catKey==='prispevek_deti'||e.catKey==='jitka_navic';});
   if(!shared.length && !hasZa && !famExps.length && !directExps.length){
-    return '<div class="empty"><div class="empty-icon">👫</div>'
+    return '<div class="empty"><div class="empty-icon">⚖️</div>'
       +'<div class="empty-title">Žádné sdílené ani dětské výdaje</div>'
       +'<div class="empty-sub">Při zadávání výdaje zapni přepínač "Sdíleno s Jitkou" nebo "Rodinný výdaj (nesu sám)"</div>'
       +'</div>';
@@ -1754,7 +1754,7 @@ function renderJitka(){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#fff7ed;border-color:#ffd8a8">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         +'<div style="font-size:14px;font-weight:600;color:#ff9500">👶 Výdaje za děti <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nevstupuje do vyrovnání)</span></div>'
-        +'<button onclick="printDirectMonth(\''+m+'\')" title="Report pro Jitku" style="background:none;border:1px solid #ffd8a8;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#ff9500">🖨</button>'
+        +'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ffd8a8;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#ff9500">🖨</button>'
         +'</div>';
       famM.items.forEach(function(e){
         var cat=catByKey(e.catKey);
@@ -1771,7 +1771,7 @@ function renderJitka(){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f2f2f7;border-color:#d8d8dc">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         +'<div style="font-size:14px;font-weight:600;color:#6c6c70">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>'
-        +'<button onclick="printDirectMonth(\''+m+'\')" title="Report pro Jitku" style="background:none;border:1px solid #d8d8dc;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'
+        +'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #d8d8dc;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'
         +'</div>';
       famM.otherItems.forEach(function(e){
         var cat=catByKey(e.catKey);
@@ -1790,7 +1790,7 @@ function renderJitka(){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f5f0ff;border-color:#ddd0ff">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
         +'<div style="font-size:14px;font-weight:600;color:#7c3aed">📤 Posláno Jitce přímo <span style="font-weight:400;color:#8e8e93;font-size:11px">(Jitka se finančně nepodílí)</span></div>'
-        +'<button onclick="printDirectMonth(\''+m+'\')" title="Report pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>'
+        +'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>'
         +'</div>';
       dirM.prisp.forEach(function(e){
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
@@ -2056,17 +2056,17 @@ function printDirectMonth(m){
     lines+='Celkem: '+fmt(total)+'\n\n';
     return lines;
   }
-  var emailBody='Report za '+monthLbl+'\n\n'
+  var emailBody='Výdaje za '+monthLbl+'\n\n'
     +sectionText('Zaplaceno přímo za děti',famM.items,famM.recurItems,famM.total,function(e){return e.amount;})
     +sectionText('Ostatní rodinné výdaje',famM.otherItems,famM.otherRecurItems,famM.otherTotal,function(e){return e.amount;})
     +sectionText('Příspěvek na děti (posláno Jitce)',dirM.prisp,null,dirM.prispTotal,function(e){return e.amount;})
     +sectionText('Jitce extra',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;})
     +'CELKEM ZA TENTO MĚSÍC: '+fmt(grandTotal);
   var emailTo=getJitkaEmail();
-  var mailtoHref=emailTo?('mailto:'+emailTo+'?subject='+encodeURIComponent('Report za děti — '+monthLbl)+'&body='+encodeURIComponent(emailBody)):'';
+  var mailtoHref=emailTo?('mailto:'+emailTo+'?subject='+encodeURIComponent('Výdaje za děti — '+monthLbl)+'&body='+encodeURIComponent(emailBody)):'';
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
-    +'<title>Report za děti — '+monthLbl+'</title>'
+    +'<title>Výdaje za děti — '+monthLbl+'</title>'
     +'<style>'
     +'*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Arial,sans-serif}'
     +'body{padding:32px 40px;color:#1c1c1e;max-width:600px;margin:0 auto}'
@@ -2075,14 +2075,15 @@ function printDirectMonth(m){
     +'.summary{margin-top:24px;padding:16px;background:#f9f9f9;border-radius:10px;border:1px solid #e0e0e0;font-size:13px;color:#6c6c70}'
     +'@media print{body{padding:20px}.no-print{display:none!important}tr{page-break-inside:avoid;break-inside:avoid}h2{page-break-after:avoid;break-after:avoid}.summary,.keep-together{page-break-inside:avoid;break-inside:avoid}}'
     +'</style></head><body>'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px">'
-    +'<h1>Report za děti — Lukáš</h1>'
+    +'<div style="height:8px;border-radius:6px;background:linear-gradient(90deg,#ffd166,#ef476f,#118ab2,#06d6a0,#ffd166);margin-bottom:18px"></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap">'
+    +'<h1 style="white-space:nowrap">🧸 Výdaje za děti</h1>'
     +'<div class="no-print" style="display:flex;gap:8px;flex-shrink:0">'
     +(mailtoHref?('<a href="'+mailtoHref+'" style="padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap">✉️ Odeslat Jitce</a>'):'')
     +'<button onclick="window.print()" style="padding:8px 16px;background:#1c1c1e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap">🖨 Uložit jako PDF</button>'
     +'</div>'
     +'</div>'
-    +'<p style="font-size:16px;color:#6c6c70;margin-bottom:20px">'+monthLbl+'</p>'
+    +'<p style="font-size:16px;color:#6c6c70;margin-bottom:20px">🎈 '+monthLbl+'</p>'
     +'<div class="keep-together">'+famHtml+'</div>'
     +'<div class="keep-together">'+otherHtml+'</div>'
     +'<div class="keep-together">'+prispHtml+'</div>'
