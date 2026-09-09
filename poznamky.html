@@ -655,6 +655,8 @@ function saveLocal(){ try{ localStorage.setItem('lk_poz',JSON.stringify(notes));
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function fmtDate(d){ if(!d) return ''; const dt=(String(d).length>10)?new Date(d):new Date(d+'T12:00:00'); return dt.toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'}); }
+function toDatetimeLocal(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return ''; const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+function fromDatetimeLocal(val){ if(!val) return null; const d=new Date(val); return isNaN(d)?null:d.toISOString(); }
 
 function showToast(m){
   let t=document.getElementById('toast');
@@ -1000,7 +1002,8 @@ function autoCommit(){
   const tags=parseTags(tg?.value||'');
   const now=new Date().toISOString();
   if(editId){
-    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
+    const created=fromDatetimeLocal(document.getElementById('edit-created')?.value);
+    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now,...(created?{createdAt:created}:{})}:n);
   } else {
     const id=uid();
     notes.unshift({id,title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
@@ -1171,6 +1174,10 @@ function buildEditSheet(note){
         <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…" value="${(note.tags||[]).join(', ')}">
       </div>
       <div class="field">
+        <div class="field-label">Datum vytvoření</div>
+        <input class="field-inp" id="edit-created" type="datetime-local" value="${toDatetimeLocal(note.createdAt)}">
+      </div>
+      <div class="field">
         <div class="field-label">Obsah</div>
         <div class="fmt-ta-wrap">
           <div class="fmt-toolbar">
@@ -1215,7 +1222,9 @@ async function saveNote(){
   let savedId;
   if(editId){
     savedId=editId;
-    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now}:n);
+    const createdVal=document.getElementById('edit-created')?.value;
+    const created=fromDatetimeLocal(createdVal);
+    notes=notes.map(n=>n.id===editId?{...n,title,content,type:curType,tags,updatedAt:now,...(created?{createdAt:created}:{})}:n);
   } else {
     savedId=uid();
     notes.unshift({id:savedId,title,content,type:curType,tags,pinned:false,createdAt:now,updatedAt:now});
