@@ -1752,7 +1752,10 @@ function renderJitka(){
     }
     if(famM.otherTotal>0){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f2f2f7;border-color:#d8d8dc">'
-        +'<div style="font-size:14px;font-weight:600;color:#6c6c70;margin-bottom:8px">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>';
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +'<div style="font-size:14px;font-weight:600;color:#6c6c70">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>'
+        +'<button onclick="printDirectMonth(\''+m+'\')" title="Report pro Jitku" style="background:none;border:1px solid #d8d8dc;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'
+        +'</div>';
       famM.otherItems.forEach(function(e){
         var cat=catByKey(e.catKey);
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
@@ -1761,7 +1764,7 @@ function renderJitka(){
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500">'+fmt(t.castka)+'</span></div>';
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #d8d8dc;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem ostatní rodinné</span><span style="color:#6c6c70">'+fmt(famM.otherTotal)+'</span></div>'
-        +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání se sdílenými výdaji ani do reportu pro Jitku.</div>'
+        +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání se sdílenými výdaji.</div>'
         +'</div>';
     }
 
@@ -1990,12 +1993,12 @@ function printMonth(m){
   if(w){w.document.write(html);w.document.close();}
 }
 
-// Informativní report pro Jitku: co Lukáš zaplatil za děti přímo + co jí poslal přímo
-// (příspěvek na děti / navíc). Nejde o vyrovnání — Jitka se na těchto částkách finančně nepodílí.
+// Informativní report pro Jitku: co Lukáš zaplatil za děti a ostatní rodinné výdaje přímo
+// + co jí poslal přímo (příspěvek na děti / navíc). Nejde o vyrovnání se sdílenými výdaji.
 function printDirectMonth(m){
   var famM=famForMonth(m);
   var dirM=directForMonth(m);
-  if(famM.total<=0 && dirM.total<=0)return;
+  if(famM.total<=0 && famM.otherTotal<=0 && dirM.total<=0)return;
   var dt=new Date(m+'-01T12:00:00');
   var monthLbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
 
@@ -2017,9 +2020,10 @@ function printDirectMonth(m){
   }
 
   var famHtml=section('Zaplaceno přímo za děti','#ff9500',famM.items,famM.recurItems,famM.total,function(e){return e.amount;});
+  var otherHtml=section('Ostatní rodinné výdaje','#6c6c70',famM.otherItems,famM.otherRecurItems,famM.otherTotal,function(e){return e.amount;});
   var prispHtml=section('Příspěvek na děti (posláno Jitce)','#7c3aed',dirM.prisp,null,dirM.prispTotal,function(e){return e.amount;});
   var navicHtml=section('Posláno Jitce navíc','#7c3aed',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;});
-  var grandTotal=famM.total+dirM.total;
+  var grandTotal=famM.total+famM.otherTotal+dirM.total;
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>Report za děti — '+monthLbl+'</title>'
@@ -2037,10 +2041,10 @@ function printDirectMonth(m){
     +'</div>'
     +'<p style="font-size:16px;color:#6c6c70;margin-bottom:20px">'+monthLbl+'</p>'
     +'<div class="keep-together">'+famHtml+'</div>'
+    +'<div class="keep-together">'+otherHtml+'</div>'
     +'<div class="keep-together">'+prispHtml+'</div>'
     +'<div class="keep-together">'+navicHtml+'</div>'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:12px;border-top:2px solid #1c1c1e;font-size:17px;font-weight:700"><span>Celkem za tento měsíc</span><span>'+fmt(grandTotal)+'</span></div>'
-    +'<div class="summary">Toto je informativní přehled toho, co Lukáš zaplatil za děti přímo a co poslal Jitce přímo. Nejedná se o vyrovnání ani o společné (50/50) výdaje — Jitka se na těchto částkách finančně nijak nepodílela.</div>'
     +'<p style="margin-top:24px;font-size:11px;color:#bbb;text-align:center">Vygenerováno '+new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})+'</p>'
     +'</body></html>';
 
