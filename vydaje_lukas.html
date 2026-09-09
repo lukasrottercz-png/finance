@@ -196,7 +196,7 @@ var CATS=[
   {k:'darky',      i:'🎁',l:'Dárky a oslavy',s:['Narozeniny','Svátky','Charita','Různé']},
   {k:'za_jitku',   i:'💸',l:'Za Jitku',       s:['Nákup','Služby','Zdraví','Oblečení','Různé']},
   {k:'prispevek_deti', i:'👶',l:'Příspěvek na děti', s:['Měsíční příspěvek','Mimořádný výdaj','Jiné']},
-  {k:'jitka_navic',    i:'📤',l:'Jitce navíc',       s:['Zaplaceno za ni','Jiné']},
+  {k:'jitka_navic',    i:'📤',l:'Jitce extra',       s:['Zaplaceno za ni','Jiné']},
   {k:'vyrovnani',  i:'🤝',l:'Vyrovnání Jitka', s:['Podíl Jitka']},
   {k:'ostatni',    i:'❓',l:'Ostatní',        s:['Poplatky','Pokuty','Jiné']}
 ];
@@ -1779,7 +1779,7 @@ function renderJitka(){
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
       });
       dirM.navic.forEach(function(e){
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>💸 Jitce navíc'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>💸 Jitce extra'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #ddd0ff;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem posláno přímo</span><span style="color:#7c3aed">'+fmt(dirM.total)+'</span></div>'
         +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání — Jitka se na těchto platbách nijak finančně nepodílela.</div>'
@@ -2022,7 +2022,7 @@ function printDirectMonth(m){
   var famHtml=section('Zaplaceno přímo za děti','#ff9500',famM.items,famM.recurItems,famM.total,function(e){return e.amount;});
   var otherHtml=section('Ostatní rodinné výdaje','#6c6c70',famM.otherItems,famM.otherRecurItems,famM.otherTotal,function(e){return e.amount;});
   var prispHtml=section('Příspěvek na děti (posláno Jitce)','#7c3aed',dirM.prisp,null,dirM.prispTotal,function(e){return e.amount;});
-  var navicHtml=section('Posláno Jitce navíc','#7c3aed',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;});
+  var navicHtml=section('Jitce extra','#7c3aed',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;});
   var grandTotal=famM.total+famM.otherTotal+dirM.total;
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
