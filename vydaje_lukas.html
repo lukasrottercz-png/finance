@@ -195,6 +195,8 @@ var CATS=[
   {k:'domacnost',  i:'🔧',l:'Domácnost',      s:['Elektro','Nábytek','Nářadí','Mazlíčci','Čisticí prostředky']},
   {k:'darky',      i:'🎁',l:'Dárky a oslavy',s:['Narozeniny','Svátky','Charita','Různé']},
   {k:'za_jitku',   i:'💸',l:'Za Jitku',       s:['Nákup','Služby','Zdraví','Oblečení','Různé']},
+  {k:'prispevek_deti', i:'👶',l:'Příspěvek na děti', s:['Měsíční příspěvek','Mimořádný výdaj','Jiné']},
+  {k:'jitka_navic',    i:'📤',l:'Jitce navíc',       s:['Zaplaceno za ni','Jiné']},
   {k:'vyrovnani',  i:'🤝',l:'Vyrovnání Jitka', s:['Podíl Jitka']},
   {k:'ostatni',    i:'❓',l:'Ostatní',        s:['Poplatky','Pokuty','Jiné']}
 ];
@@ -1050,7 +1052,7 @@ function buildAddForm(){
     +'<div class="toggle-sw" id="mimoradny-sw"><div class="toggle-knob"></div></div>'
     +'</div>'
     +'<div class="rodinny-toggle" id="rodinny-toggle" onclick="toggleRodinny()">'
-    +'<span class="rodinny-label"><span>👪</span> Výdaj za děti <span class="rodinny-hint">(nevstupuje do vyrovnání s Jitkou)</span></span>'
+    +'<span class="rodinny-label"><span>👪</span> Rodinný výdaj (nesu sám) <span class="rodinny-hint">(nevstupuje do vyrovnání s Jitkou)</span></span>'
     +'<div class="toggle-sw" id="rodinny-sw"><div class="toggle-knob"></div></div>'
     +'</div>'
     +'<button class="save-btn" onclick="doSave()">Uložit výdaj</button>';
@@ -1494,22 +1496,46 @@ function trvalaActiveInMonth(t,m){
 
 function famForMonth(m){
   // Rodinné výdaje, které Lukáš nese SÁM (nevstupují do vyrovnání) = rodinny && !shared + aktivní rodinné trvalé platby
-  var items=exps.filter(function(e){return e.rodinny&&!e.shared&&e.date.slice(0,7)===m;});
+  // Rozděleno podle existující kategorizace: skutečně za děti (kategorie „Děti" / trvalé „Rodina")
+  // vs. ostatní rodinné náklady, které Lukáš nese sám (bydlení, pojištění, předplatné…) — ty NEJSOU výdaj za děti.
+  var allItems=exps.filter(function(e){return e.rodinny&&!e.shared&&e.date.slice(0,7)===m;});
+  var allRecur=trvale.filter(function(t){return t.rodinne&&trvalaActiveInMonth(t,m);});
+  var items=allItems.filter(function(e){return e.catKey==='deti';});
+  var otherItems=allItems.filter(function(e){return e.catKey!=='deti';});
+  var recurItems=allRecur.filter(function(t){return t.kat==='Rodina';});
+  var otherRecurItems=allRecur.filter(function(t){return t.kat!=='Rodina';});
   items.sort(function(a,b){return b.date.localeCompare(a.date);});
-  var recurItems=trvale.filter(function(t){return t.rodinne&&trvalaActiveInMonth(t,m);});
+  otherItems.sort(function(a,b){return b.date.localeCompare(a.date);});
   var solo=items.reduce(function(s,e){return s+(e.amount||0);},0);
   var recur=recurItems.reduce(function(s,t){return s+(t.castka||0);},0);
-  return {items:items,recurItems:recurItems,solo:solo,recur:recur,total:solo+recur};
+  var otherSolo=otherItems.reduce(function(s,e){return s+(e.amount||0);},0);
+  var otherRecur=otherRecurItems.reduce(function(s,t){return s+(t.castka||0);},0);
+  return {
+    items:items,recurItems:recurItems,solo:solo,recur:recur,total:solo+recur,
+    otherItems:otherItems,otherRecurItems:otherRecurItems,otherSolo:otherSolo,otherRecur:otherRecur,otherTotal:otherSolo+otherRecur
+  };
+}
+
+function directForMonth(m){
+  // Peníze poslané/zaplacené Jitce přímo — NEVSTUPUJÍ do vyrovnání, Jitka se na nich finančně nepodílí
+  var prisp=exps.filter(function(e){return e.catKey==='prispevek_deti'&&e.date.slice(0,7)===m;});
+  var navic=exps.filter(function(e){return e.catKey==='jitka_navic'&&e.date.slice(0,7)===m;});
+  prisp.sort(function(a,b){return b.date.localeCompare(a.date);});
+  navic.sort(function(a,b){return b.date.localeCompare(a.date);});
+  var prispTotal=prisp.reduce(function(s,e){return s+(e.amount||0);},0);
+  var navicTotal=navic.reduce(function(s,e){return s+(e.amount||0);},0);
+  return {prisp:prisp,navic:navic,prispTotal:prispTotal,navicTotal:navicTotal,total:prispTotal+navicTotal};
 }
 
 function renderJitka(){
   var shared=exps.filter(function(e){return e.shared});
   var hasZa=exps.some(function(e){return e.catKey==='za_jitku';});
   var famExps=exps.filter(function(e){return e.rodinny&&!e.shared;});
-  if(!shared.length && !hasZa && !famExps.length){
+  var directExps=exps.filter(function(e){return e.catKey==='prispevek_deti'||e.catKey==='jitka_navic';});
+  if(!shared.length && !hasZa && !famExps.length && !directExps.length){
     return '<div class="empty"><div class="empty-icon">👫</div>'
       +'<div class="empty-title">Žádné sdílené ani dětské výdaje</div>'
-      +'<div class="empty-sub">Při zadávání výdaje zapni přepínač "Sdíleno s Jitkou" nebo "Výdaj za děti"</div>'
+      +'<div class="empty-sub">Při zadávání výdaje zapni přepínač "Sdíleno s Jitkou" nebo "Rodinný výdaj (nesu sám)"</div>'
       +'</div>';
   }
 
@@ -1531,6 +1557,7 @@ function renderJitka(){
   Object.keys(byMonth).forEach(function(m){monthSet[m]=true;});
   Object.keys(byMonthZ).forEach(function(m){monthSet[m]=true;});
   famExps.forEach(function(e){monthSet[e.date.slice(0,7)]=true;});
+  directExps.forEach(function(e){monthSet[e.date.slice(0,7)]=true;});
   var months=Object.keys(monthSet).sort(function(a,b){return b.localeCompare(a)});
 
   // Celkový dluh z nevyúčtovaných měsíců (podle dohodnutého poměru u každé položky)
@@ -1592,7 +1619,7 @@ function renderJitka(){
       +'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px 6px">'
       +'<div onclick="toggleJitkaMonth(\''+sectionId+'\')" style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer">'
       +'<span style="font-size:13px;color:#6c6c70;text-transform:uppercase;letter-spacing:.04em;font-weight:500">'+monthLbl+'</span>'
-      +(!hasSharedActivity?'<span style="background:#ff9500;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">DĚTI</span>':(isSettled?'<span style="background:#34c759;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">VYÚČTOVÁNO</span>':''))
+      +(!hasSharedActivity?'<span style="background:#ff9500;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">INFO</span>':(isSettled?'<span style="background:#34c759;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">VYÚČTOVÁNO</span>':''))
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
       +(hasSharedActivity?('<span style="font-size:13px;color:'+(isSettled?'#34c759':(netM>=0?'#ff2d78':'#1c1c1e'))+';font-weight:600">'+fmt(Math.abs(netM))+'</span>'
@@ -1708,7 +1735,10 @@ function renderJitka(){
     var famM=famForMonth(m);
     if(famM.total>0){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#fff7ed;border-color:#ffd8a8">'
-        +'<div style="font-size:14px;font-weight:600;color:#ff9500;margin-bottom:8px">👪 Výdaje za děti <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nevstupuje do vyrovnání)</span></div>';
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +'<div style="font-size:14px;font-weight:600;color:#ff9500">👶 Výdaje za děti <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nevstupuje do vyrovnání)</span></div>'
+        +'<button onclick="printDirectMonth(\''+m+'\')" title="Report pro Jitku" style="background:none;border:1px solid #ffd8a8;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#ff9500">🖨</button>'
+        +'</div>';
       famM.items.forEach(function(e){
         var cat=catByKey(e.catKey);
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
@@ -1718,6 +1748,38 @@ function renderJitka(){
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #ffe4c4;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem za děti</span><span style="color:#ff9500">'+fmt(famM.total)+'</span></div>'
         +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání se sdílenými výdaji.</div>'
+        +'</div>';
+    }
+    if(famM.otherTotal>0){
+      h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f2f2f7;border-color:#d8d8dc">'
+        +'<div style="font-size:14px;font-weight:600;color:#6c6c70;margin-bottom:8px">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>';
+      famM.otherItems.forEach(function(e){
+        var cat=catByKey(e.catKey);
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+      });
+      famM.otherRecurItems.forEach(function(t){
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500">'+fmt(t.castka)+'</span></div>';
+      });
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #d8d8dc;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem ostatní rodinné</span><span style="color:#6c6c70">'+fmt(famM.otherTotal)+'</span></div>'
+        +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání se sdílenými výdaji ani do reportu pro Jitku.</div>'
+        +'</div>';
+    }
+
+    var dirM=directForMonth(m);
+    if(dirM.total>0){
+      h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f5f0ff;border-color:#ddd0ff">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+        +'<div style="font-size:14px;font-weight:600;color:#7c3aed">📤 Posláno Jitce přímo <span style="font-weight:400;color:#8e8e93;font-size:11px">(Jitka se finančně nepodílí)</span></div>'
+        +'<button onclick="printDirectMonth(\''+m+'\')" title="Report pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>'
+        +'</div>';
+      dirM.prisp.forEach(function(e){
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+      });
+      dirM.navic.forEach(function(e){
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>💸 Jitce navíc'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+      });
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #ddd0ff;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem posláno přímo</span><span style="color:#7c3aed">'+fmt(dirM.total)+'</span></div>'
+        +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání — Jitka se na těchto platbách nijak finančně nepodílela.</div>'
         +'</div>';
     }
 
@@ -1832,13 +1894,29 @@ function printMonth(m){
       +'<tr><td colspan="2" style="padding:10px 6px;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px">Celkem za děti</td><td style="padding:10px 6px;text-align:right;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px;color:#ff9500">'+fmt(famM.total)+'</td></tr>'
       +'</tbody></table>';
   }
+  var otherFamHtml='';
+  if(famM.otherTotal>0){
+    var ofr='';
+    famM.otherItems.forEach(function(e){
+      var cat=catByKey(e.catKey);
+      var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+      ofr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td><td style="padding:8px 6px;font-size:14px;color:#222">'+(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.note?' — '+e.note:'')+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#6c6c70">'+fmt(e.amount)+'</td></tr>';
+    });
+    famM.otherRecurItems.forEach(function(t){
+      ofr+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">🔁 trvalé</td><td style="padding:8px 6px;font-size:14px;color:#222">'+t.nazev+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:#6c6c70">'+fmt(t.castka)+'</td></tr>';
+    });
+    otherFamHtml='<h2 style="font-size:16px;font-weight:700;margin-top:28px;color:#6c6c70">Ostatní rodinné výdaje (nese Lukáš sám) <span style="font-weight:400;font-size:12px;color:#888">(informativní — nesouvisí s dětmi, nevstupuje do vyrovnání)</span></h2>'
+      +'<table style="width:100%;border-collapse:collapse;margin-top:10px"><tbody>'+ofr
+      +'<tr><td colspan="2" style="padding:10px 6px;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px">Celkem ostatní rodinné</td><td style="padding:10px 6px;text-align:right;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px;color:#6c6c70">'+fmt(famM.otherTotal)+'</td></tr>'
+      +'</tbody></table>';
+  }
 
   // Podíl na celkových nákladech (po vyrovnání):
   // Jitka nese svůj dohodnutý podíl ze sdílených + 50 % svých nákupů; Já nesu zbytek sdílených + 50 % nákupů Jitky + rodinné, co nesu sám
   var shareS=totalAllShare;     // Jitčin podíl ze sdílených výdajů (podle poměru u položek)
   var shareSLukas=items.reduce(function(s,e){return s+(e.amount-jShare(e));},0); // Lukášův podíl ze sdílených
   var shareJ=claim;             // nákupy Jitky (platila Jitka)
-  var shareR=famM.total;        // rodinné, které nesu sám (vč. rodinných trvalých plateb)
+  var shareR=famM.total+famM.otherTotal;  // rodinné, které nesu sám — za děti i ostatní (vč. rodinných trvalých plateb)
   var jitkaPaid=shareS+shareJ/2;
   var lukasPaid=shareSLukas+shareJ/2+shareR;
   var grandTotal=totalAll+shareJ+shareR;
@@ -1903,7 +1981,66 @@ function printMonth(m){
     +'<div class="keep-together">'+zaHtml+'</div>'
     +'<div class="summary">'+summaryLine+'</div>'
     +'<div class="keep-together">'+famHtml+'</div>'
+    +'<div class="keep-together">'+otherFamHtml+'</div>'
     +'<div class="keep-together">'+shareHtml+'</div>'
+    +'<p style="margin-top:24px;font-size:11px;color:#bbb;text-align:center">Vygenerováno '+new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})+'</p>'
+    +'</body></html>';
+
+  var w=window.open('','_blank','width=680,height=800');
+  if(w){w.document.write(html);w.document.close();}
+}
+
+// Informativní report pro Jitku: co Lukáš zaplatil za děti přímo + co jí poslal přímo
+// (příspěvek na děti / navíc). Nejde o vyrovnání — Jitka se na těchto částkách finančně nepodílí.
+function printDirectMonth(m){
+  var famM=famForMonth(m);
+  var dirM=directForMonth(m);
+  if(famM.total<=0 && dirM.total<=0)return;
+  var dt=new Date(m+'-01T12:00:00');
+  var monthLbl=dt.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+
+  function section(title,color,items,recurItems,total,amtFn){
+    if(total<=0)return '';
+    var rows='';
+    (items||[]).forEach(function(e){
+      var cat=catByKey(e.catKey);
+      var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+      rows+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">'+d+'</td><td style="padding:8px 6px;font-size:14px;color:#222">'+(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.note?' — '+e.note:'')+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:'+color+'">'+fmt(amtFn(e))+'</td></tr>';
+    });
+    (recurItems||[]).forEach(function(t){
+      rows+='<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 6px;color:#888;font-size:13px;white-space:nowrap">🔁 trvalé</td><td style="padding:8px 6px;font-size:14px;color:#222">'+t.nazev+'</td><td style="padding:8px 6px;text-align:right;font-size:14px;font-weight:600;color:'+color+'">'+fmt(t.castka)+'</td></tr>';
+    });
+    return '<h2 style="font-size:16px;font-weight:700;margin-top:28px">'+title+'</h2>'
+      +'<table style="width:100%;border-collapse:collapse;margin-top:10px"><tbody>'+rows
+      +'<tr><td colspan="2" style="padding:10px 6px;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px">Celkem</td><td style="padding:10px 6px;text-align:right;font-weight:700;border-top:2px solid #e0e0e0;font-size:15px;color:'+color+'">'+fmt(total)+'</td></tr>'
+      +'</tbody></table>';
+  }
+
+  var famHtml=section('Zaplaceno přímo za děti','#ff9500',famM.items,famM.recurItems,famM.total,function(e){return e.amount;});
+  var prispHtml=section('Příspěvek na děti (posláno Jitce)','#7c3aed',dirM.prisp,null,dirM.prispTotal,function(e){return e.amount;});
+  var navicHtml=section('Posláno Jitce navíc','#7c3aed',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;});
+  var grandTotal=famM.total+dirM.total;
+
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<title>Report za děti — '+monthLbl+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Arial,sans-serif}'
+    +'body{padding:32px 40px;color:#1c1c1e;max-width:600px;margin:0 auto}'
+    +'h1{font-size:22px;font-weight:700;color:#1c1c1e}'
+    +'table{width:100%;border-collapse:collapse;margin-top:16px}'
+    +'.summary{margin-top:24px;padding:16px;background:#f9f9f9;border-radius:10px;border:1px solid #e0e0e0;font-size:13px;color:#6c6c70}'
+    +'@media print{body{padding:20px}button{display:none!important}tr{page-break-inside:avoid;break-inside:avoid}h2{page-break-after:avoid;break-after:avoid}.summary,.keep-together{page-break-inside:avoid;break-inside:avoid}}'
+    +'</style></head><body>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+    +'<h1>Report za děti — Lukáš</h1>'
+    +'<button onclick="window.print()" style="padding:8px 16px;background:#1c1c1e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 Uložit jako PDF</button>'
+    +'</div>'
+    +'<p style="font-size:16px;color:#6c6c70;margin-bottom:20px">'+monthLbl+'</p>'
+    +'<div class="keep-together">'+famHtml+'</div>'
+    +'<div class="keep-together">'+prispHtml+'</div>'
+    +'<div class="keep-together">'+navicHtml+'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:12px;border-top:2px solid #1c1c1e;font-size:17px;font-weight:700"><span>Celkem za tento měsíc</span><span>'+fmt(grandTotal)+'</span></div>'
+    +'<div class="summary">Toto je informativní přehled toho, co Lukáš zaplatil za děti přímo a co poslal Jitce přímo. Nejedná se o vyrovnání ani o společné (50/50) výdaje — Jitka se na těchto částkách finančně nijak nepodílela.</div>'
     +'<p style="margin-top:24px;font-size:11px;color:#bbb;text-align:center">Vygenerováno '+new Date().toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})+'</p>'
     +'</body></html>';
 
