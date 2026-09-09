@@ -921,7 +921,8 @@ function closeDateEditor(){
 function saveCardDate(id){
   const created=fromDatetimeLocal(document.getElementById('date-editor-inp')?.value);
   if(!created){ closeDateEditor(); return; }
-  notes=notes.map(n=>n.id===id?{...n,createdAt:created}:n);
+  const now=new Date().toISOString();
+  notes=notes.map(n=>n.id===id?{...n,createdAt:created,updatedAt:now}:n);
   ghSave();
   closeDateEditor();
   renderList();
