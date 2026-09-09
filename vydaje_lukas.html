@@ -268,6 +268,9 @@ var jitkaSettlements={};
 try{ jitkaSettlements=JSON.parse(localStorage.getItem('vyd_jitka_settlements')||'{}')||{}; }catch(e){ jitkaSettlements={}; }
 // E-mail Jitky pro odeslání měsíčního reportu (printDirectMonth) — sync v configu
 var jitkaEmail=localStorage.getItem('vyd_jitka_email')||'';
+// Měsíce, u kterých je potvrzeno odeslání „Výdaje pro Jitku" reportu — sync v configu
+var jitkaReportSent={};
+try{ jitkaReportSent=JSON.parse(localStorage.getItem('vyd_jitka_report_sent')||'{}')||{}; }catch(e){ jitkaReportSent={}; }
 
 var tokenClient=null;
 var accessToken=localStorage.getItem('g_access_token')||'';
@@ -431,6 +434,7 @@ async function ghLoadCfg(){
         if(r.data.jitkaClaims && typeof r.data.jitkaClaims==='object' && !Array.isArray(r.data.jitkaClaims)){ jitkaClaims=r.data.jitkaClaims; localStorage.setItem('vyd_jitka_claims',JSON.stringify(jitkaClaims)); }
         if(r.data.jitkaSettlements && typeof r.data.jitkaSettlements==='object' && !Array.isArray(r.data.jitkaSettlements)){ jitkaSettlements=r.data.jitkaSettlements; localStorage.setItem('vyd_jitka_settlements',JSON.stringify(jitkaSettlements)); }
         if(typeof r.data.jitkaEmail==='string'){ jitkaEmail=r.data.jitkaEmail; localStorage.setItem('vyd_jitka_email',jitkaEmail); }
+        if(r.data.jitkaReportSent && typeof r.data.jitkaReportSent==='object' && !Array.isArray(r.data.jitkaReportSent)){ jitkaReportSent=r.data.jitkaReportSent; localStorage.setItem('vyd_jitka_report_sent',JSON.stringify(jitkaReportSent)); }
         cfgUpdated=remoteU; localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
       }
     }
@@ -439,7 +443,7 @@ async function ghLoadCfg(){
 async function ghSaveCfg(){
   cfgUpdated=Date.now(); localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
   if(isConnected()){
-    try{ await driveWriteJSON(GH_FILE_CFG,{savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,jitkaEmail:jitkaEmail,updatedAt:cfgUpdated}); }
+    try{ await driveWriteJSON(GH_FILE_CFG,{savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,jitkaEmail:jitkaEmail,jitkaReportSent:jitkaReportSent,updatedAt:cfgUpdated}); }
     catch(e){ console.error('driveSaveCfg:',e); }
   }
   syncNastenkaTiles();
@@ -1633,24 +1637,30 @@ function renderJitka(){
     var famM=famForMonth(m);
     var dirM=directForMonth(m);
     var hasDirectReport=famM.total>0||famM.otherTotal>0||dirM.total>0;
+    var reportSent=hasDirectReport&&!!jitkaReportSent[m];
+    // Měsíc je „hotový" (sbalí se defaultně), až jsou vyřízené oba nezávislé kroky, které se ho týkají
+    var monthDone=(!hasSharedActivity||isSettled)&&(!hasDirectReport||reportSent);
 
     // Hlavička měsíce
     h+='<div style="margin-bottom:16px">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 4px 6px">'
       +'<div onclick="toggleJitkaMonth(\''+sectionId+'\')" style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer">'
       +'<span style="font-size:13px;color:#6c6c70;text-transform:uppercase;letter-spacing:.04em;font-weight:500">'+monthLbl+'</span>'
-      +(!hasSharedActivity?'<span style="background:#ff9500;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">INFO</span>':(isSettled?'<span style="background:#34c759;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">VYÚČTOVÁNO</span>':''))
+      +(!hasSharedActivity?(hasDirectReport&&reportSent?'<span style="background:#34c759;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">ODESLÁNO</span>':'<span style="background:#ff9500;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">INFO</span>'):(isSettled?'<span style="background:#34c759;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px">VYÚČTOVÁNO</span>':''))
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
       +(hasSharedActivity?('<span style="font-size:13px;color:'+(isSettled?'#34c759':(netM>=0?'#ff2d78':'#1c1c1e'))+';font-weight:600">'+fmt(Math.abs(netM))+'</span>'
         +'<button onclick="printMonth(\''+m+'\')" title="Vyúčtování / PDF" style="background:none;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'):'')
-      +(hasDirectReport?'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>':'')
-      +'<span onclick="toggleJitkaMonth(\''+sectionId+'\')" id="chev-'+sectionId+'" style="font-size:12px;color:#aeaeb2;transition:transform .2s;display:inline-block;cursor:pointer">'+(isSettled?'▶':'▼')+'</span>'
+      +(hasDirectReport?('<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>'
+        +(reportSent
+           ?'<span onclick="event.stopPropagation();toggleReportSent(\''+m+'\')" title="Klepnutím zrušit" style="background:#34c759;color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:8px;cursor:pointer;white-space:nowrap">✓ Posláno</span>'
+           :'<button onclick="event.stopPropagation();toggleReportSent(\''+m+'\')" title="Označit jako odesláno Jitce" style="background:none;border:1px solid #34c759;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#34c759">✓</button>')):'')
+      +'<span onclick="toggleJitkaMonth(\''+sectionId+'\')" id="chev-'+sectionId+'" style="font-size:12px;color:#aeaeb2;transition:transform .2s;display:inline-block;cursor:pointer">'+(monthDone?'▶':'▼')+'</span>'
       +'</div>'
       +'</div>'
 
-      // Obsah měsíce — defaultně otevřeno pro nevyúčtované, zavřeno pro vyúčtované
-      +'<div id="'+sectionId+'" style="display:'+(isSettled?'none':'block')+'">';
+      // Obsah měsíce — defaultně otevřeno, dokud není hotové (vyúčtováno + odesláno)
+      +'<div id="'+sectionId+'" style="display:'+(monthDone?'none':'block')+'">';
 
     // Nevyúčtované položky
     if(unpaidItems.length){
@@ -2096,6 +2106,14 @@ function toggleJitkaMonth(id){
   var open=el.style.display!=='none';
   el.style.display=open?'none':'block';
   if(chev)chev.style.transform=open?'':'rotate(90deg)';
+}
+
+function toggleReportSent(m){
+  if(jitkaReportSent[m]){ delete jitkaReportSent[m]; }
+  else{ jitkaReportSent[m]=today(); }
+  localStorage.setItem('vyd_jitka_report_sent',JSON.stringify(jitkaReportSent));
+  ghSaveCfg();
+  renderHome();
 }
 
 function settleExp(id){
