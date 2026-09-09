@@ -70,7 +70,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
 .note-card-title{font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .note-type-badge{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-bg);color:var(--accent);white-space:nowrap;flex-shrink:0}
 .note-card-preview{font-size:13px;color:var(--text2);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.note-card-meta{font-size:12px;color:var(--text3);margin-top:6px;display:flex;gap:10px;align-items:center}
+.note-card-meta{font-size:12px;color:var(--text3);margin-top:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .note-task-badge{font-size:11px;color:var(--green);font-weight:500}
 
 /* EMPTY */
@@ -314,7 +314,7 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
         <button class="layout-btn on" id="layout-list" onclick="setLayout('list')" title="Seznam">☰</button>
         <button class="layout-btn" id="layout-compact" onclick="setLayout('compact')" title="Kompaktní">≡</button>
       </div>
-      <select class="sort-select" id="sort-select" onchange="renderList()">
+      <select class="sort-select" id="sort-select" onchange="setSortPref(this.value)">
         <option value="edited">Podle editace</option>
         <option value="created">Podle vytvoření</option>
         <option value="alpha">Podle názvu A–Z</option>
@@ -799,7 +799,8 @@ function renderList(){
       ${preview?`<div class="note-card-preview">${preview}</div>`:''}
       ${tagsHtml}
       <div class="note-card-meta">
-        <span>${fmtDate(n.updatedAt)}</span>
+        <span title="Datum vytvoření">📅 ${fmtDate(n.createdAt)}</span>
+        <span title="Poslední úprava">✏️ ${fmtDate(n.updatedAt)}</span>
         ${tasks.length?`<span class="note-task-badge">✓ ${tasks.length} úkol${tasks.length>1?'y':''}</span>`:''}
       </div>
     </div>`;
@@ -809,6 +810,11 @@ function renderList(){
 function setLayout(l){
   curLayout=l;
   localStorage.setItem('poz_layout',l);
+  renderList();
+}
+
+function setSortPref(v){
+  localStorage.setItem('poz_sort',v);
   renderList();
 }
 
@@ -1918,6 +1924,8 @@ function initQuick(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────
+const savedSort=localStorage.getItem('poz_sort');
+if(savedSort){ const sel=document.getElementById('sort-select'); if(sel) sel.value=savedSort; }
 renderList();
 initQuick();
 function startupSync(tries){
