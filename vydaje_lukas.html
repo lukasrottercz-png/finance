@@ -266,6 +266,8 @@ try{ jitkaClaims=JSON.parse(localStorage.getItem('vyd_jitka_claims')||'{}')||{};
 // Zamrznuté částky vyúčtovaných měsíců — jednou vyúčtovaná suma se pozdější editací položek už nezmění
 var jitkaSettlements={};
 try{ jitkaSettlements=JSON.parse(localStorage.getItem('vyd_jitka_settlements')||'{}')||{}; }catch(e){ jitkaSettlements={}; }
+// E-mail Jitky pro odeslání měsíčního reportu (printDirectMonth) — sync v configu
+var jitkaEmail=localStorage.getItem('vyd_jitka_email')||'';
 
 var tokenClient=null;
 var accessToken=localStorage.getItem('g_access_token')||'';
@@ -428,6 +430,7 @@ async function ghLoadCfg(){
         if(typeof r.data.savingsRate==='number'){ savingsRate=r.data.savingsRate; localStorage.setItem('vyd_savings_rate',savingsRate); }
         if(r.data.jitkaClaims && typeof r.data.jitkaClaims==='object' && !Array.isArray(r.data.jitkaClaims)){ jitkaClaims=r.data.jitkaClaims; localStorage.setItem('vyd_jitka_claims',JSON.stringify(jitkaClaims)); }
         if(r.data.jitkaSettlements && typeof r.data.jitkaSettlements==='object' && !Array.isArray(r.data.jitkaSettlements)){ jitkaSettlements=r.data.jitkaSettlements; localStorage.setItem('vyd_jitka_settlements',JSON.stringify(jitkaSettlements)); }
+        if(typeof r.data.jitkaEmail==='string'){ jitkaEmail=r.data.jitkaEmail; localStorage.setItem('vyd_jitka_email',jitkaEmail); }
         cfgUpdated=remoteU; localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
       }
     }
@@ -436,7 +439,7 @@ async function ghLoadCfg(){
 async function ghSaveCfg(){
   cfgUpdated=Date.now(); localStorage.setItem('vyd_cfg_updated',String(cfgUpdated));
   if(isConnected()){
-    try{ await driveWriteJSON(GH_FILE_CFG,{savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,updatedAt:cfgUpdated}); }
+    try{ await driveWriteJSON(GH_FILE_CFG,{savingsRate:savingsRate,jitkaClaims:jitkaClaims,jitkaSettlements:jitkaSettlements,jitkaEmail:jitkaEmail,updatedAt:cfgUpdated}); }
     catch(e){ console.error('driveSaveCfg:',e); }
   }
   syncNastenkaTiles();
@@ -584,6 +587,19 @@ function budgetInfo(){
   var spentPct=limit>0?Math.round(bezne/limit*100):0;         // kolik z limitu projeto
   return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
           dnuVMesici:dnuVMesici,denVMesici:denVMesici,pacePct:pacePct,ocekavano:ocekavano,paceDiff:paceDiff,mesicSpentPct:spentPct};
+}
+function setJitkaEmail(){
+  var val=prompt('E-mail Jitky (pro odesílání měsíčního reportu):', jitkaEmail);
+  if(val===null)return;
+  jitkaEmail=val.trim();
+  localStorage.setItem('vyd_jitka_email',jitkaEmail);
+  ghSaveCfg();
+  renderHome();
+  showToast(jitkaEmail?'E-mail uložen':'E-mail smazán');
+}
+function getJitkaEmail(){
+  if(!jitkaEmail){ setJitkaEmail(); }
+  return jitkaEmail;
 }
 function setSavingsRate(){
   var val=prompt('Kolik % čisté mzdy chceš měsíčně ušetřit?\n(z toho se počítá denní rozpočet)', savingsRate);
@@ -1578,6 +1594,7 @@ function renderJitka(){
   var topPos=netGlobal>=0;
 
   var h='';
+  h+='<div style="text-align:center;padding:6px 16px 0;font-size:12px;color:#8e8e93">✉️ '+(jitkaEmail?jitkaEmail:'e-mail Jitky není nastavený')+' <span onclick="setJitkaEmail()" style="color:#7c3aed;cursor:pointer">✎</span></div>';
   if(shared.length||hasZa){
     h+='<div class="jitka-sum">'
       +'<div class="jitka-amt" style="color:'+(topPos?'#ff2d78':'#34c759')+'">'+fmt(Math.abs(netGlobal))+'</div>'
@@ -2025,6 +2042,29 @@ function printDirectMonth(m){
   var navicHtml=section('Jitce extra','#7c3aed',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;});
   var grandTotal=famM.total+famM.otherTotal+dirM.total;
 
+  function sectionText(title,items,recurItems,total,amtFn){
+    if(total<=0)return '';
+    var lines=title.toUpperCase()+'\n';
+    (items||[]).forEach(function(e){
+      var cat=catByKey(e.catKey);
+      var d=new Date(e.date+'T12:00:00').toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
+      lines+='- '+d+' '+(cat?cat.l:e.catKey)+(e.subcat?' / '+e.subcat:'')+(e.note?' — '+e.note:'')+': '+fmt(amtFn(e))+'\n';
+    });
+    (recurItems||[]).forEach(function(t){
+      lines+='- (trvalé) '+t.nazev+': '+fmt(t.castka)+'\n';
+    });
+    lines+='Celkem: '+fmt(total)+'\n\n';
+    return lines;
+  }
+  var emailBody='Report za '+monthLbl+'\n\n'
+    +sectionText('Zaplaceno přímo za děti',famM.items,famM.recurItems,famM.total,function(e){return e.amount;})
+    +sectionText('Ostatní rodinné výdaje',famM.otherItems,famM.otherRecurItems,famM.otherTotal,function(e){return e.amount;})
+    +sectionText('Příspěvek na děti (posláno Jitce)',dirM.prisp,null,dirM.prispTotal,function(e){return e.amount;})
+    +sectionText('Jitce extra',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;})
+    +'CELKEM ZA TENTO MĚSÍC: '+fmt(grandTotal);
+  var emailTo=getJitkaEmail();
+  var mailtoHref=emailTo?('mailto:'+emailTo+'?subject='+encodeURIComponent('Report za děti — '+monthLbl)+'&body='+encodeURIComponent(emailBody)):'';
+
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>Report za děti — '+monthLbl+'</title>'
     +'<style>'
@@ -2033,11 +2073,14 @@ function printDirectMonth(m){
     +'h1{font-size:22px;font-weight:700;color:#1c1c1e}'
     +'table{width:100%;border-collapse:collapse;margin-top:16px}'
     +'.summary{margin-top:24px;padding:16px;background:#f9f9f9;border-radius:10px;border:1px solid #e0e0e0;font-size:13px;color:#6c6c70}'
-    +'@media print{body{padding:20px}button{display:none!important}tr{page-break-inside:avoid;break-inside:avoid}h2{page-break-after:avoid;break-after:avoid}.summary,.keep-together{page-break-inside:avoid;break-inside:avoid}}'
+    +'@media print{body{padding:20px}.no-print{display:none!important}tr{page-break-inside:avoid;break-inside:avoid}h2{page-break-after:avoid;break-after:avoid}.summary,.keep-together{page-break-inside:avoid;break-inside:avoid}}'
     +'</style></head><body>'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px">'
     +'<h1>Report za děti — Lukáš</h1>'
-    +'<button onclick="window.print()" style="padding:8px 16px;background:#1c1c1e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">🖨 Uložit jako PDF</button>'
+    +'<div class="no-print" style="display:flex;gap:8px;flex-shrink:0">'
+    +(mailtoHref?('<a href="'+mailtoHref+'" style="padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap">✉️ Odeslat Jitce</a>'):'')
+    +'<button onclick="window.print()" style="padding:8px 16px;background:#1c1c1e;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap">🖨 Uložit jako PDF</button>'
+    +'</div>'
     +'</div>'
     +'<p style="font-size:16px;color:#6c6c70;margin-bottom:20px">'+monthLbl+'</p>'
     +'<div class="keep-together">'+famHtml+'</div>'

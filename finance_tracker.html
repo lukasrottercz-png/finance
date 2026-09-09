@@ -586,18 +586,22 @@ async function loadAiComment() {
     }
   } catch(e) { console.error('AI cfg load:', e); }
 
-  // Spočítej skutečnou míru úspor za aktuální měsíc — jen z jistého příjmu (mzdy), aby AI nemusela hádat
+  // Spočítej skutečnou míru úspor za aktuální (živý, dnešní) měsíc — jen z jistého příjmu zadaného
+  // průběžně ve Výdajích (stejný zdroj a stejná logika jako denní rozpočet tam), aby AI nemusela hádat.
+  // Záměrně NEbereme poslední zadané období z finance_tracker.html — to může být klidně měsíc pozadu.
   let realSavingsInfo = '';
-  const nowP = periods.length ? periods[periods.length-1] : null;
-  const nowD = new Date();
-  if (nowP && new Date(nowP.date).getMonth() === nowD.getMonth() && new Date(nowP.date).getFullYear() === nowD.getFullYear()) {
-    const gi = guaranteedIncome(nowP);
+  try {
+    const _pr = await readPrijmyFromDrive();
+    const nowD = new Date();
+    const ymNow = nowD.getFullYear() + '-' + String(nowD.getMonth()+1).padStart(2,'0');
+    const thisMPrijmy = _pr.list.filter(it => (it.date||'').slice(0,7) === ymNow);
+    const gi = thisMPrijmy.filter(it => it.jisty !== false).reduce((s,it) => s + (it.castka||0), 0);
     if (gi > 0) {
       const zbyva = gi - bezneVydajeMesic - trvaleTotal;
       const pct = Math.round(zbyva / gi * 100);
       realSavingsInfo = `\n\nSkutečná míra úspor tento měsíc (počítáno JEN z jistého příjmu/mzdy ${Math.round(gi).toLocaleString('cs-CZ')} Kč, minus běžné výdaje ${Math.round(bezneVydajeMesic).toLocaleString('cs-CZ')} Kč a trvalé platby ${Math.round(trvaleTotal).toLocaleString('cs-CZ')} Kč): ${zbyva>=0?'+':''}${Math.round(zbyva).toLocaleString('cs-CZ')} Kč, tj. ${pct} %.${savingsGoalPct!=null ? ` Cíl je ${savingsGoalPct} %.` : ''} Použij přímo toto číslo, nepočítej míru úspor znovu sám z rozdílu zůstatků.`;
     }
-  }
+  } catch(e) { console.error('AI realSavings load:', e); }
 
   // Načti investiční portfolio pro AI kontext
   let invInfo = '';
@@ -623,8 +627,9 @@ Důležité vysvětlení struktury dat:
 - "Dostupné finance bez investic" = součet všech peněz na bankovních účtech, spořících účtech, penzijním spoření a stavebním spoření. Jsou to reálně dostupné prostředky (bez investičního portfolia).
 - "Bez hypotéky" = hypotetický čistý majetek v případě okamžitého splacení hypotéky (Dostupné finance bez investic mínus hypotéka). Jde o informativní číslo, ne reálný stav.
 - Hypotéka je dlouhodobý závazek — nesouvisí přímo s každodenní likviditou.
-- "Investiční portfolio" a "Přesun do investic" = peníze investované přes XTB (samostatné od dostupných financí). Když Lukáš přesune peníze z účtu do investic, "Dostupné finance bez investic" klesnou, ale NEJDE o výdaj ani "mimořádný výdaj" — peníze se jen přesunuly do portfolia a stále je má. NIKDY nepiš o investiční tranši jako o výdaji nebo ji neslučuj do jedné věty s reálnými výdaji (např. nákup věci) — je to jiná kategorie, přesun aktiv. Vždy zkontroluj, zda v období poklesu dostupných financí proběhla investiční tranše, a o tuto částku ponižuj domnělé "utrácení".
+- "Investiční portfolio" a "Přesun do investic" = peníze investované přes XTB (samostatné od dostupných financí). Když Lukáš přesune peníze z účtu do investic, "Dostupné finance bez investic" klesnou, ale NEJDE o výdaj ani "mimořádný výdaj" — peníze se jen přesunuly do portfolia a stále je má. NIKDY nepiš o investiční tranši jako o výdaji nebo ji neslučuj do jedné věty s reálnými výdaji (např. nákup věci) — je to jiná kategorie, přesun aktiv. Pokud vysvětluješ pokles zůstatku, kde se investiční tranše sešla ve stejném období s reálným výdajem (např. nákup věci), VŽDY je odděl na dvě samostatné myšlenky a u investice výslovně zopakuj, že tu částku Lukáš pořád vlastní (jen v jiné formě) — nikdy je nespojuj do jedné souhrnné "kombinace", která zní jako by šlo o srovnatelnou ztrátu. Vždy zkontroluj, zda v období poklesu dostupných financí proběhla investiční tranše, a o tuto částku ponižuj domnělé "utrácení".
 - "Jistý příjem (mzda)" = jediný smluvně podchycený, spolehlivý příjem. "Ostatní nejistý příjem" = vedlejší příjmy bez smluvní jistoty (brigáda, jednorázovka apod.) — zmiň je jen jako bonus navíc, NIKDY je nezapočítávej do míry úspor, do "spolehlivého příjmu" ani do doporučení o rezervách. Pro veškeré hodnocení finančního zdraví, míry úspor a doporučení používej výhradně jistý příjem (mzdu).
+- Kontext k výši příjmu: čistá mzda v ČR má medián kolem 38–40 tis. Kč měsíčně a průměr cca 45–50 tis. Kč (stav 2025/2026). Když komentuješ výši jistého příjmu, zasaď ho do tohoto kontextu — pokud je výrazně nad touto úrovní, řekni to jako silnou/nadstandardní výchozí pozici. NIKDY nepopisuj nadprůměrný příjem jako "nízký" nebo dávající jen "minimální prostor pro výkyvy" jen proto, že vypadá nízko vedle velkých jednorázových částek (investice, nákupy) — poměřuj ho vůči běžným měsíčním výdajům a trvalým platbám, ne vůči mimořádným položkám.
 
 Data (chronologicky):
 ${history}${trvaleInfo}${vydajeInfo}${cfgInfo}${realSavingsInfo}${invInfo}
@@ -829,8 +834,8 @@ async function loadVydaje() {
     const total = Object.values(byCat).reduce((s,v) => s+v, 0);
     if (vydajeTotalEl) vydajeTotalEl.textContent = fmt(total);
 
-    const CAT_ICONS = { bydleni:'🏠', doprava:'🚗', potraviny:'🛒', stravovani:'🍽', deti:'👶', pece:'💇', zdravi:'🏥', obleceni:'👕', cestovani:'✈️', zabava:'🎮', predplatne:'📱', pojisteni:'🛡', sporeni:'💰', domacnost:'🔧', darky:'🎁', za_jitku:'💸', vyrovnani:'🤝', ostatni:'❓' };
-    const CAT_LABELS = { bydleni:'Bydlení', doprava:'Doprava', potraviny:'Potraviny', stravovani:'Stravování', deti:'Děti', pece:'Péče o sebe', zdravi:'Zdraví', obleceni:'Oblečení', cestovani:'Cestování', zabava:'Zábava', predplatne:'Předplatné', pojisteni:'Pojištění', sporeni:'Spoření', domacnost:'Domácnost', darky:'Dárky a oslavy', za_jitku:'Za Jitku', vyrovnani:'Vyrovnání Jitka', ostatni:'Ostatní' };
+    const CAT_ICONS = { bydleni:'🏠', doprava:'🚗', potraviny:'🛒', stravovani:'🍽', deti:'👶', pece:'💇', zdravi:'🏥', obleceni:'👕', cestovani:'✈️', zabava:'🎮', predplatne:'📱', pojisteni:'🛡', sporeni:'💰', domacnost:'🔧', darky:'🎁', za_jitku:'💸', prispevek_deti:'👶', jitka_navic:'📤', vyrovnani:'🤝', ostatni:'❓' };
+    const CAT_LABELS = { bydleni:'Bydlení', doprava:'Doprava', potraviny:'Potraviny', stravovani:'Stravování', deti:'Děti', pece:'Péče o sebe', zdravi:'Zdraví', obleceni:'Oblečení', cestovani:'Cestování', zabava:'Zábava', predplatne:'Předplatné', pojisteni:'Pojištění', sporeni:'Spoření', domacnost:'Domácnost', darky:'Dárky a oslavy', za_jitku:'Za Jitku', prispevek_deti:'Příspěvek na děti', jitka_navic:'Jitce extra', vyrovnani:'Vyrovnání Jitka', ostatni:'Ostatní' };
 
     const sorted = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
     if (vydajeEl) vydajeEl.innerHTML = sorted.map(([k,v]) => {
