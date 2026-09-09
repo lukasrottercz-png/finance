@@ -1630,6 +1630,9 @@ function renderJitka(){
     }
     var netM=baseShare + zBase - claimM/2;    // + = Jitka platí mně, − = platím Jitce
     var sectionId='jm-'+m.replace('-','');
+    var famM=famForMonth(m);
+    var dirM=directForMonth(m);
+    var hasDirectReport=famM.total>0||famM.otherTotal>0||dirM.total>0;
 
     // Hlavička měsíce
     h+='<div style="margin-bottom:16px">'
@@ -1640,7 +1643,8 @@ function renderJitka(){
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px">'
       +(hasSharedActivity?('<span style="font-size:13px;color:'+(isSettled?'#34c759':(netM>=0?'#ff2d78':'#1c1c1e'))+';font-weight:600">'+fmt(Math.abs(netM))+'</span>'
-        +'<button onclick="printMonth(\''+m+'\')" title="Tisknout / PDF" style="background:none;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'):'')
+        +'<button onclick="printMonth(\''+m+'\')" title="Vyúčtování / PDF" style="background:none;border:1px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'):'')
+      +(hasDirectReport?'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>':'')
       +'<span onclick="toggleJitkaMonth(\''+sectionId+'\')" id="chev-'+sectionId+'" style="font-size:12px;color:#aeaeb2;transition:transform .2s;display:inline-block;cursor:pointer">'+(isSettled?'▶':'▼')+'</span>'
       +'</div>'
       +'</div>'
@@ -1749,13 +1753,9 @@ function renderJitka(){
       }
     }
 
-    var famM=famForMonth(m);
     if(famM.total>0){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#fff7ed;border-color:#ffd8a8">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        +'<div style="font-size:14px;font-weight:600;color:#ff9500">👶 Výdaje za děti <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nevstupuje do vyrovnání)</span></div>'
-        +'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ffd8a8;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#ff9500">🖨</button>'
-        +'</div>';
+        +'<div style="font-size:14px;font-weight:600;color:#ff9500;margin-bottom:8px">👶 Výdaje za děti <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nevstupuje do vyrovnání)</span></div>';
       famM.items.forEach(function(e){
         var cat=catByKey(e.catKey);
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
@@ -1769,10 +1769,7 @@ function renderJitka(){
     }
     if(famM.otherTotal>0){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f2f2f7;border-color:#d8d8dc">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        +'<div style="font-size:14px;font-weight:600;color:#6c6c70">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>'
-        +'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #d8d8dc;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#6c6c70">🖨</button>'
-        +'</div>';
+        +'<div style="font-size:14px;font-weight:600;color:#6c6c70;margin-bottom:8px">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>';
       famM.otherItems.forEach(function(e){
         var cat=catByKey(e.catKey);
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
@@ -1785,13 +1782,9 @@ function renderJitka(){
         +'</div>';
     }
 
-    var dirM=directForMonth(m);
     if(dirM.total>0){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f5f0ff;border-color:#ddd0ff">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-        +'<div style="font-size:14px;font-weight:600;color:#7c3aed">📤 Posláno Jitce přímo <span style="font-weight:400;color:#8e8e93;font-size:11px">(Jitka se finančně nepodílí)</span></div>'
-        +'<button onclick="printDirectMonth(\''+m+'\')" title="Výdaje pro Jitku" style="background:none;border:1px solid #ddd0ff;border-radius:8px;cursor:pointer;font-size:14px;padding:3px 8px;color:#7c3aed">🖨</button>'
-        +'</div>';
+        +'<div style="font-size:14px;font-weight:600;color:#7c3aed;margin-bottom:8px">📤 Posláno Jitce přímo <span style="font-weight:400;color:#8e8e93;font-size:11px">(Jitka se finančně nepodílí)</span></div>';
       dirM.prisp.forEach(function(e){
         h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
       });
