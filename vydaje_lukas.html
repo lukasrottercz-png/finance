@@ -527,7 +527,10 @@ async function syncNastenkaTiles(force){
     if(!putRes.ok) throw new Error('PUT '+putRes.status);
     localStorage.setItem('nastenka_last_payload',payload);
     localStorage.setItem('nastenka_last_sync',String(Date.now()));
-  }catch(e){ console.warn('nástěnka sync:',e); }
+  }catch(e){
+    console.warn('nástěnka sync:',e);
+    showToast('Nástěnka: zápis se nepovedl (' + e.message + ') — zkontroluj token 📺');
+  }
 }
 
 function daysLeftInMonth(){
