@@ -458,9 +458,9 @@ const TYPES = {
 };
 
 const TEMPLATES = {
-  schuze: `## Schůzka\n**Datum:** ${new Date().toLocaleDateString('cs-CZ')}\n**Místo / forma:** \n**Účastníci:** \n\n---\n\n## Body jednání\n- \n\n## Závěry a rozhodnutí\n- \n\n## Úkoly\n- [ ] \n`,
-  napad: `## Nápad\n\n## Popis\n\n## Proč by to fungovalo\n- \n\n## Další kroky\n- [ ] \n`,
-  rozhodnuti: `## Rozhodnutí\n**Co bylo rozhodnuto:** \n\n## Důvody\n- \n\n## Alternativy které padly\n- \n\n## Follow-up\n- [ ] \n`,
+  schuze: `## Schůzka\n**Datum:** ${new Date().toLocaleDateString('cs-CZ')}\n**Místo / forma:** \n**Účastníci:** \n\n---\n\n## Body jednání\n- \n\n## Závěry a rozhodnutí\n- \n\n## Úkoly\nT: \n`,
+  napad: `## Nápad\n\n## Popis\n\n## Proč by to fungovalo\n- \n\n## Další kroky\nT: \n`,
+  rozhodnuti: `## Rozhodnutí\n**Co bylo rozhodnuto:** \n\n## Důvody\n- \n\n## Alternativy které padly\n- \n\n## Follow-up\nT: \n`,
   volna: '',
 };
 
@@ -680,6 +680,7 @@ function renderMd(text, noteId){
     .replace(/^---$/gm,'<hr>')
     .replace(/^- \[x\] (.+)$/gm,'<div class="task-line"><div class="task-cb done" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text done">$1</span></div>')
     .replace(/^- \[ \] (.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
+    .replace(/^T: ?(.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
     .replace(/^- (.+)$/gm,'<li>$1</li>');
 
   // Seskup li do ul bez extra mezer
@@ -707,7 +708,7 @@ function toggleTask(cb, noteId){
   if(isDone){
     note.content=note.content.replace(`- [x] ${text}`,`- [ ] ${text}`);
   } else {
-    note.content=note.content.replace(`- [ ] ${text}`,`- [x] ${text}`);
+    note.content=note.content.replace(`- [ ] ${text}`,`- [x] ${text}`).replace(`T: ${text}`,`- [x] ${text}`);
   }
   ghSave();
   showDetail(noteId);
@@ -716,7 +717,12 @@ function toggleTask(cb, noteId){
 // Extrahuj nesplněné tasky z poznámky
 function extractTasks(content){
   const lines=content.split('\n');
-  return lines.filter(l=>l.match(/^- \[ \] .+/)).map(l=>l.replace(/^- \[ \] /,''));
+  const out=[];
+  for(const l of lines){
+    const m=l.match(/^- \[ \] (.+)$/)||l.match(/^T: ?(.+)$/);
+    if(m) out.push(m[1]);
+  }
+  return out;
 }
 
 // ── LIST VIEW ─────────────────────────────────────────────────────────
@@ -1543,7 +1549,7 @@ async function aiPolishNote(noteId){
   const prompt=`Jsi asistent pro pracovní poznámky. Uprav a vyčisti následující ${typeLabel.toLowerCase()} v češtině.
 
 Pravidla:
-- Zachovej Markdown formátování (## nadpisy, - odrážky, - [ ] checkboxy)
+- Zachovej Markdown formátování (## nadpisy, - odrážky, - [ ] nebo T: checkboxy úkolů)
 - Oprav gramatiku, překlepy a diakritiku
 - Zpřehledni strukturu — použij nadpisy a odrážky tam kde dávají smysl
 - Zkrať příliš dlouhé věty
@@ -1622,7 +1628,7 @@ async function aiPolish(){
   const prompt=`Jsi asistent pro pracovní poznámky. Uprav a vyčisti následující ${typeLabel.toLowerCase()} v češtině.
 
 Pravidla:
-- Zachovej Markdown formátování (## nadpisy, - odrážky, - [ ] checkboxy)
+- Zachovej Markdown formátování (## nadpisy, - odrážky, - [ ] nebo T: checkboxy úkolů)
 - Oprav gramatiku a překlepy
 - Doplň chybějící sekce šablony pokud jsou prázdné
 - Zkrať příliš dlouhé věty
@@ -1857,11 +1863,11 @@ function fmtInsert(type){
     }
   } else if(type==='task'){
     if(sel){
-      const lines=sel.split('\n').map(l=>'- [ ] '+l).join('\n');
+      const lines=sel.split('\n').map(l=>'T: '+l).join('\n');
       newVal=before+lines+after; newCursor=start; newSelEnd=start+lines.length;
     } else {
       const nl=(before.length>0&&!before.endsWith('\n'))?'\n':'';
-      newVal=before+nl+'- [ ] '+after; newCursor=start+nl.length+6; newSelEnd=newCursor;
+      newVal=before+nl+'T: '+after; newCursor=start+nl.length+3; newSelEnd=newCursor;
     }
   }
 
