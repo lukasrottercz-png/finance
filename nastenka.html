@@ -176,6 +176,13 @@ body{
   vertical-align:middle;
 }
 .house .meta .house-sub{font-size:1.8vmin;color:var(--label);margin-left:.5vmin}
+.house-sync{
+  text-align:right;
+  font-size:1.3vmin;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--label);
+  margin-top:.6vmin;
+}
+.house-sync.stale{color:var(--alert)}
 
 @media (orientation:portrait){
   .house{padding:1vmin 1.5vmin}
@@ -268,6 +275,7 @@ body{
   <div class="panel house" id="housePanel" style="display:none">
     <div class="cap">Byt</div>
     <div class="meta" id="houseMeta" style="margin-top:.6vmin"></div>
+    <div class="house-sync" id="houseSync"></div>
   </div>
 
 </div>
@@ -284,7 +292,8 @@ const CONFIG = {
   tilesEveryMin: 5,      // jak často stahovat data.json
   staleAfterMin: 35,     // po jak dlouhé době bez dat hlásit ZASTARALÉ
   tilesUrl: "data.json",  // vlastní čísla, vedle tohoto souboru
-  houseUrl: "shelly.json" // data ze Shelly, plní GitHub Action
+  houseUrl: "shelly.json", // data ze Shelly, plní GitHub Action
+  houseStaleAfterMin: 360 // Shelly sync běží po hodinách, ne minutách — vlastní (delší) práh
 };
 
 /* ============================================================ */
@@ -508,10 +517,25 @@ async function loadHouse(){
       + "</div>"
     ).join("");
     panel.style.display = "";
+    paintHouseSync(d.updated);
   }catch(e){
     // dokud shelly.json neexistuje nebo nic nevrací, panel se prostě nezobrazí
     panel.style.display = "none";
   }
+}
+
+/* indikátor čerstvosti (byt) — vychází z "updated" v shelly.json, ne z času stažení */
+function paintHouseSync(updated){
+  const el = $("houseSync");
+  if(!el) return;
+  const t = updated ? new Date(updated).getTime() : NaN;
+  if(!t || isNaN(t)){ el.className = "house-sync"; el.textContent = "byt · bez data aktualizace"; return; }
+  const minAgo = Math.round((Date.now() - t) / 60000);
+  const stale = minAgo > CONFIG.houseStaleAfterMin;
+  el.className = "house-sync" + (stale ? " stale" : "");
+  el.textContent = "byt · " + (stale
+    ? "zastaralé · " + minAgo + " min"
+    : (minAgo < 1 ? "právě teď" : "před " + minAgo + " min"));
 }
 
 function esc(s){
