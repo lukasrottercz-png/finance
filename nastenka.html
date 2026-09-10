@@ -165,29 +165,6 @@ body{
 }
 .tiles-sync.stale{color:var(--alert)}
 
-.house{padding:1.6vmin 2.2vmin}
-.house .meta{margin-top:.6vmin!important;font-size:2.6vmin;gap:2.6vmin 4vmin;align-items:baseline}
-.house .meta .house-alert{color:var(--alert);font-weight:600;font-size:3.4vmin}
-.house .meta .house-alert b{color:var(--alert)}
-.house .meta .house-alert::before{
-  content:"";display:inline-block;
-  width:1.3vmin;height:1.3vmin;border-radius:50%;
-  background:var(--alert);margin-right:1vmin;
-  vertical-align:middle;
-}
-.house .meta .house-sub{font-size:1.8vmin;color:var(--label);margin-left:.5vmin}
-.house-sync{
-  text-align:right;
-  font-size:1.3vmin;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--label);
-  margin-top:.6vmin;
-}
-.house-sync.stale{color:var(--alert)}
-
-@media (orientation:portrait){
-  .house{padding:1vmin 1.5vmin}
-}
-
 .empty{
   grid-column:1/-1;
   border:1px dashed var(--lcd-edge);
@@ -272,12 +249,6 @@ body{
   <div class="tiles" id="tiles"></div>
   <div class="tiles-sync" id="tilesSync"></div>
 
-  <div class="panel house" id="housePanel" style="display:none">
-    <div class="cap">Byt</div>
-    <div class="meta" id="houseMeta" style="margin-top:.6vmin"></div>
-    <div class="house-sync" id="houseSync"></div>
-  </div>
-
 </div>
 
 <script>
@@ -291,9 +262,7 @@ const CONFIG = {
   weatherEveryMin: 10,   // jak často stahovat počasí
   tilesEveryMin: 5,      // jak často stahovat data.json
   staleAfterMin: 35,     // po jak dlouhé době bez dat hlásit ZASTARALÉ
-  tilesUrl: "data.json",  // vlastní čísla, vedle tohoto souboru
-  houseUrl: "shelly.json", // data ze Shelly, plní GitHub Action
-  houseStaleAfterMin: 360 // Shelly sync běží po hodinách, ne minutách — vlastní (delší) práh
+  tilesUrl: "data.json"  // vlastní čísla, vedle tohoto souboru
 };
 
 /* ============================================================ */
@@ -496,48 +465,6 @@ async function loadTiles(){
   }
 }
 
-/* ---------- Shelly (byt) ze shelly.json ---------- */
-async function loadHouse(){
-  const panel = $("housePanel");
-  const box = $("houseMeta");
-  try{
-    const r = await fetch(CONFIG.houseUrl + "?v=" + Date.now(), {cache:"no-store"});
-    if(!r.ok) throw new Error(r.status);
-    const d = await r.json();
-    if(!d.items || !d.items.length) throw new Error("prázdné");
-
-    // aktivní alert (únik, topení) jde nahoru, ať na první pohled nezapadne
-    const sorted = d.items.slice().sort((a, b) => (b.alert ? 1 : 0) - (a.alert ? 1 : 0));
-
-    box.innerHTML = sorted.map(it =>
-      "<div" + (it.alert ? " class=\"house-alert\"" : "") + ">"
-      + esc(it.label || "") + " <b>" + esc(it.value || "--")
-      + (it.unit ? " " + esc(it.unit) : "") + "</b>"
-      + (it.sub ? "<span class=\"house-sub\"> · " + esc(it.sub) + "</span>" : "")
-      + "</div>"
-    ).join("");
-    panel.style.display = "";
-    paintHouseSync(d.updated);
-  }catch(e){
-    // dokud shelly.json neexistuje nebo nic nevrací, panel se prostě nezobrazí
-    panel.style.display = "none";
-  }
-}
-
-/* indikátor čerstvosti (byt) — vychází z "updated" v shelly.json, ne z času stažení */
-function paintHouseSync(updated){
-  const el = $("houseSync");
-  if(!el) return;
-  const t = updated ? new Date(updated).getTime() : NaN;
-  if(!t || isNaN(t)){ el.className = "house-sync"; el.textContent = "byt · bez data aktualizace"; return; }
-  const minAgo = Math.round((Date.now() - t) / 60000);
-  const stale = minAgo > CONFIG.houseStaleAfterMin;
-  el.className = "house-sync" + (stale ? " stale" : "");
-  el.textContent = "byt · " + (stale
-    ? "zastaralé · " + minAgo + " min"
-    : (minAgo < 1 ? "právě teď" : "před " + minAgo + " min"));
-}
-
 function esc(s){
   return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 }
@@ -562,12 +489,9 @@ setInterval(loadWeather, CONFIG.weatherEveryMin * 60000);
 loadTiles();
 setInterval(loadTiles, CONFIG.tilesEveryMin * 60000);
 
-loadHouse();
-setInterval(loadHouse, CONFIG.tilesEveryMin * 60000);
-
 // po probuzení / návratu do popředí stáhnout hned
 document.addEventListener("visibilitychange", () => {
-  if(!document.hidden){ loadWeather(); loadTiles(); loadHouse(); keepAwake(); }
+  if(!document.hidden){ loadWeather(); loadTiles(); keepAwake(); }
 });
 
 keepAwake();
