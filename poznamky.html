@@ -872,6 +872,8 @@ function backToList(){
 let _cardMenu=null;
 let _dateEditor=null;
 let _dateEditorOutsideHandler=null;
+let _tagEditor=null;
+let _tagEditorOutsideHandler=null;
 
 function showCardMenu(id, btn){
   closeCardMenu();
@@ -882,6 +884,7 @@ function showCardMenu(id, btn){
   menu.innerHTML=`
     <button class="card-menu-item" onclick="closeCardMenu();openEdit('${id}')">✏️ Upravit</button>
     <button class="card-menu-item" onclick="showDateEditor('${id}',this)">📅 Upravit datum vytvoření</button>
+    <button class="card-menu-item" onclick="showTagEditor('${id}',this)">🏷 Upravit štítky</button>
     <button class="card-menu-item" onclick="closeCardMenu();togglePin('${id}')">📌 ${notes.find(n=>n.id===id)?.pinned?'Odepnout':'Připnout'}</button>
     <button class="card-menu-item danger" onclick="closeCardMenu();confirmDelete('${id}')">🗑 Smazat</button>`;
   menu.style.top=(rect.bottom+6)+'px';
@@ -931,6 +934,75 @@ function saveCardDate(id){
   notes=notes.map(n=>n.id===id?{...n,createdAt:created,updatedAt:now}:n);
   ghSave();
   closeDateEditor();
+  renderList();
+}
+
+function allTagsList(){
+  return [...new Set(notes.filter(n=>!n.deleted).flatMap(n=>n.tags||[]))].sort();
+}
+
+function showTagEditor(id, btn){
+  const note=notes.find(n=>n.id===id);
+  if(!note) return;
+  const rect=btn.getBoundingClientRect();
+  closeCardMenu();
+  closeDateEditor();
+  closeTagEditor();
+  const tags=allTagsList();
+  const box=document.createElement('div');
+  box.className='card-menu';
+  box.id='tag-editor';
+  box.style.padding='12px';
+  box.style.width='260px';
+  box.innerHTML=`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Štítky</div>
+    <input type="text" id="tag-editor-inp" class="tag-inp" placeholder="práce, projekt, nápad…" value="${(note.tags||[]).join(', ')}" oninput="syncTagEditorChips()" style="margin-bottom:8px">
+    ${tags.length?`<div id="tag-editor-suggest-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${tags.map(t=>`<button type="button" class="stitek-filter-chip" data-tag="${t}" onclick="toggleTagEditorTag('${t}')">${t}</button>`).join('')}</div>`:''}
+    <button class="btn btn-primary" style="width:100%;padding:8px" onclick="saveCardTags('${id}')">Uložit</button>`;
+  box.style.top=(rect.bottom+6)+'px';
+  box.style.right=(window.innerWidth-rect.right)+'px';
+  box.addEventListener('click',e=>e.stopPropagation());
+  document.body.appendChild(box);
+  _tagEditor=box;
+  syncTagEditorChips();
+  _tagEditorOutsideHandler=()=>closeTagEditor();
+  setTimeout(()=>document.addEventListener('click',_tagEditorOutsideHandler,{once:true}),10);
+}
+
+function closeTagEditor(){
+  const m=document.getElementById('tag-editor');
+  if(m) m.remove();
+  _tagEditor=null;
+  if(_tagEditorOutsideHandler){
+    document.removeEventListener('click',_tagEditorOutsideHandler);
+    _tagEditorOutsideHandler=null;
+  }
+}
+
+function syncTagEditorChips(){
+  const inp=document.getElementById('tag-editor-inp');
+  const row=document.getElementById('tag-editor-suggest-row');
+  if(!inp||!row) return;
+  const current=new Set(parseTags(inp.value));
+  row.querySelectorAll('.stitek-filter-chip').forEach(b=>b.classList.toggle('on',current.has(b.dataset.tag)));
+}
+
+function toggleTagEditorTag(tag){
+  const inp=document.getElementById('tag-editor-inp');
+  if(!inp) return;
+  const current=parseTags(inp.value);
+  const idx=current.indexOf(tag);
+  if(idx>=0) current.splice(idx,1); else current.push(tag);
+  inp.value=current.join(', ');
+  syncTagEditorChips();
+}
+
+function saveCardTags(id){
+  const tags=parseTags(document.getElementById('tag-editor-inp')?.value||'');
+  const now=new Date().toISOString();
+  notes=notes.map(n=>n.id===id?{...n,tags,updatedAt:now}:n);
+  ghSave();
+  closeTagEditor();
   renderList();
 }
 
@@ -1276,7 +1348,7 @@ function buildEditSheet(note){
 
 // ── NÁVRHY ŠTÍTKŮ (klikací, z už použitých tagů) ────────────────────────
 function tagSuggestRowHtml(){
-  const tags=[...new Set(notes.filter(n=>!n.deleted).flatMap(n=>n.tags||[]))].sort();
+  const tags=allTagsList();
   if(!tags.length) return '';
   return `<div class="tag-suggest-row" id="tag-suggest-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
     ${tags.map(t=>`<button type="button" class="stitek-filter-chip" data-tag="${t}" onclick="toggleEditTag('${t}')">${t}</button>`).join('')}
