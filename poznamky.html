@@ -1214,7 +1214,8 @@ function buildEditSheet(note){
       </div>
       <div class="field">
         <div class="field-label">Štítky</div>
-        <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…">
+        <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…" oninput="syncTagChips()">
+        ${tagSuggestRowHtml()}
       </div>
       <div class="field">
         <div class="field-label">Obsah</div>
@@ -1242,7 +1243,8 @@ function buildEditSheet(note){
       </div>
       <div class="field">
         <div class="field-label">Štítky</div>
-        <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…" value="${(note.tags||[]).join(', ')}">
+        <input class="tag-inp" id="edit-tags" type="text" placeholder="práce, projekt, nápad…" value="${(note.tags||[]).join(', ')}" oninput="syncTagChips()">
+        ${tagSuggestRowHtml()}
       </div>
       <div class="field">
         <div class="field-label">Datum vytvoření</div>
@@ -1269,6 +1271,35 @@ function buildEditSheet(note){
   }
   // Spustit autosave po sestavení formuláře
   setTimeout(initAutosave, 50);
+  syncTagChips();
+}
+
+// ── NÁVRHY ŠTÍTKŮ (klikací, z už použitých tagů) ────────────────────────
+function tagSuggestRowHtml(){
+  const tags=[...new Set(notes.filter(n=>!n.deleted).flatMap(n=>n.tags||[]))].sort();
+  if(!tags.length) return '';
+  return `<div class="tag-suggest-row" id="tag-suggest-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+    ${tags.map(t=>`<button type="button" class="stitek-filter-chip" data-tag="${t}" onclick="toggleEditTag('${t}')">${t}</button>`).join('')}
+  </div>`;
+}
+
+function syncTagChips(){
+  const inp=document.getElementById('edit-tags');
+  const row=document.getElementById('tag-suggest-row');
+  if(!inp||!row) return;
+  const current=new Set(parseTags(inp.value));
+  row.querySelectorAll('.stitek-filter-chip').forEach(b=>b.classList.toggle('on',current.has(b.dataset.tag)));
+}
+
+function toggleEditTag(tag){
+  const inp=document.getElementById('edit-tags');
+  if(!inp) return;
+  const current=parseTags(inp.value);
+  const idx=current.indexOf(tag);
+  if(idx>=0) current.splice(idx,1); else current.push(tag);
+  inp.value=current.join(', ');
+  syncTagChips();
+  inp.dispatchEvent(new Event('input',{bubbles:true}));
 }
 
 function selectType(type){
