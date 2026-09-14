@@ -1800,10 +1800,16 @@ function renderJitka(){
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;background:#f5f0ff;border-color:#ddd0ff">'
         +'<div style="font-size:14px;font-weight:600;color:#7c3aed;margin-bottom:8px">📤 Posláno Jitce přímo <span style="font-weight:400;color:#8e8e93;font-size:11px">(Jitka se finančně nepodílí)</span></div>';
       dirM.prisp.forEach(function(e){
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+        h+='<div style="padding:2px 0">'
+          +'<div style="display:flex;justify-content:space-between;font-size:13px;color:#444"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>'
+          +(e.note?'<div style="font-size:12px;color:#8e8e93">'+e.note+'</div>':'')
+          +'</div>';
       });
       dirM.navic.forEach(function(e){
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>💸 Jitce extra'+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+        h+='<div style="padding:2px 0">'
+          +'<div style="display:flex;justify-content:space-between;font-size:13px;color:#444"><span>💸 Jitce extra'+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>'
+          +(e.note?'<div style="font-size:12px;color:#8e8e93">'+e.note+'</div>':'')
+          +'</div>';
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #ddd0ff;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem posláno přímo</span><span style="color:#7c3aed">'+fmt(dirM.total)+'</span></div>'
         +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání — Jitka se na těchto platbách nijak finančně nepodílela.</div>'
