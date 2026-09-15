@@ -353,7 +353,11 @@
 .gantt-move-line { position: absolute; top: 50%; height: 0; border-top: 1.5px dashed #ff9500; z-index: 2; }
 .gantt-bar { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--gray); opacity: 0.9; z-index: 2; }
 .gantt-bar.gantt-bar-moved { box-shadow: 0 0 0 2px #ff9500; }
+.gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; }
+.gantt-track-row.sub .gantt-bar.gantt-done { background: var(--green); }
+.gantt-track-row.sub .gantt-bar.gantt-late { background: var(--red); }
 .gantt-bar-ghost { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; border: 1.5px dashed var(--muted); background: transparent; opacity: 0.6; z-index: 1; }
+.gantt-track-row.sub .gantt-bar-ghost { height: 14px; margin-top: -7px; }
 .col-date.moved { color: #ff9500; font-weight: 700; }
 .legend-row { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 4px 12px; font-size: 11px; color: var(--muted); }
 .legend-item { display: flex; align-items: center; gap: 5px; }
@@ -486,7 +490,7 @@
     </div>
     <div class="field" id="uProjektIdField" style="display:none">
       <label>Patří pod projekt</label>
-      <select id="uProjektId" onchange="buildPredecessorSelect(editUkolId)" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+      <select id="uProjektId" onchange="buildPredecessorSelect(editUkolId);updateUkolFieldVisibility()" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
         <option value="">— žádný —</option>
       </select>
     </div>
@@ -1145,7 +1149,7 @@ function renderGantt() {
   const kidsOf = (id) => ukoly.filter(x => x.projektId === id);
 
   const dates = items.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00'), new Date(effDate(i)+'T00:00:00')]);
-  items.forEach(i => { if (!collapsedProjects.has(i.id)) kidsOf(i.id).forEach(k => { dates.push(new Date(k.date+'T00:00:00')); dates.push(new Date(effDate(k)+'T00:00:00')); }); });
+  items.forEach(i => { if (!collapsedProjects.has(i.id)) kidsOf(i.id).forEach(k => { if (k.start) dates.push(new Date(k.start+'T00:00:00')); dates.push(new Date(k.date+'T00:00:00')); dates.push(new Date(effDate(k)+'T00:00:00')); }); });
   dates.push(todayD);
   const minD = new Date(Math.min(...dates));
   const maxD = new Date(Math.max(...dates));
@@ -1235,32 +1239,45 @@ function renderGantt() {
     const ghostBar = uMoved ? `<div class="gantt-bar-ghost" style="left:${left}px;width:${origWidth}px" title="Původní termín: ${fmtDate(u.date)}"></div>` : '';
     rowsHtml += `<div class="gantt-track-row" style="height:${rowH}px">${ghostBar}<div class="gantt-bar${uMoved?' gantt-bar-moved':''}" style="left:${left}px;width:${width}px" title="${barTitle}"></div></div>`;
 
-    // dílčí úkoly — zjednodušeně jako značka na termínu (skryté, pokud je projekt sbalený)
+    // dílčí úkoly — bar, pokud mají zadaný začátek i termín; jinak jen značka na termínu (skryté, pokud je projekt sbalený)
     if (!isCollapsed) kids.forEach(k => {
       const kEff = effDate(k);
       const kMoved = !!k.nahradniTermin && k.nahradniTermin !== k.date;
-      const kLeft = dayOffset(new Date(kEff+'T00:00:00')) * PX_PER_DAY;
+      const kHasRange = !!k.start;
+      const kLeft = dayOffset(new Date((kHasRange ? k.start : kEff)+'T00:00:00')) * PX_PER_DAY;
+      const kWidth = kHasRange ? Math.max(dayOffset(new Date(kEff+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY) : 0;
       const kCls = k.done ? 'gantt-done' : (kEff < todayStr ? 'gantt-late' : '');
       const kRowH = estLines(k.name, 14) === 2 ? subH2 : subH1;
-      posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kLeft };
+      posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kHasRange ? kLeft+kWidth : kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
       yCursor += kRowH;
       labelsHtml += `<div class="gantt-row-label sub" style="height:${kRowH}px">
           <div class="col-name" title="${esc(k.name)}">↳ ${esc(k.name)}</div>
-          <div class="col-date">–</div>
+          <div class="col-date">${kHasRange ? fmtDateShort(k.start) : '–'}</div>
           <div class="col-date${kMoved?' moved':''}" title="${kMoved?'Původně: '+fmtDate(k.date):''}">${fmtDateShort(kEff)}</div>
           <div class="col-resp">${k.zodpovida ? esc(k.zodpovida) : '–'}</div>
         </div>`;
-      const kTitle = kMoved
-        ? `${esc(k.name)}: ${fmtDate(kEff)} (původně ${fmtDate(k.date)})`
-        : `${esc(k.name)}: ${fmtDate(kEff)}`;
       let kGhost = '';
-      if (kMoved) {
-        const kOrigLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
-        const lineLeft = Math.min(kOrigLeft, kLeft), lineWidth = Math.abs(kLeft - kOrigLeft);
-        kGhost = `<div class="gantt-move-line" style="left:${lineLeft}px;width:${lineWidth}px"></div><div class="gantt-marker gantt-marker-ghost" style="left:${kOrigLeft}px" title="Původní termín: ${fmtDate(k.date)}"></div>`;
+      if (kHasRange) {
+        const kTitle = kMoved
+          ? `${esc(k.name)}: ${fmtDate(k.start)} – ${fmtDate(kEff)} (původně do ${fmtDate(k.date)})`
+          : `${esc(k.name)}: ${fmtDate(k.start)} – ${fmtDate(k.date)}`;
+        if (kMoved) {
+          const origWidth = Math.max(dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY);
+          kGhost = `<div class="gantt-bar-ghost" style="left:${kLeft}px;width:${origWidth}px" title="Původní termín: ${fmtDate(k.date)}"></div>`;
+        }
+        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px">${kGhost}<div class="gantt-bar ${kCls}${kMoved?' gantt-bar-moved':''}" style="left:${kLeft}px;width:${kWidth}px" title="${kTitle}"></div></div>`;
+      } else {
+        const kTitle = kMoved
+          ? `${esc(k.name)}: ${fmtDate(kEff)} (původně ${fmtDate(k.date)})`
+          : `${esc(k.name)}: ${fmtDate(kEff)}`;
+        if (kMoved) {
+          const kOrigLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
+          const lineLeft = Math.min(kOrigLeft, kLeft), lineWidth = Math.abs(kLeft - kOrigLeft);
+          kGhost = `<div class="gantt-move-line" style="left:${lineLeft}px;width:${lineWidth}px"></div><div class="gantt-marker gantt-marker-ghost" style="left:${kOrigLeft}px" title="Původní termín: ${fmtDate(k.date)}"></div>`;
+        }
+        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px">${kGhost}<div class="gantt-marker ${kCls}${kMoved?' gantt-marker-moved':''}" style="left:${kLeft}px" title="${kTitle}"></div></div>`;
       }
-      rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px">${kGhost}<div class="gantt-marker ${kCls}${kMoved?' gantt-marker-moved':''}" style="left:${kLeft}px" title="${kTitle}"></div></div>`;
     });
   });
 
@@ -1339,7 +1356,7 @@ function buildGanttSnapshotHtml() {
       id: u.id, name: u.name, start: u.start, date: u.date, nahradniTermin: u.nahradniTermin||'', note: u.note||'', done: !!u.done, completedAt: u.completedAt||null,
       zodpovida: u.zodpovida||'', predecessorId: u.predecessorId||'',
       kids: ukoly.filter(k => k.projektId === u.id && (k.agenda||'osobni')==='prace').map(k => ({
-        id: k.id, name: k.name, date: k.date, nahradniTermin: k.nahradniTermin||'', done: !!k.done, completedAt: k.completedAt||null, zodpovida: k.zodpovida||'', predecessorId: k.predecessorId||''
+        id: k.id, name: k.name, start: k.start||'', date: k.date, nahradniTermin: k.nahradniTermin||'', done: !!k.done, completedAt: k.completedAt||null, zodpovida: k.zodpovida||'', predecessorId: k.predecessorId||''
       }))
     }));
   const evidovane = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
@@ -1401,7 +1418,11 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-move-line { position: absolute; top: 50%; height: 0; border-top: 1.5px dashed #ff9500; z-index: 2; }
 .gantt-bar { position:absolute; top:50%; margin-top:-10px; height:20px; min-width:6px; border-radius:6px; background:var(--gray); opacity:.9; z-index:2; }
 .gantt-bar.gantt-bar-moved { box-shadow: 0 0 0 2px #ff9500; }
+.gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; }
+.gantt-track-row.sub .gantt-bar.gantt-done { background: var(--green); }
+.gantt-track-row.sub .gantt-bar.gantt-late { background: var(--red); }
 .gantt-bar-ghost { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; border: 1.5px dashed var(--muted); background: transparent; opacity: 0.6; z-index: 1; }
+.gantt-track-row.sub .gantt-bar-ghost { height: 14px; margin-top: -7px; }
 .col-date.moved { color: #ff9500; font-weight: 700; }
 .empty { text-align:center; padding:40px 20px; color:var(--muted); }
 .scale-row { display:flex; gap:6px; padding:0 20px 12px; align-items:center; }
@@ -1487,7 +1508,7 @@ function render() {
   const todayD = new Date(); todayD.setHours(0,0,0,0);
   ITEMS = orderByChain(ITEMS);
   const dates = ITEMS.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00'), new Date(effDate(i)+'T00:00:00')]);
-  ITEMS.forEach(i => i.kids.forEach(k => { dates.push(new Date(k.date+'T00:00:00')); dates.push(new Date(effDate(k)+'T00:00:00')); }));
+  ITEMS.forEach(i => i.kids.forEach(k => { if (k.start) dates.push(new Date(k.start+'T00:00:00')); dates.push(new Date(k.date+'T00:00:00')); dates.push(new Date(effDate(k)+'T00:00:00')); }));
   dates.push(todayD);
   const minD = new Date(Math.min(...dates)), maxD = new Date(Math.max(...dates));
   const rangeStart = new Date(minD.getFullYear(), minD.getMonth(), 1);
@@ -1564,21 +1585,34 @@ function render() {
     u.kids.forEach(k => {
       const kEff = effDate(k);
       const kMoved = !!k.nahradniTermin && k.nahradniTermin !== k.date;
-      const kLeft = dayOffset(new Date(kEff+'T00:00:00')) * PX_PER_DAY;
+      const kHasRange = !!k.start;
+      const kLeft = dayOffset(new Date((kHasRange ? k.start : kEff)+'T00:00:00')) * PX_PER_DAY;
+      const kWidth = kHasRange ? Math.max(dayOffset(new Date(kEff+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY) : 0;
       const kCls = k.done ? 'gantt-done' : (kEff < todayStr ? 'gantt-late':'');
       const kRowH = estLines(k.name, 14) === 2 ? subH2 : subH1;
-      posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kLeft };
+      posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kHasRange ? kLeft+kWidth : kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
       yCursor += kRowH;
-      labelsHtml += '<div class="gantt-row-label sub" style="height:'+kRowH+'px"><div class="col-name" title="'+esc(k.name)+'">↳ '+esc(k.name)+'</div><div class="col-date">–</div><div class="col-date'+(kMoved?' moved':'')+'" title="'+(kMoved?'Původně: '+fmtDate(k.date):'')+'">'+fmtDateShort(kEff)+'</div><div class="col-resp">'+(k.zodpovida?esc(k.zodpovida):'–')+'</div></div>';
-      const kTitle = kMoved ? (esc(k.name)+': '+fmtDate(kEff)+' (původně '+fmtDate(k.date)+')') : (esc(k.name)+': '+fmtDate(kEff));
+      labelsHtml += '<div class="gantt-row-label sub" style="height:'+kRowH+'px"><div class="col-name" title="'+esc(k.name)+'">↳ '+esc(k.name)+'</div><div class="col-date">'+(kHasRange?fmtDateShort(k.start):'–')+'</div><div class="col-date'+(kMoved?' moved':'')+'" title="'+(kMoved?'Původně: '+fmtDate(k.date):'')+'">'+fmtDateShort(kEff)+'</div><div class="col-resp">'+(k.zodpovida?esc(k.zodpovida):'–')+'</div></div>';
       let kGhost = '';
-      if (kMoved) {
-        const kOrigLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
-        const lineLeft = Math.min(kOrigLeft, kLeft), lineWidth = Math.abs(kLeft - kOrigLeft);
-        kGhost = '<div class="gantt-move-line" style="left:'+lineLeft+'px;width:'+lineWidth+'px"></div><div class="gantt-marker gantt-marker-ghost" style="left:'+kOrigLeft+'px" title="Původní termín: '+fmtDate(k.date)+'"></div>';
+      if (kHasRange) {
+        const kTitle = kMoved
+          ? (esc(k.name)+': '+fmtDate(k.start)+' – '+fmtDate(kEff)+' (původně do '+fmtDate(k.date)+')')
+          : (esc(k.name)+': '+fmtDate(k.start)+' – '+fmtDate(k.date));
+        if (kMoved) {
+          const origWidth = Math.max(dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY);
+          kGhost = '<div class="gantt-bar-ghost" style="left:'+kLeft+'px;width:'+origWidth+'px" title="Původní termín: '+fmtDate(k.date)+'"></div>';
+        }
+        rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px">'+kGhost+'<div class="gantt-bar '+kCls+(kMoved?' gantt-bar-moved':'')+'" style="left:'+kLeft+'px;width:'+kWidth+'px" title="'+kTitle+'"></div></div>';
+      } else {
+        const kTitle = kMoved ? (esc(k.name)+': '+fmtDate(kEff)+' (původně '+fmtDate(k.date)+')') : (esc(k.name)+': '+fmtDate(kEff));
+        if (kMoved) {
+          const kOrigLeft = dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY;
+          const lineLeft = Math.min(kOrigLeft, kLeft), lineWidth = Math.abs(kLeft - kOrigLeft);
+          kGhost = '<div class="gantt-move-line" style="left:'+lineLeft+'px;width:'+lineWidth+'px"></div><div class="gantt-marker gantt-marker-ghost" style="left:'+kOrigLeft+'px" title="Původní termín: '+fmtDate(k.date)+'"></div>';
+        }
+        rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px">'+kGhost+'<div class="gantt-marker '+kCls+(kMoved?' gantt-marker-moved':'')+'" style="left:'+kLeft+'px" title="'+kTitle+'"></div></div>';
       }
-      rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px">'+kGhost+'<div class="gantt-marker '+kCls+(kMoved?' gantt-marker-moved':'')+'" style="left:'+kLeft+'px" title="'+kTitle+'"></div></div>';
     });
   });
 
@@ -1719,7 +1753,8 @@ function updateUkolFieldVisibility() {
   document.getElementById('uProjektField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uZodpField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uEvidovanyField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
-  document.getElementById('uStartField').style.display = (isPrace && ukolProjekt && !ukolEvidovany) ? 'block' : 'none';
+  const hasProjektParent = !ukolProjekt && !!document.getElementById('uProjektId').value;
+  document.getElementById('uStartField').style.display = (isPrace && !ukolEvidovany && (ukolProjekt || hasProjektParent)) ? 'block' : 'none';
   document.getElementById('uNaKonciField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
   document.getElementById('uProjektIdField').style.display = (isPrace && !ukolProjekt) ? 'block' : 'none';
   document.getElementById('uPredecessorField').style.display = isPrace ? 'block' : 'none';
@@ -1812,9 +1847,9 @@ function saveUkol() {
   const naKonci = projekt && ukolNaKonci;
   const date = evidovany ? '' : document.getElementById('uDate').value;
   const nahradniTermin = evidovany ? '' : document.getElementById('uNahradniTermin').value;
-  const start = (projekt && !evidovany) ? document.getElementById('uStart').value : '';
   const zodpovida = isPrace ? document.getElementById('uZodp').value.trim() : '';
   const projektId = (isPrace && !projekt) ? document.getElementById('uProjektId').value : '';
+  const start = (!evidovany && (projekt || projektId)) ? document.getElementById('uStart').value : '';
   const predecessorId = isPrace ? document.getElementById('uPredecessorId').value : '';
   const completedAtVal = document.getElementById('uCompletedAt').value;
   const done = !!completedAtVal;
