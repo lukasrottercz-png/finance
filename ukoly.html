@@ -1519,6 +1519,13 @@ function toggleProjectPicker() {
   if (panel.style.display === 'none') { renderProjectPicker(); panel.style.display = 'block'; }
   else { panel.style.display = 'none'; }
 }
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('projectPickerPanel');
+  const btn = document.getElementById('pickerToggleBtn');
+  if (panel.style.display === 'block' && e.target !== btn && !panel.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
 function toggleProjectHidden(id) {
   if (hiddenIds.has(id)) hiddenIds.delete(id); else hiddenIds.add(id);
   renderProjectPicker();
