@@ -1487,7 +1487,7 @@ let ITEMS = ${dataJson};
 const ALL_ITEMS = ITEMS;
 const EVID_ITEMS = ${evidJson};
 const PICKABLE_TOTAL = ALL_ITEMS.length + EVID_ITEMS.length;
-const hiddenIds = new Set();
+const hiddenIds = new Set([...ALL_ITEMS.map(u => u.id), ...EVID_ITEMS.map(u => u.id)]);
 const collapsed = new Set();
 function toggleCollapse(id) { if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id); render(); }
 function collapseAll() { ITEMS.forEach(u => collapsed.add(u.id)); render(); }
@@ -1701,9 +1701,9 @@ function render() {
   const tl = document.getElementById('ganttTimeline');
   if (tl) tl.scrollLeft = Math.max(todayLeft - 160, 0);
 }
-updatePickerButtonLabel();
 render();
 renderEvidBox();
+toggleProjectPicker();
 <\/script>
 </body>
 </html>`;
