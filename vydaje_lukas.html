@@ -633,9 +633,8 @@ function budgetBannerHtml(){
 function paceChipHtml(b){
   if(!(b.limit>0))return ''; // pojistka: bez kladného limitu tempo nedává smysl
   var ahead=b.paceDiff>=0;
-  var bg=ahead?'#e8f8ee':'#fdeceb';
-  var fg=ahead?'#1a7d3d':'#c62f2a';
-  return '<span style="flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:'+bg+';color:'+fg+'">'+(ahead?'↑ ':'↓ ')+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</span>';
+  var bg=ahead?'#34c759':'#ff3b30';
+  return '<span style="flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:'+bg+';color:#fff">'+(ahead?'↑ ':'↓ ')+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</span>';
 }
 function paceBarHtml(b){
   if(!(b.limit>0))return '';
