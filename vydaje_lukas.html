@@ -619,22 +619,13 @@ function budgetBannerHtml(){
   var over=b.dnesZbyva<0;
   var color=over?'#ff3b30':(b.dnesZbyva<b.denni*0.25?'#ff9500':'#34c759');
   var amt=Math.round(Math.abs(b.dnesZbyva)).toLocaleString('cs-CZ');
-  return '<div class="budget-banner" style="text-align:left">'
-    +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">'
-      +'<div class="bb-big" style="color:'+color+'">'+(over?'−':'')+amt+' Kč</div>'
-      +paceChipHtml(b)
-    +'</div>'
+  return '<div class="budget-banner">'
+    +'<div class="bb-big" style="color:'+color+'">'+(over?'−':'')+amt+' Kč</div>'
     +'<div class="bb-cap">'+(over?'dnes jsi přes denní rozpočet':'můžeš dnes ještě utratit')
       +(b.odhad?' · <span class="bb-rate" onclick="openAddPrijem()">odhad z minulého měsíce ✎</span>':'')
       +' · <span class="bb-rate" onclick="setSavingsRate()">cíl úspor '+savingsRate+' % ✎</span></div>'
     +paceBarHtml(b)
     +'</div>';
-}
-function paceChipHtml(b){
-  if(!(b.limit>0))return ''; // pojistka: bez kladného limitu tempo nedává smysl
-  var ahead=b.paceDiff>=0;
-  var bg=ahead?'#34c759':'#ff3b30';
-  return '<span style="flex-shrink:0;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:'+bg+';color:#fff">'+(ahead?'↑ ':'↓ ')+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</span>';
 }
 function paceBarHtml(b){
   if(!(b.limit>0))return '';
@@ -642,15 +633,17 @@ function paceBarHtml(b){
   var fillPct=Math.min(100,Math.max(0,b.mesicSpentPct));
   var markPct=Math.min(100,Math.max(0,b.pacePct));
   var fillColor=b.mesicSpentPct>100?'#ff3b30':(ahead?'#34c759':'#ff9500');
-  return '<div style="margin-top:14px">'
-    +'<div style="height:6px;border-radius:3px;background:#f0f0f3;position:relative">'
-      +'<div style="position:absolute;left:0;top:0;height:100%;width:'+fillPct+'%;border-radius:3px;background:'+fillColor+'"></div>'
-      +'<div style="position:absolute;left:calc('+markPct+'% - 1px);top:-2px;width:2px;height:10px;background:#1c1c1e;border-radius:1px"></div>'
+  return '<div style="margin-top:20px">'
+    +'<div style="height:14px;border-radius:7px;background:#f0f0f3;position:relative">'
+      +'<div style="position:absolute;left:0;top:0;height:100%;width:'+fillPct+'%;border-radius:7px;background:'+fillColor+'"></div>'
+      +'<div style="position:absolute;left:calc('+markPct+'% - 1px);top:-3px;width:2px;height:20px;background:#1c1c1e;border-radius:1px"></div>'
     +'</div>'
-    +'<div style="display:flex;justify-content:space-between;margin-top:10px">'
-      +'<div style="flex:1;text-align:center"><div style="font-size:14px;font-weight:600;color:#1c1c1e">'+fmt(b.denni)+'</div><div style="font-size:11px;color:#8e8e93">denní rozpočet</div></div>'
-      +'<div style="flex:1;text-align:center"><div style="font-size:14px;font-weight:600;color:#1c1c1e">'+fmt(b.zbyvaMesic)+'</div><div style="font-size:11px;color:#8e8e93">zbývá měsíc</div></div>'
-      +'<div style="flex:1;text-align:center"><div style="font-size:14px;font-weight:600;color:#1c1c1e">'+b.denVMesici+' / '+b.dnuVMesici+'</div><div style="font-size:11px;color:#8e8e93">den v měsíci</div></div>'
+    +'<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:#8e8e93">'
+      +'<span>0 Kč</span><span>'+fmt(b.limit)+' limit</span>'
+    +'</div>'
+    +'<div style="margin-top:14px;font-size:13px;color:#48484a">'
+      +'<span style="color:'+(ahead?'#34c759':'#ff3b30')+';font-weight:600">'+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</span>'
+      +' · zbývá '+fmt(b.zbyvaMesic)+' · '+b.denVMesici+'. den z '+b.dnuVMesici
     +'</div>'
     +'</div>';
 }
