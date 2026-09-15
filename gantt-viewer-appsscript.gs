@@ -359,8 +359,8 @@ function render() {
     if (!d.predecessorId || !posMap[d.predecessorId] || !posMap[d.id]) return;
     const p = posMap[d.predecessorId], s = posMap[d.id];
     const x1 = p.x2, y1 = p.top + p.height/2, x2 = s.x1, y2 = s.top + s.height/2;
-    const midX = Math.min(x2 > x1 + 14 ? Math.round((x1+x2)/2) : x1 + 10, x2 - 10);
-    connectorsHtml += '<path d="M '+x1+' '+y1+' H '+midX+' V '+y2+' H '+x2+'" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />';
+    const gap = 10, x1o = x1 + gap, x2o = x2 - gap, yMid = Math.round((y1+y2)/2);
+    connectorsHtml += '<path d="M '+x1+' '+y1+' H '+x1o+' V '+yMid+' H '+x2o+' V '+y2+' H '+x2+'" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />';
   });
   const connectorsSvg = connectorsHtml
     ? '<svg style="position:absolute;top:0;left:0;width:'+totalPx+'px;height:'+yCursor+'px;pointer-events:none;z-index:4" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ganttArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--accent)"/></marker></defs>'+connectorsHtml+'</svg>'
