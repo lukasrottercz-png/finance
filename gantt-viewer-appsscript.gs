@@ -89,7 +89,7 @@ function buildGanttHtml_(ukoly) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gantt — projekty (živě)</title>
 <style>
-:root { --bg:#f2f2f7; --surface:#fff; --surface2:#e9e9ef; --border:#e5e5ea; --text:#000; --muted:#8e8e93; --accent:#7c3aed; --green:#34c759; --red:#ff3b30; --gray:#aeaeb2; --gray-light:#d1d1d6; }
+:root { --bg:#f2f2f7; --surface:#fff; --surface2:#e9e9ef; --border:#e5e5ea; --text:#000; --muted:#8e8e93; --accent:#7c3aed; --green:#34c759; --red:#ff3b30; --gray:#aeaeb2; --gray-light:#d1d1d6; --weekend-tint:rgba(0,0,0,0.045); }
 @media (prefers-color-scheme: dark) {
   :root { --bg:#000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --text:#fff; --muted:#8e8e93; }
 }
@@ -119,6 +119,9 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-grid-line { position:absolute; top:0; bottom:0; width:0; border-left:0.5px solid var(--border); z-index:0; }
 .gantt-grid-line.year-start { border-left:1.5px solid var(--border); opacity:.6; }
 .gantt-minor-line { position:absolute; top:0; bottom:0; width:0; border-left:0.5px dotted var(--border); opacity:.55; z-index:0; }
+.gantt-weekend { position:absolute; top:0; bottom:0; background:var(--weekend-tint); z-index:0; pointer-events:none; }
+.gantt-week-ticks { position:relative; height:14px; border-bottom:0.5px dotted var(--border); }
+.gantt-week-ticks .wt { position:absolute; top:1px; font-size:9px; font-weight:700; color:var(--accent); opacity:.75; white-space:nowrap; }
 .gantt-day-ticks { position:relative; height:16px; border-bottom:0.5px solid var(--border); }
 .gantt-day-ticks .dt { position:absolute; top:2px; font-size:9px; color:var(--muted); transform:translateX(-50%); white-space:nowrap; }
 .gantt-today-line { position:absolute; top:0; bottom:0; width:0; border-left:1.5px solid var(--red); z-index:5; }
@@ -203,6 +206,15 @@ function esc(s){ const d=document.createElement('div'); d.textContent=s==null?''
 function fmtDate(d){ return new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'}); }
 function fmtDateShort(d){ return new Date(d).toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'}); }
 function effDate(u){ return u.nahradniTermin || u.date; }
+function isoWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  return 1 + Math.round((date - firstThursday) / 604800000);
+}
 function orderByChain(arr){
   const byId={}; arr.forEach(u=>{byId[u.id]=u;});
   const succMap={};
@@ -254,6 +266,18 @@ function render() {
     const dLeft = dayOffset(d) * PX_PER_DAY;
     dayTicksHtml += '<span class="dt" style="left:'+dLeft+'px">'+d.getDate()+'</span>';
     minorGridHtml += '<div class="gantt-minor-line" style="left:'+dLeft+'px"></div>';
+  }
+
+  let weekTicksHtml = '', weekendHtml = '';
+  for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    const wLeft = dayOffset(d) * PX_PER_DAY;
+    if (dow === 1 || d.getTime() === rangeStart.getTime()) {
+      weekTicksHtml += '<span class="wt" style="left:'+wLeft+'px">T'+isoWeek(d)+'</span>';
+    }
+    if (dow === 0 || dow === 6) {
+      weekendHtml += '<div class="gantt-weekend" style="left:'+wLeft+'px;width:'+PX_PER_DAY+'px"></div>';
+    }
   }
 
   const labelsColPx = Math.min(500, Math.max(320, window.innerWidth * 0.42));
@@ -343,11 +367,12 @@ function render() {
     : '';
 
   el.innerHTML = '<div class="gantt-wrap"><div class="gantt-body">'+
-    '<div class="gantt-labels"><div class="gantt-label-header"><div class="col-name">Úkol</div><div class="col-date">Od</div><div class="col-date">Do</div><div class="col-resp">Zodp.</div></div><div style="height:16px"></div>'+labelsHtml+'</div>'+
+    '<div class="gantt-labels"><div class="gantt-label-header"><div class="col-name">Úkol</div><div class="col-date">Od</div><div class="col-date">Do</div><div class="col-resp">Zodp.</div></div><div style="height:30px"></div>'+labelsHtml+'</div>'+
     '<div class="gantt-timeline" id="ganttTimeline"><div style="width:'+totalPx+'px;position:relative">'+
       '<div class="gantt-month-header" style="width:'+totalPx+'px">'+monthHtml+'</div>'+
+      '<div class="gantt-week-ticks" style="width:'+totalPx+'px">'+weekTicksHtml+'</div>'+
       '<div class="gantt-day-ticks" style="width:'+totalPx+'px">'+dayTicksHtml+'<div class="gantt-today-label" style="left:'+todayLeft+'px">'+todayLabel+'</div></div>'+
-      '<div class="gantt-timeline-rows" style="width:'+totalPx+'px">'+gridHtml+minorGridHtml+'<div class="gantt-today-line" style="left:'+todayLeft+'px" title="Dnes '+todayLabel+'"></div>'+rowsHtml+connectorsSvg+'</div>'+
+      '<div class="gantt-timeline-rows" style="width:'+totalPx+'px">'+weekendHtml+gridHtml+minorGridHtml+'<div class="gantt-today-line" style="left:'+todayLeft+'px" title="Dnes '+todayLabel+'"></div>'+rowsHtml+connectorsSvg+'</div>'+
     '</div></div>'+
   '</div></div>';
 
