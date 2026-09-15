@@ -407,6 +407,8 @@
     <span class="toolbar-divider"></span>
     <button onclick="collapseAllProjects()">▸ Sbalit vše</button>
     <button onclick="expandAllProjects()">▾ Rozbalit vše</button>
+    <span class="toolbar-divider"></span>
+    <button onclick="openQuickProjectModal()">⚡ Rychlý projekt</button>
   </div>
 
   <div class="gantt-toolbar" id="ganttToolbar">
@@ -552,6 +554,36 @@
       <button class="btn btn-primary" onclick="saveUkol()">Uložit</button>
       <button class="btn btn-ghost" onclick="closeUkolModal()">Zrušit</button>
       <button class="btn btn-danger" id="uDelBtn" onclick="deleteUkol()" style="margin-left:auto;display:none">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- RYCHLÝ PROJEKT MODAL -->
+<div class="overlay" id="quickProjektOverlay">
+  <div class="modal">
+    <div class="modal-title">⚡ Rychlý projekt</div>
+    <div class="field">
+      <label>Název projektu *</label>
+      <input id="qpName" type="text" placeholder="Název projektu…">
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="field" style="flex:1">
+        <label>Začátek *</label>
+        <input id="qpStart" type="date">
+      </div>
+      <div class="field" style="flex:1">
+        <label>Termín *</label>
+        <input id="qpEnd" type="date">
+      </div>
+    </div>
+    <div class="field">
+      <label>Úkoly <span style="font-weight:400;color:var(--muted)">(jeden na řádek, volitelné)</span></label>
+      <textarea id="qpTasks" rows="6" placeholder="Návrh&#10;Schválení&#10;Realizace&#10;Test&#10;Odevzdání"></textarea>
+      <span style="font-weight:400;color:var(--muted);font-size:12px">Termíny se rovnoměrně rozprostřou mezi začátek a konec — pak si je doladíš v Ganttu.</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveQuickProject()">Vytvořit</button>
+      <button class="btn btn-ghost" onclick="closeQuickProjectModal()">Zrušit</button>
     </div>
   </div>
 </div>
@@ -1945,6 +1977,72 @@ function deleteUkol() {
   renderUkoly();
 }
 
+// ── RYCHLÝ PROJEKT (název + hromadné úkoly) ──────────────────────────
+function addDays(dateStr, days) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+function openQuickProjectModal() {
+  document.getElementById('qpName').value = '';
+  document.getElementById('qpStart').value = new Date().toISOString().slice(0,10);
+  document.getElementById('qpEnd').value = '';
+  document.getElementById('qpTasks').value = '';
+  document.getElementById('quickProjektOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('qpName').focus(), 50);
+}
+function closeQuickProjectModal() { document.getElementById('quickProjektOverlay').classList.remove('open'); }
+function saveQuickProject() {
+  const name = document.getElementById('qpName').value.trim();
+  const start = document.getElementById('qpStart').value;
+  const end = document.getElementById('qpEnd').value;
+  if (!name) return alert('Vyplň název projektu.');
+  if (!start || !end) return alert('Vyplň začátek a termín.');
+  if (end < start) return alert('Termín musí být po začátku.');
+  const lines = document.getElementById('qpTasks').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const projId = uid();
+  const totalDays = Math.round((new Date(end+'T00:00:00') - new Date(start+'T00:00:00')) / 86400000);
+  const kids = lines.map((name, i) => {
+    const offset = lines.length > 1 ? Math.round(totalDays * i / (lines.length - 1)) : totalDays;
+    return { id: uid(), name, date: addDays(start, offset), note: '', done: false, completedAt: null, repeat: '', agenda: 'prace', tags: [], zodpovida: '', projekt: false, evidovany: false, naKonci: false, start: '', projektId: projId, predecessorId: '' };
+  });
+  ukoly.push({ id: projId, name, date: end, start, nahradniTermin: '', note: '', done: false, completedAt: null, repeat: '', agenda: 'prace', tags: [], zodpovida: '', projekt: true, evidovany: false, naKonci: false, projektId: '', predecessorId: '' }, ...kids);
+  save('tw_ukoly2', ukoly); ghSave();
+  showToast('Projekt vytvořen' + (kids.length ? ' (' + kids.length + ' úkolů)' : '') + ' ✓');
+  closeQuickProjectModal();
+  renderUkoly();
+  if (ukolyView === 'gantt') renderGantt();
+}
+function duplicateProjekt(id) {
+  const orig = ukoly.find(u => u.id === id);
+  if (!orig || !orig.projekt) return;
+  const newId = uid();
+  const kids = ukoly.filter(k => k.projektId === id);
+  const idMap = {};
+  kids.forEach(k => { idMap[k.id] = uid(); });
+  const hasDates = !orig.evidovany && !!orig.start && !!orig.date;
+  let newStart = orig.start, newEnd = orig.date;
+  const origStart = hasDates ? new Date(orig.start + 'T00:00:00') : null;
+  if (hasDates) {
+    newStart = new Date().toISOString().slice(0,10);
+    const durationDays = Math.round((new Date(orig.date+'T00:00:00') - origStart) / 86400000);
+    newEnd = addDays(newStart, durationDays);
+  }
+  const newKids = kids.map(k => {
+    let kDate = k.date, kStart = k.start || '';
+    if (hasDates && k.date) {
+      const kOffset = Math.round((new Date(k.date+'T00:00:00') - origStart) / 86400000);
+      kDate = addDays(newStart, kOffset);
+      if (k.start) kStart = addDays(newStart, Math.round((new Date(k.start+'T00:00:00') - origStart) / 86400000));
+    }
+    return { ...k, id: idMap[k.id], projektId: newId, date: kDate, start: kStart, nahradniTermin: '', done: false, completedAt: null, predecessorId: (k.predecessorId && idMap[k.predecessorId]) ? idMap[k.predecessorId] : '' };
+  });
+  ukoly.push({ ...orig, id: newId, name: orig.name + ' (kopie)', start: newStart, date: newEnd, nahradniTermin: '', done: false, completedAt: null }, ...newKids);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Projekt zkopírován ✓');
+  renderUkoly();
+  if (ukolyView === 'gantt') renderGantt();
+}
+
 // ── CARD MENUS ────────────────────────────────────────────────────────
 function showMenu(items, btn) {
   document.getElementById('card-menu')?.remove();
@@ -1964,11 +2062,13 @@ function closeMenu() { document.getElementById('card-menu')?.remove(); }
 
 function showUkolMenu(id, btn) {
   const u = ukoly.find(x => x.id===id);
-  showMenu([
-    { label: '✏️ Upravit', action: `openUkolModal('${id}')` },
+  const items = [{ label: '✏️ Upravit', action: `openUkolModal('${id}')` }];
+  if (u && u.projekt) items.push({ label: '⧉ Duplikovat', action: `duplicateProjekt('${id}')` });
+  items.push(
     { label: (u && u.waiting) ? '↩︎ Vrátit mezi moje' : '⏳ Čeká na někoho', action: `toggleWaiting('${id}')` },
     { label: '🗑 Smazat', danger: true, action: `confirmDeleteUkol('${id}')` }
-  ], btn);
+  );
+  showMenu(items, btn);
 }
 function showEventMenu(id, btn) {
   showMenu([
