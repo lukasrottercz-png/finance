@@ -335,7 +335,7 @@ function render() {
     if (!d.predecessorId || !posMap[d.predecessorId] || !posMap[d.id]) return;
     const p = posMap[d.predecessorId], s = posMap[d.id];
     const x1 = p.x2, y1 = p.top + p.height/2, x2 = s.x1, y2 = s.top + s.height/2;
-    const midX = x2 > x1 + 14 ? Math.round((x1+x2)/2) : x1 + 10;
+    const midX = Math.min(x2 > x1 + 14 ? Math.round((x1+x2)/2) : x1 + 10, x2 - 10);
     connectorsHtml += '<path d="M '+x1+' '+y1+' H '+midX+' V '+y2+' H '+x2+'" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ganttArrow)" />';
   });
   const connectorsSvg = connectorsHtml
