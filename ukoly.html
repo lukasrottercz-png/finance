@@ -18,6 +18,7 @@
     --yellow: #ff9500;
     --red: #ff3b30;
     --gray: #aeaeb2;
+    --gray-light: #d1d1d6;
     --r: 13px;
   }
   @media (prefers-color-scheme: dark) {
@@ -33,6 +34,7 @@
       --yellow: #ff9500;
       --red: #ff3b30;
       --gray: #636366;
+      --gray-light: #8e8e93;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -353,7 +355,7 @@
 .gantt-move-line { position: absolute; top: 50%; height: 0; border-top: 1.5px dashed #ff9500; z-index: 2; }
 .gantt-bar { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; background: var(--gray); opacity: 0.9; z-index: 2; }
 .gantt-bar.gantt-bar-moved { box-shadow: 0 0 0 2px #ff9500; }
-.gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; }
+.gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; background: var(--gray-light); }
 .gantt-track-row.sub .gantt-bar.gantt-done { background: var(--green); }
 .gantt-track-row.sub .gantt-bar.gantt-late { background: var(--red); }
 .gantt-bar-ghost { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; border: 1.5px dashed var(--muted); background: transparent; opacity: 0.6; z-index: 1; }
@@ -1375,7 +1377,7 @@ function buildGanttSnapshotHtml() {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gantt – projekty (snapshot)</title>
 <style>
-:root { --bg:#f2f2f7; --surface:#fff; --surface2:#e9e9ef; --border:#e5e5ea; --text:#000; --muted:#8e8e93; --accent:#7c3aed; --green:#34c759; --red:#ff3b30; --gray:#aeaeb2; }
+:root { --bg:#f2f2f7; --surface:#fff; --surface2:#e9e9ef; --border:#e5e5ea; --text:#000; --muted:#8e8e93; --accent:#7c3aed; --green:#34c759; --red:#ff3b30; --gray:#aeaeb2; --gray-light:#d1d1d6; }
 @media (prefers-color-scheme: dark) {
   :root { --bg:#000; --surface:#1c1c1e; --surface2:#2c2c2e; --border:#38383a; --text:#fff; --muted:#8e8e93; }
 }
@@ -1418,7 +1420,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-move-line { position: absolute; top: 50%; height: 0; border-top: 1.5px dashed #ff9500; z-index: 2; }
 .gantt-bar { position:absolute; top:50%; margin-top:-10px; height:20px; min-width:6px; border-radius:6px; background:var(--gray); opacity:.9; z-index:2; }
 .gantt-bar.gantt-bar-moved { box-shadow: 0 0 0 2px #ff9500; }
-.gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; }
+.gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; background: var(--gray-light); }
 .gantt-track-row.sub .gantt-bar.gantt-done { background: var(--green); }
 .gantt-track-row.sub .gantt-bar.gantt-late { background: var(--red); }
 .gantt-bar-ghost { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 6px; border-radius: 6px; border: 1.5px dashed var(--muted); background: transparent; opacity: 0.6; z-index: 1; }
