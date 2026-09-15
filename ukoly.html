@@ -1258,7 +1258,7 @@ function renderGantt() {
     yCursor += rowH;
 
     const descHtml = showDesc ? `<div class="evid-row-desc" style="padding:4px 12px 12px 18px">${esc(u.note)}</div>` : '';
-    labelsHtml += `<div class="gantt-row-label" style="height:${rowH}px;flex-direction:column;align-items:stretch;gap:0">
+    labelsHtml += `<div class="gantt-row-label" style="height:${rowH}px;flex-direction:column;align-items:stretch;gap:0;cursor:pointer" onclick="openUkolModal('${u.id}')">
         <div style="display:flex;align-items:center;gap:6px;height:${baseRowH}px;flex-shrink:0">
           <div class="col-name" title="${esc(u.name)}">${collapseBtn}${esc(u.name)}${isCollapsed ? ` <span style="font-size:10px;color:var(--muted)">(${kids.length})</span>` : ''}</div>
           <div class="col-date">${fmtDateShort(u.start)}</div>
@@ -1271,7 +1271,7 @@ function renderGantt() {
       : `${esc(u.name)}: ${fmtDate(u.start)} – ${fmtDate(u.date)}`;
     const origWidth = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const ghostBar = uMoved ? `<div class="gantt-bar-ghost" style="left:${left}px;width:${origWidth}px" title="Původní termín: ${fmtDate(u.date)}"></div>` : '';
-    rowsHtml += `<div class="gantt-track-row" style="height:${rowH}px">${ghostBar}<div class="gantt-bar${uMoved?' gantt-bar-moved':''}" style="left:${left}px;width:${width}px" title="${barTitle}"></div></div>`;
+    rowsHtml += `<div class="gantt-track-row" style="height:${rowH}px;cursor:pointer" onclick="openUkolModal('${u.id}')">${ghostBar}<div class="gantt-bar${uMoved?' gantt-bar-moved':''}" style="left:${left}px;width:${width}px" title="${barTitle}"></div></div>`;
 
     // dílčí úkoly — bar, pokud mají zadaný začátek i termín; jinak jen značka na termínu (skryté, pokud je projekt sbalený)
     if (!isCollapsed) kids.forEach(k => {
@@ -1285,7 +1285,7 @@ function renderGantt() {
       posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kHasRange ? kLeft+kWidth : kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
       yCursor += kRowH;
-      labelsHtml += `<div class="gantt-row-label sub" style="height:${kRowH}px">
+      labelsHtml += `<div class="gantt-row-label sub" style="height:${kRowH}px;cursor:pointer" onclick="openUkolModal('${k.id}')">
           <div class="col-name" title="${esc(k.name)}">↳ ${esc(k.name)}</div>
           <div class="col-date">${kHasRange ? fmtDateShort(k.start) : '–'}</div>
           <div class="col-date${kMoved?' moved':''}" title="${kMoved?'Původně: '+fmtDate(k.date):''}">${fmtDateShort(kEff)}</div>
@@ -1300,7 +1300,7 @@ function renderGantt() {
           const origWidth = Math.max(dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY);
           kGhost = `<div class="gantt-bar-ghost" style="left:${kLeft}px;width:${origWidth}px" title="Původní termín: ${fmtDate(k.date)}"></div>`;
         }
-        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px">${kGhost}<div class="gantt-bar ${kCls}${kMoved?' gantt-bar-moved':''}" style="left:${kLeft}px;width:${kWidth}px" title="${kTitle}"></div></div>`;
+        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px;cursor:pointer" onclick="openUkolModal('${k.id}')">${kGhost}<div class="gantt-bar ${kCls}${kMoved?' gantt-bar-moved':''}" style="left:${kLeft}px;width:${kWidth}px" title="${kTitle}"></div></div>`;
       } else {
         const kTitle = kMoved
           ? `${esc(k.name)}: ${fmtDate(kEff)} (původně ${fmtDate(k.date)})`
@@ -1310,7 +1310,7 @@ function renderGantt() {
           const lineLeft = Math.min(kOrigLeft, kLeft), lineWidth = Math.abs(kLeft - kOrigLeft);
           kGhost = `<div class="gantt-move-line" style="left:${lineLeft}px;width:${lineWidth}px"></div><div class="gantt-marker gantt-marker-ghost" style="left:${kOrigLeft}px" title="Původní termín: ${fmtDate(k.date)}"></div>`;
         }
-        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px">${kGhost}<div class="gantt-marker ${kCls}${kMoved?' gantt-marker-moved':''}" style="left:${kLeft}px" title="${kTitle}"></div></div>`;
+        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px;cursor:pointer" onclick="openUkolModal('${k.id}')">${kGhost}<div class="gantt-marker ${kCls}${kMoved?' gantt-marker-moved':''}" style="left:${kLeft}px" title="${kTitle}"></div></div>`;
       }
     });
   });
