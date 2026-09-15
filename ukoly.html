@@ -1431,8 +1431,13 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .scale-row span { font-size:11px; color:var(--muted); margin-right:2px; }
 .scale-row button { padding:5px 14px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--muted); font-size:12px; font-family:inherit; cursor:pointer; }
 .scale-row button.active { background:rgba(124,58,237,0.1); color:var(--accent); border-color:rgba(124,58,237,0.3); font-weight:600; }
-.collapse-row { display:flex; gap:6px; padding:0 20px 12px; }
+.collapse-row { display:flex; gap:6px; padding:0 20px 12px; flex-wrap:wrap; position:relative; }
 .collapse-row button { padding:6px 16px; border-radius:20px; border:0.5px solid rgba(124,58,237,0.35); background:rgba(124,58,237,0.1); color:var(--accent); font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; }
+.picker-panel { position:absolute; top:100%; left:0; margin-top:6px; background:var(--surface); border:0.5px solid var(--border); border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.18); padding:10px; min-width:220px; max-height:280px; overflow-y:auto; z-index:20; }
+.picker-panel .picker-actions { display:flex; gap:14px; padding-bottom:8px; margin-bottom:8px; border-bottom:0.5px solid var(--border); }
+.picker-panel .picker-actions a { font-size:11px; color:var(--accent); cursor:pointer; font-weight:600; }
+.picker-item { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; cursor:pointer; white-space:nowrap; }
+.picker-item input { accent-color:var(--accent); }
 .legend-row { display:flex; flex-wrap:wrap; gap:14px; padding:0 20px 12px; font-size:11px; color:var(--muted); }
 .legend-item { display:flex; align-items:center; gap:5px; }
 .legend-dot { width:9px; height:9px; margin-top:-1px; border-radius:2px; transform:rotate(45deg); flex-shrink:0; background:var(--accent); }
@@ -1465,6 +1470,8 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 <div class="collapse-row">
   <button onclick="collapseAll()">▸ Sbalit vše</button>
   <button onclick="expandAll()">▾ Rozbalit vše</button>
+  <button id="pickerToggleBtn" onclick="toggleProjectPicker()">🎯 Projekty</button>
+  <div class="picker-panel" id="projectPickerPanel" style="display:none"></div>
 </div>
 <div class="scale-row" id="scaleRow">
   <span>Měřítko:</span>
@@ -1476,10 +1483,39 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 ${evidHtmlStatic}
 <script>
 let ITEMS = ${dataJson};
+const ALL_ITEMS = ITEMS;
+const hiddenIds = new Set();
 const collapsed = new Set();
 function toggleCollapse(id) { if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id); render(); }
 function collapseAll() { ITEMS.forEach(u => collapsed.add(u.id)); render(); }
 function expandAll() { collapsed.clear(); render(); }
+function updatePickerButtonLabel() {
+  const btn = document.getElementById('pickerToggleBtn');
+  const shown = ALL_ITEMS.length - hiddenIds.size;
+  btn.textContent = '🎯 Projekty (' + shown + '/' + ALL_ITEMS.length + ')';
+}
+function renderProjectPicker() {
+  const panel = document.getElementById('projectPickerPanel');
+  let html = '<div class="picker-actions"><a onclick="showAllProjects()">Zobrazit vše</a><a onclick="hideAllProjects()">Skrýt vše</a></div>';
+  html += ALL_ITEMS.map(u => {
+    const checked = hiddenIds.has(u.id) ? '' : ' checked';
+    return '<label class="picker-item"><input type="checkbox"'+checked+' onchange="toggleProjectHidden(\\''+u.id+'\\')">'+esc(u.name)+'</label>';
+  }).join('');
+  panel.innerHTML = html;
+  updatePickerButtonLabel();
+}
+function toggleProjectPicker() {
+  const panel = document.getElementById('projectPickerPanel');
+  if (panel.style.display === 'none') { renderProjectPicker(); panel.style.display = 'block'; }
+  else { panel.style.display = 'none'; }
+}
+function toggleProjectHidden(id) {
+  if (hiddenIds.has(id)) hiddenIds.delete(id); else hiddenIds.add(id);
+  renderProjectPicker();
+  render();
+}
+function showAllProjects() { hiddenIds.clear(); renderProjectPicker(); render(); }
+function hideAllProjects() { ALL_ITEMS.forEach(u => hiddenIds.add(u.id)); renderProjectPicker(); render(); }
 const GANTT_SCALES = { week: 20, month: 6, quarter: 2.2 };
 let SCALE = 'month';
 function setScale(s) {
@@ -1504,11 +1540,11 @@ function orderByChain(arr){
 
 function render() {
   const el = document.getElementById('ganttWrap');
-  if (!ITEMS.length) { el.innerHTML = '<div class="empty">Žádné projekty.</div>'; return; }
+  ITEMS = orderByChain(ALL_ITEMS.filter(u => !hiddenIds.has(u.id)));
+  if (!ITEMS.length) { el.innerHTML = '<div class="empty">' + (hiddenIds.size ? 'Všechny projekty jsou skryté — uprav výběr v „🎯 Projekty".' : 'Žádné projekty.') + '</div>'; return; }
   const DAY = 86400000, PX_PER_DAY = GANTT_SCALES[SCALE] || GANTT_SCALES.month;
   const todayStr = new Date().toISOString().slice(0,10);
   const todayD = new Date(); todayD.setHours(0,0,0,0);
-  ITEMS = orderByChain(ITEMS);
   const dates = ITEMS.flatMap(i => [new Date(i.start+'T00:00:00'), new Date(i.date+'T00:00:00'), new Date(effDate(i)+'T00:00:00')]);
   ITEMS.forEach(i => i.kids.forEach(k => { if (k.start) dates.push(new Date(k.start+'T00:00:00')); dates.push(new Date(k.date+'T00:00:00')); dates.push(new Date(effDate(k)+'T00:00:00')); }));
   dates.push(todayD);
@@ -1642,6 +1678,7 @@ function render() {
   const tl = document.getElementById('ganttTimeline');
   if (tl) tl.scrollLeft = Math.max(todayLeft - 160, 0);
 }
+updatePickerButtonLabel();
 render();
 <\/script>
 </body>
