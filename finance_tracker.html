@@ -1070,7 +1070,7 @@ function renderPrehled() {
   const pCel = prev ? calcCelkem(prev) : null;
   const pBez = prev ? calcBez(prev) : null;
   const pHyp = prev ? calcHyp(prev) : null;
-  const dif = prev ? bez - pBez : null;
+  const dif = prev ? cel - pCel : null;
 
   function secRows(cat) {
     const out = [];
