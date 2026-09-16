@@ -62,9 +62,9 @@ function buildGanttHtml_(ukoly) {
     .map(function (u) {
       return {
         id: u.id, name: u.name, start: u.start, date: u.date, nahradniTermin: u.nahradniTermin || '', note: u.note || '', done: !!u.done, completedAt: u.completedAt || null,
-        zodpovida: u.zodpovida || '', predecessorId: u.predecessorId || '',
+        zodpovida: u.zodpovida || '', predecessorId: u.predecessorId || '', kriticky: !!u.kriticky,
         kids: ukoly.filter(function (k) { return k.projektId === u.id && (k.agenda||'osobni')==='prace'; }).map(function (k) {
-          return { id: k.id, name: k.name, start: k.start || '', date: k.date, nahradniTermin: k.nahradniTermin || '', done: !!k.done, completedAt: k.completedAt || null, zodpovida: k.zodpovida || '', predecessorId: k.predecessorId || '' };
+          return { id: k.id, name: k.name, start: k.start || '', date: k.date, nahradniTermin: k.nahradniTermin || '', done: !!k.done, completedAt: k.completedAt || null, zodpovida: k.zodpovida || '', predecessorId: k.predecessorId || '', kriticky: !!k.kriticky };
         })
       };
     });
@@ -131,10 +131,14 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-marker.gantt-done { background:var(--green); }
 .gantt-marker.gantt-late { background:var(--red); }
 .gantt-marker.gantt-marker-moved { box-shadow: 0 0 0 2px #ff9500; }
+.gantt-marker.gantt-critical { box-shadow: 0 0 0 2px var(--red); }
 .gantt-marker-ghost { background: transparent !important; border: 1.5px dashed var(--muted); opacity: 0.7; }
 .gantt-move-line { position: absolute; top: 50%; height: 0; border-top: 1.5px dashed #ff9500; z-index: 2; }
 .gantt-bar { position:absolute; top:50%; margin-top:-10px; height:20px; min-width:6px; border-radius:6px; background:var(--gray); opacity:.9; z-index:2; }
 .gantt-bar.gantt-bar-moved { box-shadow: 0 0 0 2px #ff9500; }
+.gantt-bar.gantt-critical { box-shadow: 0 0 0 2px var(--red); }
+.gantt-bar-label { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 1px rgba(0,0,0,0.3); pointer-events: none; }
+.gantt-critical-marker { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 4px; background: var(--red); border-radius: 3px; box-shadow: 0 0 0 1.5px var(--surface); z-index: 3; }
 .gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; background: var(--gray-light); }
 .gantt-track-row.sub .gantt-bar.gantt-done { background: var(--green); }
 .gantt-track-row.sub .gantt-bar.gantt-late { background: var(--red); }
@@ -154,6 +158,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .legend-dot.legend-done { background:var(--green); }
 .legend-dot.legend-late { background:var(--red); }
 .legend-dot.legend-moved { background:var(--accent); box-shadow:0 0 0 2px #ff9500; }
+.legend-dot.legend-critical { background:var(--accent); box-shadow:0 0 0 2px var(--red); }
 .evid-box { margin:14px 20px 0; padding-top:14px; border-top:0.5px solid var(--border); }
 .evid-box-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
 .evid-row { display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:0.5px solid var(--border); }
@@ -176,6 +181,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
   <span class="legend-item"><span class="legend-dot legend-done"></span>Splněno</span>
   <span class="legend-item"><span class="legend-dot legend-late"></span>Po termínu</span>
   <span class="legend-item"><span class="legend-dot legend-moved"></span>Termín posunut</span>
+  <span class="legend-item"><span class="legend-dot legend-critical"></span>Kritické</span>
 </div>
 <div class="collapse-row">
   <button onclick="collapseAll()">▸ Sbalit vše</button>
@@ -317,7 +323,14 @@ function render() {
     const barTitle = uMoved ? (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(uEff)+' (původně do '+fmtDate(u.date)+')') : (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date));
     const origWidth = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const ghostBar = uMoved ? ('<div class="gantt-bar-ghost" style="left:'+left+'px;width:'+origWidth+'px" title="Původní termín: '+fmtDate(u.date)+'"></div>') : '';
-    rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px">'+ghostBar+'<div class="gantt-bar'+(uMoved?' gantt-bar-moved':'')+'" style="left:'+left+'px;width:'+width+'px" title="'+barTitle+'"></div></div>';
+    const criticalOverlayHtml = u.kids.filter(k => k.kriticky).map(k => {
+      const kEff2 = effDate(k);
+      const kHasRange2 = !!k.start;
+      const kLeft2 = dayOffset(new Date((kHasRange2 ? k.start : kEff2)+'T00:00:00')) * PX_PER_DAY;
+      const kWidth2 = kHasRange2 ? Math.max(dayOffset(new Date(kEff2+'T00:00:00')) * PX_PER_DAY - kLeft2, PX_PER_DAY) : Math.max(PX_PER_DAY, 4);
+      return '<div class="gantt-critical-marker" style="left:'+kLeft2+'px;width:'+kWidth2+'px" title="🔴 Kritické: '+esc(k.name)+'"></div>';
+    }).join('');
+    rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px">'+ghostBar+'<div class="gantt-bar'+(uMoved?' gantt-bar-moved':'')+(u.kriticky?' gantt-critical':'')+'" style="left:'+left+'px;width:'+width+'px" title="'+barTitle+'"><span class="gantt-bar-label">'+esc(u.name)+'</span></div>'+criticalOverlayHtml+'</div>';
     if (isCollapsed) return;
     u.kids = orderByChain(u.kids.slice().sort((a,b)=>effDate(a).localeCompare(effDate(b))));
     u.kids.forEach(k => {
@@ -326,7 +339,7 @@ function render() {
       const kHasRange = !!k.start;
       const kLeft = dayOffset(new Date((kHasRange ? k.start : kEff)+'T00:00:00')) * PX_PER_DAY;
       const kWidth = kHasRange ? Math.max(dayOffset(new Date(kEff+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY) : 0;
-      const kCls = k.done ? 'gantt-done' : (kEff < todayStr ? 'gantt-late':'');
+      const kCls = (k.done ? 'gantt-done' : (kEff < todayStr ? 'gantt-late':'')) + (k.kriticky ? ' gantt-critical' : '');
       const kRowH = estLines(k.name, 14) === 2 ? subH2 : subH1;
       posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kHasRange ? kLeft+kWidth : kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
