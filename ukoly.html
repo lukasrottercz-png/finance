@@ -298,6 +298,13 @@
 .gantt-toolbar-group button.active { background: rgba(124,58,237,0.1); color: var(--accent); border-color: rgba(124,58,237,0.3); font-weight: 600; }
 .gantt-toolbar-group.share-group button { color: #0a84ff; border-color: rgba(10,132,255,0.25); background: rgba(10,132,255,0.06); }
 .gantt-toolbar-group.share-group button:hover { background: rgba(10,132,255,0.12); }
+.gantt-toolbar-group.picker-group { position: relative; }
+.picker-panel { position: absolute; top: 100%; left: 0; margin-top: 6px; background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 10px; min-width: 220px; max-height: 280px; overflow-y: auto; z-index: 20; }
+.picker-panel .picker-actions { display: flex; gap: 14px; padding-bottom: 8px; margin-bottom: 8px; border-bottom: 0.5px solid var(--border); }
+.picker-panel .picker-actions a { font-size: 11px; color: var(--accent); cursor: pointer; font-weight: 600; }
+.picker-item { display: flex; align-items: center; gap: 8px; padding: 5px 2px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.picker-item input { accent-color: var(--accent); }
+.picker-sub-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin: 8px 0 2px; padding-top: 6px; border-top: 0.5px solid var(--border); }
 
 /* PROJECT BADGE */
 .proj-badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: rgba(124,58,237,0.12); color: var(--accent); white-space: nowrap; margin-right: 4px; }
@@ -422,6 +429,10 @@
       <button data-scale="week" onclick="setGanttScale('week')">Týdny</button>
       <button data-scale="month" class="active" onclick="setGanttScale('month')">Měsíce</button>
       <button data-scale="quarter" onclick="setGanttScale('quarter')">Kvartály</button>
+    </div>
+    <div class="gantt-toolbar-group picker-group">
+      <button id="ganttPickerBtn" onclick="toggleGanttProjectPicker()">🎯 Projekty</button>
+      <div class="picker-panel" id="ganttPickerPanel" style="display:none"></div>
     </div>
     <div class="gantt-toolbar-group share-group">
       <button onclick="copyGanttViewerLink()" title="Zkopírovat odkaz na živý Gantt viewer (obsahuje přístupový klíč)">🔗 Odkaz</button>
@@ -970,6 +981,53 @@ function expandAllProjects() {
   if (ukolyView === 'gantt') renderGantt();
 }
 
+// ── Skrývání projektů v Ganttu — pro zaostření jen na vybrané ──────────
+let hiddenGanttProjects = new Set(load('tw_gantt_hidden', []));
+function saveHiddenGanttProjects() { save('tw_gantt_hidden', [...hiddenGanttProjects]); }
+function renderGanttPicker(allProjects, allEvid) {
+  const btn = document.getElementById('ganttPickerBtn');
+  if (!btn) return;
+  const total = allProjects.length + allEvid.length;
+  const shown = total - [...hiddenGanttProjects].filter(id => allProjects.some(u=>u.id===id) || allEvid.some(u=>u.id===id)).length;
+  btn.textContent = '🎯 Projekty (' + shown + '/' + total + ')';
+  const panel = document.getElementById('ganttPickerPanel');
+  let html = '<div class="picker-actions"><a onclick="showAllGanttProjects()">Zobrazit vše</a><a onclick="hideAllGanttProjects()">Skrýt vše</a></div>';
+  html += allProjects.map(u => {
+    const checked = hiddenGanttProjects.has(u.id) ? '' : ' checked';
+    return `<label class="picker-item"><input type="checkbox"${checked} onchange="toggleGanttProjectHidden('${u.id}')">${esc(u.name)}</label>`;
+  }).join('');
+  if (allEvid.length) {
+    html += '<div class="picker-sub-label">Evidované (bez termínu)</div>';
+    html += allEvid.map(u => {
+      const checked = hiddenGanttProjects.has(u.id) ? '' : ' checked';
+      return `<label class="picker-item"><input type="checkbox"${checked} onchange="toggleGanttProjectHidden('${u.id}')">${esc(u.name)}</label>`;
+    }).join('');
+  }
+  panel.innerHTML = html;
+}
+function toggleGanttProjectPicker() {
+  const panel = document.getElementById('ganttPickerPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+function toggleGanttProjectHidden(id) {
+  if (hiddenGanttProjects.has(id)) hiddenGanttProjects.delete(id); else hiddenGanttProjects.add(id);
+  saveHiddenGanttProjects();
+  renderGantt();
+}
+function showAllGanttProjects() { hiddenGanttProjects.clear(); saveHiddenGanttProjects(); renderGantt(); }
+function hideAllGanttProjects() {
+  ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt).forEach(u => hiddenGanttProjects.add(u.id));
+  saveHiddenGanttProjects();
+  renderGantt();
+}
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('ganttPickerPanel');
+  const btn = document.getElementById('ganttPickerBtn');
+  if (panel && panel.style.display === 'block' && e.target !== btn && !panel.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+});
+
 function renderEvidovaneProjekty(list) {
   const box = document.getElementById('evidovaneProjektyBox');
   if (!box) return;
@@ -1176,17 +1234,21 @@ function evidHtml(list) {
 
 function renderGantt() {
   const el = document.getElementById('ganttWrap');
-  const items = orderByChain(ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
+  const allProjects = orderByChain(ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
     .sort((a,b) => {
       const ak = !!a.naKonci, bk = !!b.naKonci;
       if (ak !== bk) return ak ? 1 : -1;
       return a.start.localeCompare(b.start);
     }));
-  const evidovane = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
+  const allEvid = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
+  renderGanttPicker(allProjects, allEvid);
+  const items = allProjects.filter(u => !hiddenGanttProjects.has(u.id));
+  const evidovane = allEvid.filter(u => !hiddenGanttProjects.has(u.id));
   const evidBox = evidHtml(evidovane);
 
   if (!items.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Žádné projektové úkoly. Označ úkol jako "Projekt" a vyplň začátek.</div></div>` + evidBox;
+    const msg = allProjects.length ? 'Všechny projekty jsou skryté — uprav výběr v „🎯 Projekty".' : 'Žádné projektové úkoly. Označ úkol jako "Projekt" a vyplň začátek.';
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">${msg}</div></div>` + evidBox;
     return;
   }
 
@@ -1520,18 +1582,6 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .evid-badge { font-size:11px; font-weight:600; padding:2px 7px; border-radius:8px; background:rgba(142,142,147,0.15); color:var(--muted); white-space:nowrap; flex-shrink:0; }
 .resp-badge { font-size:11px; color:var(--muted); white-space:nowrap; }
 .evid-row-body .resp-badge { align-self: flex-start; }
-.qe-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:100; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; }
-.qe-overlay.open { display:flex; }
-.qe-modal { background:var(--surface); border-radius:16px; padding:20px; width:100%; max-width:340px; max-height:90vh; overflow-y:auto; box-sizing:border-box; }
-.qe-title { font-size:16px; font-weight:700; margin-bottom:12px; }
-.qe-field { margin-bottom:12px; }
-.qe-field label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; color:var(--muted); margin-bottom:5px; }
-.qe-field input { width:100%; box-sizing:border-box; font-size:15px; padding:9px 11px; border-radius:10px; border:0.5px solid var(--border); background:var(--bg); color:var(--text); font-family:inherit; }
-.qe-hint { font-size:11px; color:var(--muted); margin-bottom:14px; }
-.qe-actions { display:flex; gap:8px; }
-.qe-actions button { flex:1; padding:10px; border-radius:10px; border:none; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; }
-.qe-actions .qe-save { background:var(--accent); color:#fff; }
-.qe-actions .qe-cancel { background:var(--surface2); color:var(--text); }
 </style>
 </head>
 <body>
@@ -1559,7 +1609,6 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 </div>
 <div id="ganttWrap"></div>
 <div id="evidBox"></div>
-<div class="qe-overlay" id="qeOverlay" onclick="if(event.target===this) closeQuickEdit()"><div class="qe-modal" id="qeModal"></div></div>
 <script>
 let ITEMS = ${dataJson};
 const ALL_ITEMS = ITEMS;
@@ -1621,57 +1670,8 @@ function renderEvidBox() {
   const list = EVID_ITEMS.filter(u => !hiddenIds.has(u.id));
   if (!list.length) { box.innerHTML = ''; return; }
   box.innerHTML = '<div class="evid-box"><div class="evid-box-title">📋 Evidované projekty ('+list.length+') — zatím bez termínu</div>'+
-    list.map(u => '<div class="evid-row" style="cursor:pointer" onclick="openQuickEdit(\\''+u.id+'\\')"><span class="evid-badge">nezahájeno</span><div class="evid-row-body"><span class="evid-row-name">'+esc(u.name)+'</span>'+(u.note?'<div class="evid-row-desc">'+esc(u.note)+'</div>':'')+(u.zodpovida?'<span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>':'')+'</div></div>').join('')+
+    list.map(u => '<div class="evid-row"><span class="evid-badge">nezahájeno</span><div class="evid-row-body"><span class="evid-row-name">'+esc(u.name)+'</span>'+(u.note?'<div class="evid-row-desc">'+esc(u.note)+'</div>':'')+(u.zodpovida?'<span class="resp-badge">👤 '+esc(u.zodpovida)+'</span>':'')+'</div></div>').join('')+
     '</div>';
-}
-
-// ── Rychlá úprava přímo v prezentaci (jen v paměti — nic se neukládá) ──
-function findQeItem(id) {
-  const proj = ALL_ITEMS.find(u => u.id === id);
-  if (proj) return { item: proj, kind: 'project' };
-  for (const p of ALL_ITEMS) {
-    const kid = p.kids.find(k => k.id === id);
-    if (kid) return { item: kid, kind: 'kid' };
-  }
-  const evid = EVID_ITEMS.find(u => u.id === id);
-  if (evid) return { item: evid, kind: 'evid' };
-  return null;
-}
-function openQuickEdit(id) {
-  const found = findQeItem(id);
-  if (!found) return;
-  const { item, kind } = found;
-  const dateFields = kind === 'evid' ? '' :
-    '<div class="qe-field"><label>Začátek</label><input type="date" id="qeStart" value="'+(item.start||'')+'"></div>'+
-    '<div class="qe-field"><label>Termín</label><input type="date" id="qeEnd" value="'+(item.date||'')+'"></div>';
-  document.getElementById('qeModal').innerHTML =
-    '<div class="qe-title">Upravit</div>'+
-    '<div class="qe-field"><label>Název</label><input type="text" id="qeName" value="'+esc(item.name)+'"></div>'+
-    dateFields+
-    '<div class="qe-field"><label>Zodpovídá</label><input type="text" id="qeResp" value="'+esc(item.zodpovida||'')+'"></div>'+
-    '<div class="qe-hint">Změny platí jen pro tuto prezentaci, nikam se neukládají.</div>'+
-    '<div class="qe-actions"><button class="qe-cancel" onclick="closeQuickEdit()">Zavřít</button><button class="qe-save" onclick="saveQuickEdit(\\''+id+'\\')">Uložit</button></div>';
-  document.getElementById('qeOverlay').classList.add('open');
-}
-function closeQuickEdit() { document.getElementById('qeOverlay').classList.remove('open'); }
-function saveQuickEdit(id) {
-  const found = findQeItem(id);
-  if (!found) return;
-  const { item, kind } = found;
-  if (kind !== 'evid') {
-    const newStart = document.getElementById('qeStart').value;
-    const newDate = document.getElementById('qeEnd').value;
-    if (!newDate) { alert('Vyplň termín.'); return; }
-    if (kind === 'project' && !newStart) { alert('Vyplň začátek.'); return; }
-    item.start = newStart;
-    item.date = newDate;
-  }
-  item.name = document.getElementById('qeName').value.trim() || item.name;
-  item.zodpovida = document.getElementById('qeResp').value.trim();
-  closeQuickEdit();
-  renderProjectPicker();
-  render();
-  renderEvidBox();
 }
 const GANTT_SCALES = { week: 20, month: 6, quarter: 2.2 };
 let SCALE = 'month';
@@ -1791,11 +1791,11 @@ function render() {
     const hasKids = u.kids.length > 0;
     const collapseBtn = hasKids ? '<span onclick="event.stopPropagation();toggleCollapse(\\''+u.id+'\\')" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:2px;color:var(--accent);background:rgba(124,58,237,0.12);border-radius:50%;font-size:13px;font-weight:900;vertical-align:middle">'+(isCollapsed?'▸':'▾')+'</span>' : '';
     const descHtml = showDesc ? '<div class="evid-row-desc" style="padding:4px 12px 12px 18px">'+esc(u.note)+'</div>' : '';
-    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px;flex-direction:column;align-items:stretch;gap:0;cursor:pointer" onclick="openQuickEdit(\\''+u.id+'\\')"><div style="display:flex;align-items:center;gap:6px;height:'+baseRowH+'px;flex-shrink:0"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date'+(uMoved?' moved':'')+'" title="'+(uMoved?'Původně: '+fmtDate(u.date):'')+'">'+fmtDateShort(uEff)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>'+descHtml+'</div>';
+    labelsHtml += '<div class="gantt-row-label" style="height:'+rowH+'px;flex-direction:column;align-items:stretch;gap:0"><div style="display:flex;align-items:center;gap:6px;height:'+baseRowH+'px;flex-shrink:0"><div class="col-name" title="'+esc(u.name)+'">'+collapseBtn+esc(u.name)+(isCollapsed?' <span style="font-size:10px;color:var(--muted)">('+u.kids.length+')</span>':'')+'</div><div class="col-date">'+fmtDateShort(u.start)+'</div><div class="col-date'+(uMoved?' moved':'')+'" title="'+(uMoved?'Původně: '+fmtDate(u.date):'')+'">'+fmtDateShort(uEff)+'</div><div class="col-resp">'+(u.zodpovida?esc(u.zodpovida):'–')+'</div></div>'+descHtml+'</div>';
     const barTitle = uMoved ? (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(uEff)+' (původně do '+fmtDate(u.date)+')') : (esc(u.name)+': '+fmtDate(u.start)+' – '+fmtDate(u.date));
     const origWidth = Math.max(dayOffset(new Date(u.date+'T00:00:00')) * PX_PER_DAY - left, PX_PER_DAY);
     const ghostBar = uMoved ? ('<div class="gantt-bar-ghost" style="left:'+left+'px;width:'+origWidth+'px" title="Původní termín: '+fmtDate(u.date)+'"></div>') : '';
-    rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px;cursor:pointer" onclick="openQuickEdit(\\''+u.id+'\\')">'+ghostBar+'<div class="gantt-bar'+(uMoved?' gantt-bar-moved':'')+'" style="left:'+left+'px;width:'+width+'px" title="'+barTitle+'"></div></div>';
+    rowsHtml += '<div class="gantt-track-row" style="height:'+rowH+'px">'+ghostBar+'<div class="gantt-bar'+(uMoved?' gantt-bar-moved':'')+'" style="left:'+left+'px;width:'+width+'px" title="'+barTitle+'"></div></div>';
     if (isCollapsed) return;
     u.kids = orderByChain(u.kids.slice().sort((a,b)=>effDate(a).localeCompare(effDate(b))));
     u.kids.forEach(k => {
@@ -1809,7 +1809,7 @@ function render() {
       posMap[k.id] = { top: yCursor, height: kRowH, x1: kLeft, x2: kHasRange ? kLeft+kWidth : kLeft };
       depList.push({ id: k.id, predecessorId: k.predecessorId||'' });
       yCursor += kRowH;
-      labelsHtml += '<div class="gantt-row-label sub" style="height:'+kRowH+'px;cursor:pointer" onclick="openQuickEdit(\\''+k.id+'\\')"><div class="col-name" title="'+esc(k.name)+'">↳ '+esc(k.name)+'</div><div class="col-date">'+(kHasRange?fmtDateShort(k.start):'–')+'</div><div class="col-date'+(kMoved?' moved':'')+'" title="'+(kMoved?'Původně: '+fmtDate(k.date):'')+'">'+fmtDateShort(kEff)+'</div><div class="col-resp">'+(k.zodpovida?esc(k.zodpovida):'–')+'</div></div>';
+      labelsHtml += '<div class="gantt-row-label sub" style="height:'+kRowH+'px"><div class="col-name" title="'+esc(k.name)+'">↳ '+esc(k.name)+'</div><div class="col-date">'+(kHasRange?fmtDateShort(k.start):'–')+'</div><div class="col-date'+(kMoved?' moved':'')+'" title="'+(kMoved?'Původně: '+fmtDate(k.date):'')+'">'+fmtDateShort(kEff)+'</div><div class="col-resp">'+(k.zodpovida?esc(k.zodpovida):'–')+'</div></div>';
       let kGhost = '';
       if (kHasRange) {
         const kTitle = kMoved
@@ -1819,7 +1819,7 @@ function render() {
           const origWidth = Math.max(dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY);
           kGhost = '<div class="gantt-bar-ghost" style="left:'+kLeft+'px;width:'+origWidth+'px" title="Původní termín: '+fmtDate(k.date)+'"></div>';
         }
-        rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px;cursor:pointer" onclick="openQuickEdit(\\''+k.id+'\\')">'+kGhost+'<div class="gantt-bar '+kCls+(kMoved?' gantt-bar-moved':'')+'" style="left:'+kLeft+'px;width:'+kWidth+'px" title="'+kTitle+'"></div></div>';
+        rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px">'+kGhost+'<div class="gantt-bar '+kCls+(kMoved?' gantt-bar-moved':'')+'" style="left:'+kLeft+'px;width:'+kWidth+'px" title="'+kTitle+'"></div></div>';
       } else {
         const kTitle = kMoved ? (esc(k.name)+': '+fmtDate(kEff)+' (původně '+fmtDate(k.date)+')') : (esc(k.name)+': '+fmtDate(kEff));
         if (kMoved) {
@@ -1827,7 +1827,7 @@ function render() {
           const lineLeft = Math.min(kOrigLeft, kLeft), lineWidth = Math.abs(kLeft - kOrigLeft);
           kGhost = '<div class="gantt-move-line" style="left:'+lineLeft+'px;width:'+lineWidth+'px"></div><div class="gantt-marker gantt-marker-ghost" style="left:'+kOrigLeft+'px" title="Původní termín: '+fmtDate(k.date)+'"></div>';
         }
-        rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px;cursor:pointer" onclick="openQuickEdit(\\''+k.id+'\\')">'+kGhost+'<div class="gantt-marker '+kCls+(kMoved?' gantt-marker-moved':'')+'" style="left:'+kLeft+'px" title="'+kTitle+'"></div></div>';
+        rowsHtml += '<div class="gantt-track-row sub" style="height:'+kRowH+'px">'+kGhost+'<div class="gantt-marker '+kCls+(kMoved?' gantt-marker-moved':'')+'" style="left:'+kLeft+'px" title="'+kTitle+'"></div></div>';
       }
     });
   });
