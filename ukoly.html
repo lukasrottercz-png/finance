@@ -516,24 +516,24 @@
         <span style="font-weight:400;text-transform:none;font-size:12px;letter-spacing:0">v seznamu i Ganttu se zobrazí za ostatními projekty</span>
       </label>
     </div>
-    <div class="field" id="uStartField" style="display:none">
-      <label>Začátek</label>
-      <input id="uStart" type="date">
-    </div>
     <div class="field" id="uProjektIdField" style="display:none">
       <label>Patří pod projekt</label>
       <select id="uProjektId" onchange="buildPredecessorSelect(editUkolId);updateUkolFieldVisibility()" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
         <option value="">— žádný —</option>
       </select>
     </div>
+
+    <div class="form-section-label">Termín</div>
     <div class="field" id="uPredecessorField" style="display:none">
       <label>Navazuje na <span style="font-weight:400;color:var(--muted)">(předchůdce ze stejného projektu)</span></label>
       <select id="uPredecessorId" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
         <option value="">— žádný —</option>
       </select>
     </div>
-
-    <div class="form-section-label">Termín</div>
+    <div class="field" id="uStartField" style="display:none">
+      <label>Začátek</label>
+      <input id="uStart" type="date">
+    </div>
     <div class="field" id="uDateField">
       <label id="uDateLabel">Termín splnění *</label>
       <input id="uDate" type="date">
