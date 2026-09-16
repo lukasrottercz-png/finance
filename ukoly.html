@@ -236,6 +236,7 @@
     max-height: 90vh; overflow-y: auto;
   }
   .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
+  .form-section-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 12px; padding-top: 16px; border-top: 0.5px solid var(--border); }
   .field { margin-bottom: 13px; }
   .field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
   .field input, .field select, .field textarea {
@@ -475,6 +476,7 @@
 <div class="overlay" id="ukolOverlay">
   <div class="modal">
     <div class="modal-title" id="ukolModalTitle">Nový úkol</div>
+
     <div class="field">
       <label>Název *</label>
       <input id="uName" type="text" placeholder="Co je potřeba udělat…">
@@ -486,6 +488,16 @@
         <button type="button" class="cat-pill" onclick="selUkolAgenda='prace';buildUkolAgendaPills()">🏢 Práce</button>
       </div>
     </div>
+    <div class="field">
+      <label>Popis</label>
+      <textarea id="uNote" placeholder="Co úkol/projekt řeší… (volitelné)"></textarea>
+    </div>
+    <div class="field">
+      <label>Štítky <span style="font-weight:400;color:var(--muted)">(oddělené čárkou)</span></label>
+      <input type="text" id="uTags" placeholder="práce, finance, osobní…" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:inherit;font-size:15px;outline:none">
+    </div>
+
+    <div class="form-section-label" id="uStructSectionLabel" style="display:none">Struktura</div>
     <div class="field" id="uProjektField" style="display:none">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleUkolProjekt()">
         <span class="cat-pill" id="uProjektPill">📊 Projekt</span>
@@ -520,6 +532,8 @@
         <option value="">— žádný —</option>
       </select>
     </div>
+
+    <div class="form-section-label">Termín</div>
     <div class="field" id="uDateField">
       <label id="uDateLabel">Termín splnění *</label>
       <input id="uDate" type="date">
@@ -531,11 +545,6 @@
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('uNahradniTermin').value=''">Vymazat</button>
       </div>
     </div>
-    <div class="field" id="uZodpField" style="display:none">
-      <label>Zodpovídá</label>
-      <input id="uZodp" type="text" list="uZodpList" placeholder="Jméno…">
-      <datalist id="uZodpList"></datalist>
-    </div>
     <div class="field">
       <label>Opakování</label>
       <select id="uRepeat" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
@@ -546,14 +555,15 @@
         <option value="yearly">Ročně</option>
       </select>
     </div>
-    <div class="field">
-      <label>Popis</label>
-      <textarea id="uNote" placeholder="Co úkol/projekt řeší… (volitelné)"></textarea>
+
+    <div class="form-section-label" id="uZodpSectionLabel" style="display:none">Zodpovědnost</div>
+    <div class="field" id="uZodpField" style="display:none">
+      <label>Zodpovídá</label>
+      <input id="uZodp" type="text" list="uZodpList" placeholder="Jméno…">
+      <datalist id="uZodpList"></datalist>
     </div>
-    <div class="field">
-      <label>Štítky <span style="font-weight:400;color:var(--muted)">(oddělené čárkou)</span></label>
-      <input type="text" id="uTags" placeholder="práce, finance, osobní…" style="width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:inherit;font-size:15px;outline:none">
-    </div>
+
+    <div class="form-section-label">Uzavření</div>
     <div class="field">
       <label>Skutečně splněno <span style="font-weight:400;color:var(--muted)">(prázdné = nesplněno)</span></label>
       <div style="display:flex;gap:8px">
@@ -566,6 +576,7 @@
       <label>Řešení <span style="font-weight:400;color:var(--muted)">(pro reporting — jak byl úkol vyřešen)</span></label>
       <textarea id="uReseni" placeholder="Volitelně…"></textarea>
     </div>
+
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="saveUkol()">Uložit</button>
       <button class="btn btn-ghost" onclick="closeUkolModal()">Zrušit</button>
@@ -1969,6 +1980,8 @@ function buildUkolAgendaPills() {
 
 function updateUkolFieldVisibility() {
   const isPrace = selUkolAgenda === 'prace';
+  document.getElementById('uStructSectionLabel').style.display = isPrace ? 'block' : 'none';
+  document.getElementById('uZodpSectionLabel').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uProjektField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uZodpField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uEvidovanyField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
