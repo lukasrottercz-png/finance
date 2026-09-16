@@ -527,6 +527,11 @@
         <span style="font-weight:400;text-transform:none;font-size:12px;letter-spacing:0">v seznamu i Ganttu se zobrazí za ostatními projekty</span>
       </label>
     </div>
+    <div class="field" id="uRetezecField" style="display:none">
+      <label>Řetězec <span style="font-weight:400;color:var(--muted)">(ve kterém řetězci akce běží)</span></label>
+      <input id="uRetezec" type="text" list="uRetezecList" placeholder="OBI, Hornbach…">
+      <datalist id="uRetezecList"></datalist>
+    </div>
     <div class="field" id="uProjektIdField" style="display:none">
       <label>Patří pod projekt</label>
       <select id="uProjektId" onchange="buildPredecessorSelect(editUkolId);updateUkolFieldVisibility()" style="width:100%;font-size:15px;padding:10px 12px;border-radius:var(--r);border:0.5px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
@@ -1012,15 +1017,29 @@ function expandAllProjects() {
 
 // ── Skrývání projektů v Ganttu — pro zaostření jen na vybrané ──────────
 let hiddenGanttProjects = new Set(load('tw_gantt_hidden', []));
+let hiddenGanttChains = new Set(load('tw_gantt_hidden_chains', []));
 function saveHiddenGanttProjects() { save('tw_gantt_hidden', [...hiddenGanttProjects]); }
+function saveHiddenGanttChains() { save('tw_gantt_hidden_chains', [...hiddenGanttChains]); }
+function ganttChainVisible(u) { return !(u.retezec && hiddenGanttChains.has(u.retezec)); }
 function renderGanttPicker(allProjects, allEvid) {
   const btn = document.getElementById('ganttPickerBtn');
   if (!btn) return;
   const total = allProjects.length + allEvid.length;
-  const shown = total - [...hiddenGanttProjects].filter(id => allProjects.some(u=>u.id===id) || allEvid.some(u=>u.id===id)).length;
+  const shown = allProjects.filter(u => !hiddenGanttProjects.has(u.id) && ganttChainVisible(u)).length
+    + allEvid.filter(u => !hiddenGanttProjects.has(u.id) && ganttChainVisible(u)).length;
   btn.textContent = '🎯 Projekty (' + shown + '/' + total + ')';
   const panel = document.getElementById('ganttPickerPanel');
-  let html = '<div class="picker-actions"><a onclick="showAllGanttProjects()">Zobrazit vše</a><a onclick="hideAllGanttProjects()">Skrýt vše</a></div>';
+  const chains = [...new Set(allProjects.concat(allEvid).map(u => u.retezec).filter(Boolean))].sort();
+  let html = '';
+  if (chains.length) {
+    html += '<div class="picker-sub-label">Řetězce</div>';
+    html += chains.map(c => {
+      const checked = hiddenGanttChains.has(c) ? '' : ' checked';
+      return `<label class="picker-item"><input type="checkbox"${checked} onchange="toggleGanttChainHidden('${esc(c)}')">${esc(c)}</label>`;
+    }).join('');
+    html += '<div class="picker-sub-label">Projekty</div>';
+  }
+  html += '<div class="picker-actions"><a onclick="showAllGanttProjects()">Zobrazit vše</a><a onclick="hideAllGanttProjects()">Skrýt vše</a></div>';
   html += allProjects.map(u => {
     const checked = hiddenGanttProjects.has(u.id) ? '' : ' checked';
     return `<label class="picker-item"><input type="checkbox"${checked} onchange="toggleGanttProjectHidden('${u.id}')">${esc(u.name)}</label>`;
@@ -1043,7 +1062,12 @@ function toggleGanttProjectHidden(id) {
   saveHiddenGanttProjects();
   renderGantt();
 }
-function showAllGanttProjects() { hiddenGanttProjects.clear(); saveHiddenGanttProjects(); renderGantt(); }
+function toggleGanttChainHidden(chain) {
+  if (hiddenGanttChains.has(chain)) hiddenGanttChains.delete(chain); else hiddenGanttChains.add(chain);
+  saveHiddenGanttChains();
+  renderGantt();
+}
+function showAllGanttProjects() { hiddenGanttProjects.clear(); hiddenGanttChains.clear(); saveHiddenGanttProjects(); saveHiddenGanttChains(); renderGantt(); }
 function hideAllGanttProjects() {
   ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt).forEach(u => hiddenGanttProjects.add(u.id));
   saveHiddenGanttProjects();
@@ -1340,8 +1364,8 @@ function renderGantt() {
     }));
   const allEvid = ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.evidovany);
   renderGanttPicker(allProjects, allEvid);
-  const items = allProjects.filter(u => !hiddenGanttProjects.has(u.id));
-  const evidovane = allEvid.filter(u => !hiddenGanttProjects.has(u.id));
+  const items = allProjects.filter(u => !hiddenGanttProjects.has(u.id) && ganttChainVisible(u));
+  const evidovane = allEvid.filter(u => !hiddenGanttProjects.has(u.id) && ganttChainVisible(u));
   const evidBox = evidHtml(evidovane);
 
   if (!items.length) {
@@ -2064,6 +2088,7 @@ function openUkolModal(id) {
   document.getElementById('uTags').value = u ? (u.tags||[]).join(', ') : '';
   document.getElementById('uStart').value = u ? (u.start||'') : '';
   document.getElementById('uZodp').value = u ? (u.zodpovida||'') : '';
+  document.getElementById('uRetezec').value = u ? (u.retezec||'') : '';
   document.getElementById('uCompletedAt').value = u ? (u.completedAt||'') : '';
   document.getElementById('uReseni').value = u ? (u.reseni||'') : '';
   document.getElementById('uDelBtn').style.display = u ? 'inline-block' : 'none';
@@ -2078,6 +2103,7 @@ function openUkolModal(id) {
   document.getElementById('uPredecessorId').value = u ? (u.predecessorId||'') : '';
   buildUkolAgendaPills();
   buildZodpList();
+  buildRetezecList();
   document.getElementById('ukolOverlay').classList.add('open');
   setTimeout(() => document.getElementById('uName').focus(), 50);
 }
@@ -2100,6 +2126,7 @@ function updateUkolFieldVisibility() {
   const hasProjektParent = !ukolProjekt && !!document.getElementById('uProjektId').value;
   document.getElementById('uStartField').style.display = (isPrace && !ukolEvidovany && (ukolProjekt || hasProjektParent)) ? 'block' : 'none';
   document.getElementById('uNaKonciField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
+  document.getElementById('uRetezecField').style.display = (isPrace && ukolProjekt) ? 'block' : 'none';
   document.getElementById('uProjektIdField').style.display = (isPrace && !ukolProjekt) ? 'block' : 'none';
   document.getElementById('uPredecessorField').style.display = isPrace ? 'block' : 'none';
   document.getElementById('uKritickyField').style.display = isPrace ? 'block' : 'none';
@@ -2173,6 +2200,11 @@ function buildZodpList() {
   document.getElementById('uZodpList').innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
 }
 
+function buildRetezecList() {
+  const names = [...new Set(ukoly.filter(u => u.retezec).map(u => u.retezec))].sort();
+  document.getElementById('uRetezecList').innerHTML = names.map(n => `<option value="${esc(n)}">`).join('');
+}
+
 // Barva štítku podle názvu
 function tagColor(tag) {
   let hash = 0;
@@ -2206,6 +2238,7 @@ function saveUkol() {
   const start = (!evidovany && (projekt || projektId)) ? document.getElementById('uStart').value : '';
   const predecessorId = isPrace ? document.getElementById('uPredecessorId').value : '';
   const kriticky = isPrace && ukolKriticky;
+  const retezec = projekt ? document.getElementById('uRetezec').value.trim() : '';
   const completedAtVal = document.getElementById('uCompletedAt').value;
   const done = !!completedAtVal;
   const completedAt = completedAtVal || null;
@@ -2213,9 +2246,9 @@ function saveUkol() {
   if (!name) return alert('Vyplň název.');
   if (!evidovany && !date) return alert('Vyplň termín (nebo označ projekt jako "Evidovaný").');
   if (editUkolId) {
-    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, nahradniTermin, note, repeat, tags, agenda, projekt, evidovany, naKonci, start, zodpovida, projektId, predecessorId, kriticky, done, completedAt, reseni} : u);
+    ukoly = ukoly.map(u => u.id===editUkolId ? {...u, name, date, nahradniTermin, note, repeat, tags, agenda, projekt, evidovany, naKonci, start, zodpovida, projektId, predecessorId, kriticky, retezec, done, completedAt, reseni} : u);
   } else {
-    ukoly.push({ id: uid(), name, date, nahradniTermin, note, done, completedAt, repeat, tags, agenda, projekt, evidovany, naKonci, start, zodpovida, projektId, predecessorId, kriticky, reseni });
+    ukoly.push({ id: uid(), name, date, nahradniTermin, note, done, completedAt, repeat, tags, agenda, projekt, evidovany, naKonci, start, zodpovida, projektId, predecessorId, kriticky, retezec, reseni });
   }
   save('tw_ukoly2', ukoly); ghSave(); showToast('Uloženo ✓');
   closeUkolModal();
