@@ -372,6 +372,12 @@
 .gantt-bar.gantt-critical { box-shadow: 0 0 0 2px var(--red); }
 .gantt-bar-label { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 1px rgba(0,0,0,0.3); pointer-events: none; }
 .gantt-critical-marker { position: absolute; top: 50%; margin-top: -10px; height: 20px; min-width: 4px; background: var(--red); border-radius: 3px; box-shadow: 0 0 0 1.5px var(--surface); z-index: 3; }
+.gantt-bar-handle { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; touch-action: none; z-index: 4; }
+.gantt-bar-handle.l { left: -2px; }
+.gantt-bar-handle.r { right: -2px; }
+.gantt-bar-handle::after { content: ''; position: absolute; top: 50%; left: 50%; width: 3px; height: 60%; transform: translate(-50%,-50%); border-radius: 2px; background: rgba(255,255,255,0.6); opacity: 0; transition: opacity .12s; }
+.gantt-bar:hover .gantt-bar-handle::after { opacity: 1; }
+.gantt-bar-dragging { opacity: 0.85 !important; box-shadow: 0 0 0 2px var(--accent) !important; }
 .gantt-track-row.sub .gantt-bar { height: 14px; margin-top: -7px; background: var(--gray-light); }
 .gantt-track-row.sub .gantt-bar.gantt-done { background: var(--green); }
 .gantt-track-row.sub .gantt-bar.gantt-late { background: var(--red); }
@@ -1255,6 +1261,75 @@ function evidHtml(list) {
   </div>`;
 }
 
+// ── Tažení za okraj pruhu v Ganttu — mění začátek/termín přetažením ────
+let ganttDrag = null; // { id, edge, field, startX, origLeft, origWidth, pxPerDay, barEl, dayDelta }
+function ganttPointerX(e) {
+  return (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+}
+function startGanttResize(e, id, edge) {
+  e.preventDefault();
+  e.stopPropagation();
+  const u = ukoly.find(x => x.id === id);
+  if (!u) return;
+  const barEl = e.target.closest('.gantt-bar');
+  if (!barEl) return;
+  const moved = !!u.nahradniTermin && u.nahradniTermin !== u.date;
+  const field = edge === 'start' ? 'start' : (moved ? 'nahradniTermin' : 'date');
+  ganttDrag = {
+    id, edge, field,
+    startX: ganttPointerX(e),
+    origLeft: parseFloat(barEl.style.left) || 0,
+    origWidth: parseFloat(barEl.style.width) || 0,
+    pxPerDay: GANTT_SCALES[ganttScale] || GANTT_SCALES.month,
+    barEl,
+    dayDelta: 0
+  };
+  barEl.classList.add('gantt-bar-dragging');
+  document.addEventListener('mousemove', onGanttResizeMove);
+  document.addEventListener('mouseup', onGanttResizeEnd);
+  document.addEventListener('touchmove', onGanttResizeMove, {passive:false});
+  document.addEventListener('touchend', onGanttResizeEnd);
+}
+function onGanttResizeMove(e) {
+  if (!ganttDrag) return;
+  e.preventDefault();
+  const dx = ganttPointerX(e) - ganttDrag.startX;
+  const dayDelta = Math.round(dx / ganttDrag.pxPerDay);
+  const minWidth = ganttDrag.pxPerDay;
+  if (ganttDrag.edge === 'start') {
+    let newLeft = ganttDrag.origLeft + dayDelta * ganttDrag.pxPerDay;
+    let newWidth = ganttDrag.origWidth - dayDelta * ganttDrag.pxPerDay;
+    if (newWidth < minWidth) { newLeft = ganttDrag.origLeft + ganttDrag.origWidth - minWidth; newWidth = minWidth; }
+    ganttDrag.barEl.style.left = newLeft + 'px';
+    ganttDrag.barEl.style.width = newWidth + 'px';
+  } else {
+    const newWidth = Math.max(minWidth, ganttDrag.origWidth + dayDelta * ganttDrag.pxPerDay);
+    ganttDrag.barEl.style.width = newWidth + 'px';
+  }
+  ganttDrag.dayDelta = dayDelta;
+}
+function onGanttResizeEnd() {
+  document.removeEventListener('mousemove', onGanttResizeMove);
+  document.removeEventListener('mouseup', onGanttResizeEnd);
+  document.removeEventListener('touchmove', onGanttResizeMove);
+  document.removeEventListener('touchend', onGanttResizeEnd);
+  if (!ganttDrag) return;
+  const { id, field, dayDelta, barEl } = ganttDrag;
+  barEl.classList.remove('gantt-bar-dragging');
+  ganttDrag = null;
+  if (!dayDelta) return;
+  const u = ukoly.find(x => x.id === id);
+  if (!u) return;
+  const origin = field === 'start' ? u.start : (u[field] || u.date);
+  let newVal = addDays(origin, dayDelta);
+  const otherStart = field === 'start' ? newVal : u.start;
+  const otherEnd = field === 'start' ? (u.nahradniTermin || u.date) : newVal;
+  if (otherStart > otherEnd) newVal = field === 'start' ? otherEnd : otherStart;
+  ukoly = ukoly.map(x => x.id===id ? {...x, [field]: newVal} : x);
+  save('tw_ukoly2', ukoly); ghSave(); showToast('Termín upraven ✓');
+  renderGantt();
+}
+
 function renderGantt() {
   const el = document.getElementById('ganttWrap');
   const allProjects = orderByChain(ukoly.filter(u => (u.agenda||'osobni')==='prace' && u.projekt && u.start && u.date)
@@ -1392,7 +1467,8 @@ function renderGantt() {
       const kWidth2 = kHasRange2 ? Math.max(dayOffset(new Date(kEff2+'T00:00:00')) * PX_PER_DAY - kLeft2, PX_PER_DAY) : Math.max(PX_PER_DAY, 4);
       return `<div class="gantt-critical-marker" style="left:${kLeft2}px;width:${kWidth2}px" title="🔴 Kritické: ${esc(k.name)}"></div>`;
     }).join('');
-    rowsHtml += `<div class="gantt-track-row" style="height:${rowH}px;cursor:pointer" onclick="openUkolModal('${u.id}')">${ghostBar}<div class="gantt-bar${uMoved?' gantt-bar-moved':''}${u.kriticky?' gantt-critical':''}" style="left:${left}px;width:${width}px" title="${barTitle}"><span class="gantt-bar-label">${esc(u.name)}</span></div>${criticalOverlayHtml}</div>`;
+    const uHandles = `<span class="gantt-bar-handle l" onmousedown="startGanttResize(event,'${u.id}','start')" ontouchstart="startGanttResize(event,'${u.id}','start')" onclick="event.stopPropagation()"></span><span class="gantt-bar-handle r" onmousedown="startGanttResize(event,'${u.id}','end')" ontouchstart="startGanttResize(event,'${u.id}','end')" onclick="event.stopPropagation()"></span>`;
+    rowsHtml += `<div class="gantt-track-row" style="height:${rowH}px;cursor:pointer" onclick="openUkolModal('${u.id}')">${ghostBar}<div class="gantt-bar${uMoved?' gantt-bar-moved':''}${u.kriticky?' gantt-critical':''}" style="left:${left}px;width:${width}px" title="${barTitle}"><span class="gantt-bar-label">${esc(u.name)}</span>${uHandles}</div>${criticalOverlayHtml}</div>`;
 
     // dílčí úkoly — bar, pokud mají zadaný začátek i termín; jinak jen značka na termínu (skryté, pokud je projekt sbalený)
     if (!isCollapsed) kids.forEach(k => {
@@ -1421,7 +1497,8 @@ function renderGantt() {
           const origWidth = Math.max(dayOffset(new Date(k.date+'T00:00:00')) * PX_PER_DAY - kLeft, PX_PER_DAY);
           kGhost = `<div class="gantt-bar-ghost" style="left:${kLeft}px;width:${origWidth}px" title="Původní termín: ${fmtDate(k.date)}"></div>`;
         }
-        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px;cursor:pointer" onclick="openUkolModal('${k.id}')">${kGhost}<div class="gantt-bar ${kCls}${kMoved?' gantt-bar-moved':''}" style="left:${kLeft}px;width:${kWidth}px" title="${kTitle}"></div></div>`;
+        const kHandles = `<span class="gantt-bar-handle l" onmousedown="startGanttResize(event,'${k.id}','start')" ontouchstart="startGanttResize(event,'${k.id}','start')" onclick="event.stopPropagation()"></span><span class="gantt-bar-handle r" onmousedown="startGanttResize(event,'${k.id}','end')" ontouchstart="startGanttResize(event,'${k.id}','end')" onclick="event.stopPropagation()"></span>`;
+        rowsHtml += `<div class="gantt-track-row sub" style="height:${kRowH}px;cursor:pointer" onclick="openUkolModal('${k.id}')">${kGhost}<div class="gantt-bar ${kCls}${kMoved?' gantt-bar-moved':''}" style="left:${kLeft}px;width:${kWidth}px" title="${kTitle}">${kHandles}</div></div>`;
       } else {
         const kTitle = kMoved
           ? `${esc(k.name)}: ${fmtDate(kEff)} (původně ${fmtDate(k.date)})`
