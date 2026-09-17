@@ -564,18 +564,20 @@ function budgetInfo(){
   var odhad=mz.odhad;
   var now=new Date();
   var trvaleTotal=trvale.filter(isActive).reduce(function(s,t){return s+(t.castka||0)},0);
-  var bezne=0, todayTotal=0, tod=today();
+  var bezne=0, todayTotal=0, mimoradnyTotal=0, tod=today();
   exps.forEach(function(e){
-    if(e.mimoradny)return; // mimořádné výdaje rozpočet ignoruje
     if(e.catKey==='za_jitku')return; // zaplaceno za Jitku — vrací se, není to má spotřeba
     var d=new Date(e.date);
-    if(d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()) bezne+=e.amount||0;
+    var vTomtoMesici=d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(e.mimoradny){ if(vTomtoMesici) mimoradnyTotal+=e.amount||0; return; } // mimořádné výdaje rozpočet/tempo ignoruje
+    if(vTomtoMesici) bezne+=e.amount||0;
     if(e.date===tod) todayTotal+=e.amount||0;
   });
   var cil=mzda*savingsRate/100;
   var limit=mzda-trvaleTotal-cil;
   var dny=daysLeftInMonth();
   var zbyvaMesic=limit-bezne;
+  var zbyvaMesicRealne=zbyvaMesic-mimoradnyTotal; // vč. mimořádných výdajů — kolik reálně zbylo z výplaty
   var denni=zbyvaMesic/dny;
   var dnesZbyva=denni-todayTotal;
   // Tempo: kde bys měl být dnes (rovnoměrné utrácení přes měsíc)
@@ -585,7 +587,7 @@ function budgetInfo(){
   var ocekavano=limit*denVMesici/dnuVMesici;
   var paceDiff=ocekavano-bezne;                               // + = napřed, − = pozadu
   var spentPct=limit>0?Math.round(bezne/limit*100):0;         // kolik z limitu projeto
-  return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,denni:denni,dnesZbyva:dnesZbyva,
+  return {mzda:mzda,odhad:odhad,trvaleTotal:trvaleTotal,bezne:bezne,todayTotal:todayTotal,mimoradnyTotal:mimoradnyTotal,cil:cil,limit:limit,dny:dny,zbyvaMesic:zbyvaMesic,zbyvaMesicRealne:zbyvaMesicRealne,denni:denni,dnesZbyva:dnesZbyva,
           dnuVMesici:dnuVMesici,denVMesici:denVMesici,pacePct:pacePct,ocekavano:ocekavano,paceDiff:paceDiff,mesicSpentPct:spentPct};
 }
 function setJitkaEmail(){
@@ -643,8 +645,9 @@ function paceBarHtml(b){
     +'</div>'
     +'<div style="margin-top:14px;font-size:13px;color:#48484a">'
       +'<span style="color:'+(ahead?'#34c759':'#ff3b30')+';font-weight:600">'+fmt(Math.abs(b.paceDiff))+(ahead?' napřed':' pozadu')+'</span>'
-      +' · zbývá '+fmt(b.zbyvaMesic)+' · '+b.denVMesici+'. den z '+b.dnuVMesici
+      +' · zbývá '+fmt(b.zbyvaMesic)+' (rozpočet) · '+b.denVMesici+'. den z '+b.dnuVMesici
     +'</div>'
+    +(b.mimoradnyTotal>0?'<div style="margin-top:4px;font-size:12px;color:#8e8e93">vč. mimořádných výdajů reálně zbývá '+fmt(b.zbyvaMesicRealne)+'</div>':'')
     +'</div>';
 }
 function fmt(n){return Math.round(n).toLocaleString('cs-CZ')+' Kč'}

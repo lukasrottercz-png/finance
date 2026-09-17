@@ -879,8 +879,10 @@ async function loadVydaje() {
       } catch(e) { console.error('trvale load:', e); }
 
       const vydajeTotal = total;
-      // Mimořádné výdaje a "za Jitku" (vrací se) nejsou reálná spotřeba — stejně jako v rozpočtu ve Výdajích (budgetInfo) se do "Zbývá" nepočítají
-      const bezneVydaje = thisMonth.reduce((s,e) => (e.mimoradny || e.catKey === 'za_jitku') ? s : s + (e.amount||0), 0);
+      // "Za Jitku" se vrací — není to reálná spotřeba z výplaty. Mimořádné výdaje ALE reálně odešly z účtu,
+      // takže na rozdíl od denního rozpočtu ve Výdajích (kde se ignorují kvůli tempu) se tady počítat musí.
+      const mimoradnyTotal = thisMonth.reduce((s,e) => (e.mimoradny && e.catKey !== 'za_jitku') ? s + (e.amount||0) : s, 0);
+      const bezneVydaje = thisMonth.reduce((s,e) => e.catKey === 'za_jitku' ? s : s + (e.amount||0), 0);
       const utraceno = bezneVydaje + trvaleTotal;
 
       // Řádek příjmů (rozpad, pokud je víc zdrojů) + zbývá + progress bar — jen pokud mzda zadána pro tento měsíc
@@ -911,7 +913,8 @@ async function loadVydaje() {
         <div style="height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-bottom:6px">
           <div style="height:100%;width:${barPct}%;background:${barPct > 90 ? 'var(--red)' : barPct > 75 ? 'var(--orange)' : 'var(--green)'};border-radius:4px;transition:width 0.3s"></div>
         </div>
-        <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % příjmů · míra úspor ${pctUspor} %</div>`;
+        <div style="font-size:12px;color:var(--text2)">Utraceno ${barPct} % příjmů · míra úspor ${pctUspor} %</div>
+        ${mimoradnyTotal > 0 ? `<div style="font-size:12px;color:var(--text3);margin-top:4px">bez mimořádných (rozpočet) by zbývalo ${fmt(uspory + mimoradnyTotal)}</div>` : ''}`;
       })() : '';
 
       usporEl.innerHTML = mzdaRow + `
