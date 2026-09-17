@@ -879,7 +879,9 @@ async function loadVydaje() {
       } catch(e) { console.error('trvale load:', e); }
 
       const vydajeTotal = total;
-      const utraceno = vydajeTotal + trvaleTotal;
+      // Mimořádné výdaje a "za Jitku" (vrací se) nejsou reálná spotřeba — stejně jako v rozpočtu ve Výdajích (budgetInfo) se do "Zbývá" nepočítají
+      const bezneVydaje = thisMonth.reduce((s,e) => (e.mimoradny || e.catKey === 'za_jitku') ? s : s + (e.amount||0), 0);
+      const utraceno = bezneVydaje + trvaleTotal;
 
       // Řádek příjmů (rozpad, pokud je víc zdrojů) + zbývá + progress bar — jen pokud mzda zadána pro tento měsíc
       const prijmy = (p2 && p2.prijmy && p2.prijmy.length) ? p2.prijmy : null;
