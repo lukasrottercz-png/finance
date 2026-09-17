@@ -706,6 +706,11 @@ function investAtDate(dateStr) {
   const transe = (inv.transe || []).filter(t => t.datum <= dateStr);
   return transe.reduce((s,t) => s + (t.castka||0), 0);
 }
+// Kolik bylo skutečně investováno (součet tranší) k danému datu — pro výpočet zisku/ztráty
+// historických záznamů hodnoty portfolia nesmí zisk počítat proti tranším přidaným až POZDĚJI.
+function investovanoKDatu(inv, dateStr) {
+  return (inv.transe || []).filter(t => t.datum <= dateStr).reduce((s,t) => s + (t.castka||0), 0);
+}
 
 // ── CHART HELPER ──────────────────────────────────────────────────────
 const _charts = {};
@@ -1020,8 +1025,9 @@ function renderDashboard() {
       const celkem = transe.reduce((s,t) => s+(t.castka||0), 0);
       const posledni = aktualni.length ? aktualni[aktualni.length-1] : null;
       if (!celkem) return '';
-      const zisk = posledni ? posledni.hodnota - celkem : null;
-      const ziskPct = zisk != null && celkem ? (zisk/celkem*100) : null;
+      const investK = posledni ? investovanoKDatu(inv, posledni.datum) : celkem;
+      const zisk = posledni ? posledni.hodnota - investK : null;
+      const ziskPct = zisk != null && investK ? (zisk/investK*100) : null;
       return `<div class="cards" style="margin-top:0">
         ${posledni ? `<div class="card"><div class="card-lbl">Portfolio — aktuální hodnota</div><div class="card-val">${fmt(posledni.hodnota)}</div>${zisk!=null?`<div class="${zisk>=0?'pos':'danger'}" style="font-size:13px;margin-top:4px">${zisk>=0?'+':''}${fmt(zisk)} (${ziskPct>=0?'+':''}${ziskPct.toFixed(1)} %)</div>`:''}</div>` : ''}
         <div class="card"><div class="card-lbl">Portfolio — investováno</div><div class="card-val">${fmt(celkem)}</div></div>
@@ -1498,8 +1504,9 @@ function renderInvestice(){
   const celkem=transe.reduce((s,t)=>s+(t.castka||0),0);
   const posledni=aktualni.length?aktualni[aktualni.length-1]:null;
   const aktHodnota=posledni?posledni.hodnota:null;
-  const zisk=aktHodnota!=null?aktHodnota-celkem:null;
-  const ziskPct=zisk!=null&&celkem?(zisk/celkem*100):null;
+  const investKPoslednimu=posledni?investovanoKDatu(inv,posledni.datum):celkem;
+  const zisk=aktHodnota!=null?aktHodnota-investKPoslednimu:null;
+  const ziskPct=zisk!=null&&investKPoslednimu?(zisk/investKPoslednimu*100):null;
   const rozlozeni=INV_ETF.map(e=>{
     const i2=transe.reduce((s,t)=>{ const p=(t.etf||[]).find(x=>x.tiker===e.tiker); return s+(p?p.castka:0); },0);
     return {...e,investovano:i2};
@@ -1540,7 +1547,7 @@ function renderInvestice(){
     ${!aktualni.length?`<div style="font-size:13px;color:var(--text3);padding:8px 0">Zadej aktuální hodnotu z XTB.</div>`:`
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <tr style="color:var(--text2);border-bottom:0.5px solid var(--border)"><td style="padding:6px 0">Datum</td><td style="padding:6px 8px;text-align:right">Hodnota</td><td style="padding:6px 8px;text-align:right">Zisk/ztráta</td><td style="padding:6px 0;text-align:right">%</td><td></td></tr>
-      ${aktualni.slice().reverse().map((a,i)=>{ const z=a.hodnota-celkem; const zp=celkem?(z/celkem*100):0; const idx=aktualni.length-1-i;
+      ${aktualni.slice().reverse().map((a,i)=>{ const investK=investovanoKDatu(inv,a.datum); const z=a.hodnota-investK; const zp=investK?(z/investK*100):0; const idx=aktualni.length-1-i;
         return `<tr style="border-bottom:0.5px solid var(--border)">
           <td style="padding:8px 0">${a.datum}</td>
           <td style="padding:8px;text-align:right;font-weight:500">${fmt(a.hodnota)}</td>
