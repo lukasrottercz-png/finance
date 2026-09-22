@@ -680,7 +680,7 @@ function renderMd(text, noteId){
     .replace(/^---$/gm,'<hr>')
     .replace(/^- \[x\] (.+)$/gm,'<div class="task-line"><div class="task-cb done" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text done">$1</span></div>')
     .replace(/^- \[ \] (.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
-    .replace(/^T: ?(.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
+    .replace(/^-?\s*T: ?(.+)$/gm,'<div class="task-line"><div class="task-cb" onclick="toggleTask(this,\''+noteId+'\')"></div><span class="task-text">$1</span></div>')
     .replace(/^- (.+)$/gm,'<li>$1</li>');
 
   // Seskup li do ul bez extra mezer
@@ -708,7 +708,7 @@ function toggleTask(cb, noteId){
   if(isDone){
     note.content=note.content.replace(`- [x] ${text}`,`- [ ] ${text}`);
   } else {
-    note.content=note.content.replace(`- [ ] ${text}`,`- [x] ${text}`).replace(`T: ${text}`,`- [x] ${text}`);
+    note.content=note.content.replace(`- [ ] ${text}`,`- [x] ${text}`).replace(`- T: ${text}`,`- [x] ${text}`).replace(`T: ${text}`,`- [x] ${text}`);
   }
   ghSave();
   showDetail(noteId);
@@ -719,7 +719,7 @@ function extractTasks(content){
   const lines=content.split('\n');
   const out=[];
   for(const l of lines){
-    const m=l.match(/^- \[ \] (.+)$/)||l.match(/^T: ?(.+)$/);
+    const m=l.match(/^- \[ \] (.+)$/)||l.match(/^-?\s*T: ?(.+)$/);
     if(m) out.push(m[1]);
   }
   return out;
