@@ -357,6 +357,7 @@
 .gantt-week-ticks .wt { position: absolute; top: 1px; font-size: 9px; font-weight: 700; color: var(--accent); opacity: 0.75; white-space: nowrap; }
 .gantt-day-ticks { position: relative; height: 16px; border-bottom: 0.5px solid var(--border); }
 .gantt-day-ticks .dt { position: absolute; top: 2px; font-size: 9px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.gantt-day-ticks .dt.we { opacity: .4; }
 .gantt-today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px solid var(--red); z-index: 5; }
 .gantt-today-label { position: absolute; top: 50%; transform: translate(-50%,-50%); background: var(--red); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 7px; white-space: nowrap; z-index: 6; pointer-events: none; }
 .gantt-track-row { position: relative; border-bottom: 0.5px solid var(--border); box-sizing: border-box; }
@@ -1417,7 +1418,7 @@ function renderGantt() {
   let dayTicksHtml = '', minorGridHtml = '';
   for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + minorStepDays)) {
     const dLeft = dayOffset(d) * PX_PER_DAY;
-    dayTicksHtml += `<span class="dt" style="left:${dLeft}px">${d.getDate()}</span>`;
+    dayTicksHtml += `<span class="dt${d.getDay()%6===0?' we':''}" style="left:${dLeft}px">${d.getDate()}</span>`;
     minorGridHtml += `<div class="gantt-minor-line" style="left:${dLeft}px"></div>`;
   }
 
@@ -1669,6 +1670,7 @@ body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-sys
 .gantt-week-ticks .wt { position:absolute; top:1px; font-size:9px; font-weight:700; color:var(--accent); opacity:.75; white-space:nowrap; }
 .gantt-day-ticks { position:relative; height:16px; border-bottom:0.5px solid var(--border); }
 .gantt-day-ticks .dt { position:absolute; top:2px; font-size:9px; color:var(--muted); transform:translateX(-50%); white-space:nowrap; }
+.gantt-day-ticks .dt.we { opacity:.4; }
 .gantt-today-line { position:absolute; top:0; bottom:0; width:0; border-left:1.5px solid var(--red); z-index:5; }
 .gantt-today-label { position:absolute; top:50%; transform:translate(-50%,-50%); background:var(--red); color:#fff; font-size:9px; font-weight:700; padding:1px 5px; border-radius:7px; white-space:nowrap; z-index:6; pointer-events:none; }
 .gantt-track-row { position:relative; border-bottom:0.5px solid var(--border); box-sizing:border-box; }
@@ -1881,7 +1883,7 @@ function render() {
   let dayTicksHtml = '', minorGridHtml = '';
   for (let d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + minorStepDays)) {
     const dLeft = dayOffset(d) * PX_PER_DAY;
-    dayTicksHtml += '<span class="dt" style="left:'+dLeft+'px">'+d.getDate()+'</span>';
+    dayTicksHtml += '<span class="dt'+(d.getDay()%6===0?' we':'')+'" style="left:'+dLeft+'px">'+d.getDate()+'</span>';
     minorGridHtml += '<div class="gantt-minor-line" style="left:'+dLeft+'px"></div>';
   }
 
