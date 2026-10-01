@@ -170,7 +170,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 <div class="toast" id="toast"></div>
 
 <script>
-var APP_VERSION='2026-08-21c'; // datum poslední úpravy — zvednout při každé změně, ať jde poznat, že se propsala nejnovější verze
+var APP_VERSION='2026-10-01a'; // datum poslední úpravy — zvednout při každé změně, ať jde poznat, že se propsala nejnovější verze
 var CATS=[
   {k:'bydleni',    i:'🏠',l:'Bydlení',       s:['Nájem / záloha','Elektřina','Plyn','Internet','Opravy','Vybavení','Zahrada']},
   {k:'doprava',    i:'🚗',l:'Doprava',        s:['CNG — Octavia','Benzín — RAV4','Nafta','Elektřina (nabíjení)','Pojištění','Servis','Dálniční známka','Parkování','MHD','Mytí auta','Pneumatiky']},
@@ -1353,8 +1353,38 @@ function renderPrehled(){
     return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
   });
   var total=thisM.reduce(function(s,e){return s+(e.amount||0)},0);
+  var now2=new Date();
+  var monthLbl=now2.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
+  var h=banner+'<div class="big-sum"><div class="big-amt">'+fmt(total)+'</div><div class="big-lbl">'+monthLbl+'</div></div>';
+  h+='<input type="search" id="exp-search" placeholder="🔍 Hledat ve výdajích…" value="'+expSearch.replace(/"/g,'&quot;')+'" oninput="onExpSearch(this.value)" style="width:100%;margin-top:12px;padding:10px 14px;font-size:16px;border:1px solid #e0e0e0;border-radius:11px;background:#fff;font-family:inherit;outline:none">';
+  h+='<div id="prehled-list">'+prehledListHtml()+'</div>';
+  return h;
+}
+
+var expSearch='';
+function normSearch(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function onExpSearch(v){
+  expSearch=v;
+  var el=document.getElementById('prehled-list');
+  if(el)el.innerHTML=prehledListHtml();
+}
+function expMatches(e,q){
+  var cat=catByKey(e.catKey);
+  var hay=normSearch([cat?cat.l:e.catKey,e.subcat,e.note,e.date,Math.round(e.amount||0)].join(' '));
+  return q.split(/\s+/).every(function(w){return hay.indexOf(w)>=0;});
+}
+
+function prehledListHtml(){
+  var q=normSearch(expSearch.trim());
+  var list=q?exps.filter(function(e){return expMatches(e,q);}):exps;
+  var h='';
+  if(q){
+    var sum=list.reduce(function(s,e){return s+(e.amount||0)},0);
+    h+='<div class="sec-hdr"><span>Nalezeno: '+list.length+'</span><span style="color:#ff3b30">'+fmt(sum)+'</span></div>';
+    if(!list.length)return h+'<div class="empty" style="padding:30px 20px"><div class="empty-sub">Nic nenalezeno</div></div>';
+  }
   var byDay={};
-  var sorted=[].concat(exps).sort(function(a,b){
+  var sorted=[].concat(list).sort(function(a,b){
     var d=b.date.localeCompare(a.date);
     return d!==0 ? d : (Number(b.id)||0)-(Number(a.id)||0);
   });
@@ -1362,9 +1392,6 @@ function renderPrehled(){
     if(!byDay[e.date])byDay[e.date]=[];
     byDay[e.date].push(e);
   });
-  var now2=new Date();
-  var monthLbl=now2.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'});
-  var h=banner+'<div class="big-sum"><div class="big-amt">'+fmt(total)+'</div><div class="big-lbl">'+monthLbl+'</div></div>';
   var tod=today();
   Object.keys(byDay).forEach(function(date){
     var items=byDay[date];
