@@ -301,13 +301,6 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
       <span class="search-icon">🔍</span>
       <input class="search-inp" id="search-inp" type="text" placeholder="Hledat v poznámkách…" oninput="renderList()">
     </div>
-    <div class="filters" id="filters">
-      <button class="f-btn on" data-f="" onclick="setFilter(this)">Vše</button>
-      <button class="f-btn" data-f="schuze" onclick="setFilter(this)">📅 Schůzka</button>
-      <button class="f-btn" data-f="napad" onclick="setFilter(this)">💡 Nápad</button>
-      <button class="f-btn" data-f="rozhodnuti" onclick="setFilter(this)">✅ Rozhodnutí</button>
-      <button class="f-btn" data-f="volna" onclick="setFilter(this)">📝 Volná</button>
-    </div>
     <div class="stitek-filter-row" id="stitek-filter-row" style="display:none"></div>
     <div class="list-toolbar">
       <div class="layout-btns">
@@ -410,15 +403,6 @@ body.quick-only .quick-inp{min-height:62vh;font-size:17px}
       <div style="margin-top:16px">
         <label style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Štítky (pro všechny importované)</label>
         <input type="text" id="imp-tags" class="field-inp" placeholder="např. nohel" value="nohel" style="margin-top:6px">
-      </div>
-      <div style="margin-top:12px">
-        <label style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em">Typ</label>
-        <select id="imp-type" class="field-inp" style="margin-top:6px">
-          <option value="volna" selected>📝 Volná poznámka</option>
-          <option value="schuze">📅 Schůzka</option>
-          <option value="napad">💡 Nápad</option>
-          <option value="rozhodnuti">✅ Rozhodnutí</option>
-        </select>
       </div>
 
       <div id="imp-preview" style="margin-top:16px"></div>
@@ -787,7 +771,6 @@ function renderList(){
   }
 
   el.innerHTML=list.map(n=>{
-    const t=TYPES[n.type]||TYPES.volna;
     const tasks=extractTasks(n.content);
     const preview=n.content.replace(/^#{1,3} .+$/gm,'').replace(/- \[.\] /g,'').replace(/\*\*/g,'').replace(/\n+/g,' ').trim().slice(0,120);
     const tagsHtml=tagHtml(n.tags);
@@ -798,7 +781,6 @@ function renderList(){
       <div class="note-card-top">
         <div class="note-card-title">${n.pinned?'📌 ':''}${n.title||'(bez názvu)'}</div>
         <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-          <span class="note-type-badge">${t.icon} ${t.label}</span>
           <button onclick="event.stopPropagation();showCardMenu('${n.id}',this)" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:0 4px;line-height:1">···</button>
         </div>
       </div>
@@ -833,7 +815,6 @@ function setStitkFilter(tag){
 function showDetail(id){
   const note=notes.find(n=>n.id===id);
   if(!note) return;
-  const t=TYPES[note.type]||TYPES.volna;
   document.getElementById('list-view').style.display='none';
   const tasks=extractTasks(note.content);
   const dv=document.getElementById('detail-view');
@@ -842,7 +823,6 @@ function showDetail(id){
   dv.innerHTML=`
     <div class="detail-hdr">
       <button class="detail-back" onclick="backToList()">‹ Zpět</button>
-      <span class="detail-badge">${t.icon} ${t.label}</span>
       <span class="detail-date">${fmtDate(note.updatedAt)}</span>
       <button onclick="togglePin('${note.id}')" title="${note.pinned?'Odepnout':'Připnout'}" style="background:none;border:none;cursor:pointer;font-size:18px;margin-left:auto;opacity:${note.pinned?1:0.35}">${note.pinned?'📌':'📌'}</button>
     </div>
@@ -1272,14 +1252,6 @@ function buildEditSheet(note){
   if(!isEdit){
     // Výběr šablony
     sb.innerHTML=`
-      <div style="font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Typ poznámky</div>
-      <div class="tpl-grid">
-        ${Object.entries(TYPES).map(([k,v])=>`
-          <button class="tpl-btn${curType===k?' on':''}" onclick="selectType('${k}')">
-            <div class="tpl-icon">${v.icon}</div>
-            <div class="tpl-name">${v.label}</div>
-          </button>`).join('')}
-      </div>
       <div class="field">
         <div class="field-label">Název</div>
         <input class="field-inp" id="edit-title" type="text" placeholder="Název poznámky…">
@@ -1374,14 +1346,6 @@ function toggleEditTag(tag){
   inp.dispatchEvent(new Event('input',{bubbles:true}));
 }
 
-function selectType(type){
-  curType=type;
-  document.querySelectorAll('.tpl-btn').forEach(b=>b.classList.remove('on'));
-  event.currentTarget.classList.add('on');
-  const ta=document.getElementById('edit-content');
-  if(ta && !ta.value.trim()) ta.value=TEMPLATES[type]||'';
-}
-
 async function saveNote(){
   clearTimeout(autoSaveTimer);
   clearTimeout(driveSyncTimer);
@@ -1438,7 +1402,6 @@ function openImport(){
   const fi=document.getElementById('imp-file-input'); if(fi) fi.value='';
   const pa=document.getElementById('imp-paste-ta'); if(pa) pa.value='';
   document.getElementById('imp-tags').value='nohel';
-  document.getElementById('imp-type').value='volna';
   setImportTab('files');
   updateImportPreview();
   document.getElementById('import-overlay').classList.add('on');
@@ -1513,7 +1476,7 @@ function updateImportPreview(){
 async function confirmImport(){
   if(!importItems.length) return;
   const tags=parseTags(document.getElementById('imp-tags').value||'');
-  const type=document.getElementById('imp-type').value||'volna';
+  const type='volna';
   await loadPromise; // počkej na čerstvá data, ať nic nepřepíšeme
   const now=new Date().toISOString();
   const count=importItems.length;
