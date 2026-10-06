@@ -278,8 +278,6 @@
     .countdown-num { font-size: 32px; }
   }
 
-.home-link{cursor:pointer;transition:opacity .15s}
-.home-link:hover{opacity:.55}
 
 /* AGENDA SWITCHER */
 .agenda-switch { display: flex; gap: 6px; background: var(--surface2); padding: 4px; border-radius: 14px; margin-bottom: 18px; }
@@ -399,7 +397,7 @@
 
 <header>
   <div style="max-width:700px;margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between">
-    <a href="https://lukasrottercz-png.github.io/finance/dashboard.html" class="home-link logo" title="Zpět na hlavní stranu" style="text-decoration:none;color:inherit;cursor:pointer">📋 Projekty &amp; Úkoly &amp; Události</a><span style="font-size:9px;font-weight:700;color:#34c759;border:1px solid #34c759;border-radius:10px;padding:1px 5px;margin-left:8px;vertical-align:middle">DRIVE</span>
+    <span class="logo">📋 Projekty &amp; Úkoly &amp; Události</span><span style="font-size:9px;font-weight:700;color:#34c759;border:1px solid #34c759;border-radius:10px;padding:1px 5px;margin-left:8px;vertical-align:middle">DRIVE</span>
     <div style="display:flex;align-items:center;gap:10px">
       <button id="sync-btn" onclick="syncNow()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--muted);padding:4px" title="Synchronizovat">↻</button>
       <a href="https://lukasrottercz-png.github.io/finance/finance_tracker.html" style="font-size:12px;padding:5px 10px;border-radius:20px;border:0.5px solid var(--border);color:var(--muted);text-decoration:none">💰 Finance</a>
