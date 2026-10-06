@@ -12,7 +12,6 @@ Sada propojených webových appek (každá jeden samostatný HTML soubor) pro sp
 | `vydaje_lukas.html` | Mobilní appka pro zadávání výdajů a trvalých plateb + **denní rozpočet** | `github.io/finance/` |
 | `ukoly.html` | Správa úkolů a sledovaných událostí | `github.io/finance/` |
 | `poznamky.html` | Poznámky + **rychlá poznámka** | `github.io/finance/` |
-| `dashboard.html` | **Denní dashboard** — brífink, úkoly, události, připnuté poznámky (bez financí) | `github.io/finance/` |
 | `inventar.html` | **Inventář věcí** — focení + AI rozpoznání (nářadí, vybavení), kategorizace, umístění | `github.io/finance/` |
 | `migrace.html` | **Jednorázový** nástroj: zkopíruje data z GitHubu na Drive (po dokončení lze smazat) | `github.io/finance/` |
 | `nastenka.html` | **Nástěnka** — LCD-styl displej pro tablet/obrazovku na zdi: hodiny, počasí (Open-Meteo), 3 vlastní dlaždice z `data.json` | `github.io/finance/` |
@@ -29,7 +28,7 @@ Appky se přihlašují přes **Google Identity Services** (token model, čistě 
 
 - **Client ID:** `549502284523-okg9u0p3almkgr1q2to17phr9fks270e.apps.googleusercontent.com`
 - **Scope:** `https://www.googleapis.com/auth/drive.file` — appka vidí **jen soubory, které sama vytvořila**, ne celý Disk. Není to „citlivý" scope, takže projekt nepotřebuje ověření Googlem a zůstává ve stavu *Testing* s vlastním účtem jako *test user*.
-- **Společné Client ID:** všech šest appek používá totéž Client ID, takže pod `drive.file` vidí navzájem své soubory (Finance/Dashboard čtou soubory Výdajů a Úkolů atd.).
+- **Společné Client ID:** všechny appky používají totéž Client ID, takže pod `drive.file` vidí navzájem své soubory (např. Finance čtou soubory Výdajů).
 - **Konzole (jednorázové nastavení):** Authorized JavaScript origin `https://lukasrottercz-png.github.io`; povolené *Google Drive API*; scope `drive.file`; účet přidaný jako test user.
 
 | Soubor na Disku | Co obsahuje | Kdo zapisuje | Kdo čte |
@@ -40,9 +39,8 @@ Appky se přihlašují přes **Google Identity Services** (token model, čistě 
 | `prijmy_data.json` | Průběžně zadávané příjmy (hlavní mzda, brigáda, pronájem...) | `vydaje_lukas.html` (tab Příjmy) | vydaje_lukas, **finance_tracker** (předvyplnění při sestavení období) |
 | `vydaje_config.json` | Nastavení rozpočtu (očekávaná výplata, cíl úspor) | `vydaje_lukas.html` | vydaje_lukas |
 | `investice_data.json` | Investiční transakce a aktuální hodnoty | `finance_tracker.html` | finance_tracker |
-| `ukoly_data.json` | Úkoly + sledované události | `ukoly.html` | ukoly, **dashboard**, **poznamky** (export úkolů) |
-| `poznamky_data.json` | Poznámky | `poznamky.html` | poznamky, **dashboard** |
-| `dashboard_ai_log.json` | **Historie denních AI brífinků (14 dní)** | `dashboard.html` | dashboard |
+| `ukoly_data.json` | Úkoly + sledované události | `ukoly.html` | ukoly, **poznamky** (export úkolů) |
+| `poznamky_data.json` | Poznámky | `poznamky.html` | poznamky |
 | `inventar_data.json` | **Inventář věcí** (název, kategorie, popis, tagy, počet, umístění, náhled) | `inventar.html` | inventar |
 
 ### Mechanika přihlášení a synchronizace
@@ -151,11 +149,6 @@ Průběžný seznam příjmů zadávaný v `vydaje_lukas.html` (tab „💰 Př�
 - `type`: `schuze` | `napad` | `rozhodnuti` | `volna`. V `content` se podporuje markdown vč. odškrtávacích úkolů `- [ ]` / `- [x]`.
 - `deleted: true` = soft-delete (kvůli šíření mazání přes merge). `createdAt`/`updatedAt` jsou **plný ISO timestamp**.
 
-### AI brífink — `dashboard_ai_log.json`
-```json
-[ { "date": "2026-06-02", "text": "ploché znění pro kontinuitu", "data": { "uvod": "...", "body": [ {"emoji":"🔴","text":"..."} ], "zaver": "..." } } ]
-```
-Pole posledních ~14 brífinků. `data` = strukturovaný obsah pro vykreslení, `text` = ploché znění (kontinuita + fallback).
 
 ### Položka inventáře — `inventar_data.json`
 ```json
@@ -257,20 +250,6 @@ Míra úspor         ← savingsRate              (vyd_savings_rate)
 
 ---
 
-## Denní dashboard (dashboard.html)
-
-Sjednocuje denně relevantní věci na jednom místě. **Záměrně neobsahuje žádné finance** (otevírá se i v práci) — finanční JSONy ani nestahuje.
-
-- **☀️ Brífink na dnešek** — AI shrnutí přes úkoly, události, připnuté poznámky a nesplněné `- [ ]` úkoly uvnitř poznámek. Strukturované (JSON → řádky s ikonou + box „Dnes se zaměř na"). Generuje se automaticky jednou denně a **navazuje na předchozí brífink** (`dashboard_ai_log.json`). Vyžaduje `anthropic_api_key` (zadaný v ⚙️ nastavení).
-- **Úkoly** — jen po termínu / dnes / do 7 dní.
-- **Nejbližší události** — odpočet ke třem nejbližším.
-- **📌 Připnuté poznámky** — náhled + proklik do appky.
-- **Lokální cache (`dash_cache`):** dashboard si poslední data drží lokálně, takže po startu ukáže obsah okamžitě a na pozadí ho obnoví z Disku (dřív po startu probleskoval prázdný).
-
-Model: `claude-sonnet-4-5`, klíč `anthropic_api_key` (uložený jen lokálně v daném prohlížeči — na jiném zařízení je nutné zadat znovu). Jediný soubor, který dashboard **zapisuje**, je `dashboard_ai_log.json` — a to jen při generování brífinku.
-
----
-
 ## Inventář (inventar.html)
 
 Appka pro soupis vlastních věcí (hlavně nářadí a vybavení) s AI rozpoznáním z fotek. Záměr: nafotit věci jednu po druhé, nechat AI je rozpoznat a kategorizovat, a teprve nad hotovým datasetem sjednotit kategorie.
@@ -286,7 +265,7 @@ Appka pro soupis vlastních věcí (hlavně nářadí a vybavení) s AI rozpozn�
 
 **Detail položky** (klepnutí na kartu): název, popis, kategorie (našeptávač z existujících přes `datalist`), umístění, počet kusů, tagy. Editace i smazání. Změna se uloží lokálně a hned dorovná na Drive.
 
-- **AI model:** `claude-sonnet-4-5`, klíč `anthropic_api_key` (sdílený s Dashboardem/Poznámkami, jen lokálně v prohlížeči). Při prvním nahrání fotek bez klíče appka vyzve k jeho vložení. Rozpoznání = **jedno volání na fotku** (200 věcí = 200 volání, řádově jednotky až nízké desítky Kč díky zmenšenému náhledu).
+- **AI model:** `claude-sonnet-4-5`, klíč `anthropic_api_key` (sdílený s Poznámkami, jen lokálně v prohlížeči). Při prvním nahrání fotek bez klíče appka vyzve k jeho vložení. Rozpoznání = **jedno volání na fotku** (200 věcí = 200 volání, řádově jednotky až nízké desítky Kč díky zmenšenému náhledu).
 - **Synchronizace:** ↻ v záhlaví stejně jako ostatní appky (zelená = synchronizováno, oranžová ⚠ = jen lokálně, červená ⚠ = chyba). Merge podle `id` + `updatedAt`.
 
 ---
@@ -314,17 +293,15 @@ Plný editor poznámky má **pravý autosave**, ne jen koncept:
 
 Sjednoceno s ostatními appkami — **bez modálního okna**:
 
-- Klepnutí na **↻** v záhlaví: když nejsi přihlášený, spustí přihlášení Googlem; jinak rovnou synchronizuje (toast „Synchronizováno ✓"). Šipka po úspěšném syncu **zezelená** (stejně jako Finance/Výdaje/Úkoly/Dashboard).
+- Klepnutí na **↻** v záhlaví: když nejsi přihlášený, spustí přihlášení Googlem; jinak rovnou synchronizuje (toast „Synchronizováno ✓"). Šipka po úspěšném syncu **zezelená** (stejně jako Finance/Výdaje/Úkoly).
 - Odstraněn dřívější sync modal i s tlačítky Odhlásit a „Import z GitHubu" (token zůstává v `localStorage`; zneplatnit ho lze v Google účtu → Zabezpečení → aplikace třetích stran).
 
 ---
 
 ## Navigace mezi appkami
 
-- **Klik na název/logo v záhlaví = návrat na Dashboard** (domovská strana). Každá appka má tooltip „Zpět na hlavní stranu".
-- Dashboard odkazuje na všechny ostatní appky ikonami v záhlaví (💰 Finance, 🧾 Výdaje, 📋 Úkoly, 📝 Poznámky).
 - Ostatní appky se prolinkují navzájem v záhlaví.
-- ⚠️ **Inventář (📦) je zatím v navigaci jen jednosměrně:** sám odkazuje na ostatní appky, ale ostatní appky (ani Dashboard) na něj zatím **neodkazují** — odkaz 📦 do jejich hlaviček se doplní, až bude appka ověřená.
+- ⚠️ **Inventář (📦) je zatím v navigaci jen jednosměrně:** sám odkazuje na ostatní appky, ale ostatní appky na něj zatím **neodkazují** — odkaz 📦 do jejich hlaviček se doplní, až bude appka ověřená.
 
 ---
 
@@ -365,7 +342,7 @@ Zisk        = poslední aktualni.hodnota − Investováno
 
 1. **Každý měsíc** zadat nové období v `finance_tracker.html` (zůstatky + příjmy + kurz EUR).
 2. **Průběžně** zadávat výdaje v `vydaje_lukas.html`; mimořádné nákupy označit ⭐, rodinné (co nese Lukáš sám) označit 👪 (inline v seznamu nebo přepínačem).
-3. **Denně** mrknout na `dashboard.html` (brífink + úkoly) a na denní rozpočet v appce Výdaje.
+3. **Denně** mrknout na úkoly a na denní rozpočet v appce Výdaje.
 4. Trvalé platby zadat jednou; zůstávají aktivní, dokud se nenastaví `do`.
 5. Úkoly, které visí na někom jiném, označit „⏳ Čeká na někoho", ať nestraší mezi urgentními.
 
@@ -378,10 +355,10 @@ Zisk        = poslední aktualni.hodnota − Investováno
 | `google_connected` | Příznak „přihlášeno k Drive" |
 | `g_access_token` | Uložený Google access token (pro auto-sync do ~1 h) |
 | `g_token_expiry` | Čas vypršení tokenu (ms) |
-| `drive_id_<název>` | Cache ID souboru na Disku (Finance/Výdaje/Úkoly/Dashboard) |
+| `drive_id_<název>` | Cache ID souboru na Disku (Finance/Výdaje/Úkoly) |
 | `drive_file_id_poz` | Cache ID `poznamky_data.json` (Poznámky) |
 | `drive_file_id_inv` | Cache ID `inventar_data.json` (Inventář) |
-| `anthropic_api_key` | API klíč pro AI brífink (dashboard) + rozpoznání fotek (inventář) |
+| `anthropic_api_key` | API klíč pro AI v Poznámkách + rozpoznání fotek (inventář) |
 | `lk_finance` | Záloha periods (finance_tracker) |
 | `lk_finance_cache` | Cache periods pro výpočet rozpočtu (vydaje_lukas) |
 | `lk_inv` | Záloha investic (finance_tracker) |
@@ -398,7 +375,6 @@ Zisk        = poslední aktualni.hodnota − Investováno
 | `vyd_cfg_updated` | Časová známka nastavení rozpočtu pro merge s `vydaje_config.json` (novější vyhrává) |
 | `vyd_cfg_dirty` | Příznak, že změna nastavení ještě nebyla potvrzena na Disk (retry při příštím syncu) |
 | `custom_subs_<kat>` | Vlastní podkategorie výdajů (odvozené i ze synced dat kvůli iOS) |
-| `dash_cache` | Cache úkolů/událostí/poznámek pro okamžité zobrazení dashboardu |
 | `inv_data_cache` | Cache/záloha inventáře (Inventář) — drží data i frontu mezi syncy |
 | `gh_pages_token` | Fine-grained GitHub PAT (vydaje_lukas) pro zápis `data.json` na GitHub Pages, čte Nástěnka |
 | `nastenka_last_payload` | Poslední odeslaný obsah `data.json` (vydaje_lukas) — pro throttling zápisu (nezapisovat beze změny) |
