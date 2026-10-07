@@ -206,6 +206,8 @@
   .event-item.past:hover .event-row > :not(.task-edit) { opacity: 0.85; }
   .event-item.past .event-num { color: var(--muted); font-size: 24px; }
   .event-item.past .event-name { text-decoration: line-through; text-decoration-color: var(--gray); }
+  .past-toggle { display: block; width: 100%; margin-top: 4px; padding: 10px; background: none; border: 0.5px dashed var(--border); border-radius: var(--r); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .past-toggle:hover { background: var(--surface2); }
   .past-badge { display: inline-block; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 0 6px; }
 
   .event-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -934,6 +936,7 @@ function fmtDateShort(d) {
 
 // ── AGENDA (Osobní / Práce) ─────────────────────────────────────────────
 let activeAgenda = load('tw_active_agenda', 'osobni');
+let showPastEvents = load('tw_show_past', false);
 let ukolyView = 'list';
 const GANTT_SCALES = { week: 20, month: 6, quarter: 2.2 };
 let ganttScale = load('tw_gantt_scale', 'month');
@@ -2432,14 +2435,19 @@ function renderEvents() {
     return;
   }
 
+  // Prošlé jsou skryté (nemažou se), zobrazí se na konci seznamu přes přepínač
+  const past = sorted.filter(e => e.days < 0).reverse();
   const groups = [
-    { label: 'Prošlé',           items: sorted.filter(e => e.days < 0) },
     { label: 'Kritické — do 7 dní', items: sorted.filter(e => e.days >= 0 && e.days <= 7) },
     { label: 'Blíží se — do 30 dní', items: sorted.filter(e => e.days > 7 && e.days <= 30) },
     { label: 'Vzdálenější',      items: sorted.filter(e => e.days > 30) },
   ];
+  if (showPastEvents) groups.push({ label: 'Prošlé', items: past });
 
   let html = '';
+  if (sorted.length === past.length && !showPastEvents) {
+    html += `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Žádné nadcházející události.</div></div>`;
+  }
   groups.forEach(g => {
     if (!g.items.length) return;
     html += `<div class="group-label">${g.label}</div>`;
@@ -2460,7 +2468,16 @@ function renderEvents() {
         </div>`;
     });
   });
+  if (past.length) {
+    html += `<button class="past-toggle" onclick="togglePastEvents()">${showPastEvents ? 'Skrýt prošlé' : `Zobrazit prošlé (${past.length})`}</button>`;
+  }
   listEl.innerHTML = html;
+}
+
+function togglePastEvents() {
+  showPastEvents = !showPastEvents;
+  save('tw_show_past', showPastEvents);
+  renderEvents();
 }
 
 function buildCatPills() {
