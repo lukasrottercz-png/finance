@@ -2414,7 +2414,7 @@ function renderEvents() {
     const n = future[0];
     const cat = CATS.find(c => c.id===n.cat) || CATS[5];
     cdEl.innerHTML = `
-      <div class="countdown">
+      <div class="countdown" onclick="openEventModal('${n.id}')" style="cursor:pointer">
         <div class="countdown-num">${n.days === 0 ? '0' : n.days}</div>
         <div>
           <div class="countdown-event">${cat.icon} ${esc(n.name)}</div>
@@ -2425,12 +2425,15 @@ function renderEvents() {
     cdEl.innerHTML = '';
   }
 
-  // Seznam
+  // Seznam — nejbližší událost je už ve velké kartě nahoře, v seznamu se neopakuje
+  const nearestId = future.length ? future[0].id : null;
   const sorted = agendaEvents.map(e => ({...e, days: daysUntil(e.date)}))
+    .filter(e => e.id !== nearestId)
     .sort((a,b) => a.days - b.days);
 
   const listEl = document.getElementById('eventList');
   if (sorted.length === 0) {
+    if (nearestId) { listEl.innerHTML = ''; return; }
     listEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Žádné sledované události.</div></div>`;
     return;
   }
@@ -2445,7 +2448,7 @@ function renderEvents() {
   if (showPastEvents) groups.push({ label: 'Prošlé', items: past });
 
   let html = '';
-  if (sorted.length === past.length && !showPastEvents) {
+  if (sorted.length === past.length && !showPastEvents && !nearestId) {
     html += `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Žádné nadcházející události.</div></div>`;
   }
   groups.forEach(g => {
