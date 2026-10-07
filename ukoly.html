@@ -2402,7 +2402,8 @@ function buildEventAgendaPills() {
 }
 
 function renderEvents() {
-  const agendaEvents = events.filter(e => (e.agenda||'osobni') === activeAgenda);
+  // Opakované události se po termínu posouvají dál — jako prošlé je nezobrazujeme vůbec
+  const agendaEvents = events.filter(e => (e.agenda||'osobni') === activeAgenda && !(e.repeat && daysUntil(e.date) < 0));
   document.getElementById('eventSub').textContent = `${agendaEvents.length} událostí`;
 
   // Countdown — nejbližší budoucí
@@ -2535,7 +2536,8 @@ function deleteEvent() {
 // Auto-posun opakujících se událostí které prošly
 function autoAdvanceEvents() {
   let changed = false;
-  const today = new Date().toISOString().slice(0,10);
+  const n = new Date();
+  const today = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
   events = events.map(e => {
     if (!e.repeat || e.date >= today) return e;
     let d = e.date;
