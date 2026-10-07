@@ -201,6 +201,12 @@
   .event-item.urg-yellow { border-left-color: var(--yellow); }
   .event-item.urg-green  { border-left-color: var(--green); }
   .event-item.urg-gray   { border-left-color: var(--gray); }
+  .event-item.past { background: var(--surface2); border-style: dashed; border-left-style: solid; }
+  .event-item.past .event-row > :not(.task-edit) { opacity: 0.55; }
+  .event-item.past:hover .event-row > :not(.task-edit) { opacity: 0.85; }
+  .event-item.past .event-num { color: var(--muted); font-size: 24px; }
+  .event-item.past .event-name { text-decoration: line-through; text-decoration-color: var(--gray); }
+  .past-badge { display: inline-block; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 0 6px; }
 
   .event-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .event-num { font-size: 30px; font-weight: 700; line-height: 1; min-width: 48px; text-align: center; flex-shrink: 0; }
@@ -2441,12 +2447,12 @@ function renderEvents() {
       const cat = CATS.find(c => c.id===e.cat) || CATS[5];
       const u = urg(e.days);
       html += `
-        <div class="event-item urg-${u}">
+        <div class="event-item urg-${u}${e.days < 0 ? ' past' : ''}">
           <div class="event-row" onclick="openEventModal('${e.id}')">
-            <div class="event-num">${e.days < 0 ? Math.abs(e.days) : e.days}</div>
+            <div class="event-num">${e.days < 0 ? '−' + Math.abs(e.days) : e.days}</div>
             <div class="event-main">
               <div class="event-name">${cat.icon} ${esc(e.name)}${e.repeat ? ' <span style="font-size:11px;opacity:0.6">🔄 '+repeatLabel(e.repeat)+'</span>' : ''}</div>
-              <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${urgLabel(e.days)}</div>
+              <div class="event-meta">${fmtDate(e.date)} · ${cat.label} · ${e.days < 0 ? `<span class="past-badge">${urgLabel(e.days)}</span>` : urgLabel(e.days)}</div>
               ${e.note ? `<div class="event-note">${esc(e.note)}</div>` : ''}
             </div>
             <button class="task-edit" onclick="event.stopPropagation();showEventMenu('${e.id}',this)">···</button>
