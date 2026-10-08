@@ -1196,11 +1196,16 @@ function showExpMenu(id, btn) {
   editBtn.textContent = '✏️ Upravit';
   editBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;border-bottom:0.5px solid #f0f0f0;text-align:left;font-size:15px;font-family:inherit;color:#1c1c1e;cursor:pointer';
   editBtn.onclick = function(){ menu.remove(); openEditExp(id); };
+  var dupBtn = document.createElement('button');
+  dupBtn.textContent = '📋 Duplikovat';
+  dupBtn.style.cssText = editBtn.style.cssText;
+  dupBtn.onclick = function(){ menu.remove(); openEditExp(id, true); };
   var delBtn = document.createElement('button');
   delBtn.textContent = '🗑 Smazat';
   delBtn.style.cssText = 'display:block;width:100%;padding:13px 16px;background:none;border:none;text-align:left;font-size:15px;font-family:inherit;color:#ff3b30;cursor:pointer';
   delBtn.onclick = function(){ menu.remove(); delExp(id); };
   menu.appendChild(editBtn);
+  menu.appendChild(dupBtn);
   menu.appendChild(delBtn);
   document.body.appendChild(menu);
   setTimeout(function(){ document.addEventListener('click', function h(){ menu.remove(); document.removeEventListener('click',h); }); }, 10);
@@ -1226,10 +1231,11 @@ function showTrvalaMenu(idx, btn) {
   setTimeout(function(){ document.addEventListener('click', function h(){ menu.remove(); document.removeEventListener('click',h); }); }, 10);
 }
 
-function openEditExp(id) {
+// asCopy = duplikace: formulář se předvyplní jako kopie s dnešním datem a uloží se jako nový záznam
+function openEditExp(id, asCopy) {
   var e = exps.find(function(x){return x.id===id;});
   if (!e) return;
-  editExpId = id;
+  editExpId = asCopy ? null : id;
   selCat = e.catKey;
   selSub = e.subcat || '';
   selShared = e.shared || false;
@@ -1245,7 +1251,7 @@ function openEditExp(id) {
     var dt = document.getElementById('dt');
     var note = document.getElementById('note');
     if (amt) amt.value = e.amount;
-    if (dt) dt.value = e.date;
+    if (dt) dt.value = asCopy ? today() : e.date;
     if (note) note.value = e.note || '';
     // Nastav shared toggle
     if(selShared){
@@ -1273,7 +1279,7 @@ function openEditExp(id) {
     setTimeout(function(){ if(e.subcat) pickSub(e.subcat); }, 50);
     // Změň text tlačítka
     var saveBtn = document.querySelector('.save-btn');
-    if (saveBtn) saveBtn.textContent = 'Uložit změny';
+    if (saveBtn) saveBtn.textContent = asCopy ? 'Uložit kopii' : 'Uložit změny';
   }, 50);
 }
 
