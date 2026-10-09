@@ -57,7 +57,8 @@ Appky se přihlašují přes **Google Identity Services** (token model, čistě 
 
 - **Poznámky** používají **merge podle `updatedAt`** (novější vyhrává; při shodě má přednost smazaný záznam) — kvůli konzistenci mezi zařízeními. Proto **všechny časové značky v Poznámkách jsou plný ISO timestamp** (`2026-06-04T11:45:23.456Z`), ne jen datum — jinak by stejnodenní změny mohly „přebít" jedna druhou. `fmtDate` zvládá obě varianty (kvůli starším datům).
 - **Inventář** používá taky **merge podle `id` + `updatedAt`** (novější vyhrává), z téhož důvodu — věci se přidávají/editují z víc zařízení. Všechny časové značky jsou plný ISO timestamp.
-- **Ostatní appky** (Finance, Výdaje, Úkoly) používají model **„načti → nahraď lokál" / „ulož → přepiš soubor"** (last-write-wins). Pro jednoho uživatele to stačí.
+- **Výdaje** (`vydaje_data.json`, `trvale_data.json`, `prijmy_data.json`) používají **3cestné sloučení** (`driveSyncArray`): před každým zápisem i po načtení se porovná lokál s poslední verzí, kterou prohlížeč z Disku viděl (`sync_base_<soubor>` v `localStorage`), a na Disk se přenesou jen lokální změny (nové / upravené / smazané podle `id`). Karta otevřená delší dobu tak už nepřepíše záznamy přidané z jiného zařízení a výdaj uložený offline se při dalším syncu nahraje místo aby zmizel. Po návratu do appky (víc než minutu od posledního) se data stáhnou znovu.
+- **Finance a Úkoly** pořád používají model **„načti → nahraď lokál" / „ulož → přepiš soubor"** (last-write-wins) — pozor na víc otevřených karet.
 
 ### Historie & záloha (GitHub)
 

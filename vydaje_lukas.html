@@ -362,18 +362,76 @@ async function driveWriteJSON(fname,obj){
 
 function saveAll(){try{localStorage.setItem('lkv3',JSON.stringify(exps))}catch(e){}}
 
-// Výdaje (vlastní soubor) — načtení nahradí lokál, uložení zapíše na Disk
+// ── Slučování s Diskem ───────────────────────────────────────────────
+// Dřív uložení přepsalo celý soubor obsahem tohoto prohlížeče. Karta otevřená
+// od rána tak smazala výdaje, které mezitím přibyly z jiného zařízení.
+// Teď se při každém uložení i načtení provede 3cestné sloučení:
+//   base   = poslední verze, kterou tento prohlížeč z Disku viděl (sync_base_<soubor>)
+//   local  = co je teď v tomto prohlížeči
+//   remote = co je teď na Disku
+// Na Disk se přenesou jen lokální změny proti base (nové, upravené, smazané),
+// všechno ostatní zůstane tak, jak je na Disku.
+function syncKey(x){ return (x&&x.id!=null)?'id:'+x.id:'j:'+JSON.stringify(x); }
+function getSyncBase(fname){
+  try{ var b=JSON.parse(localStorage.getItem('sync_base_'+fname)||'null'); return Array.isArray(b)?b:null; }catch(e){ return null; }
+}
+function setSyncBase(fname,arr){ try{ localStorage.setItem('sync_base_'+fname,JSON.stringify(arr)); }catch(e){} }
+
+function mergeArrays(local,base,remote){
+  var baseMap={}; if(base) base.forEach(function(x){ baseMap[syncKey(x)]=JSON.stringify(x); });
+  var localMap={}; local.forEach(function(x){ localMap[syncKey(x)]=x; });
+  function changedLocally(k){ return base && (!(k in baseMap) || JSON.stringify(localMap[k])!==baseMap[k]); }
+  var out=[], seen={};
+  remote.forEach(function(x){
+    var k=syncKey(x); seen[k]=1;
+    if(k in localMap){ out.push(changedLocally(k)?localMap[k]:x); return; }
+    if(base && (k in baseMap) && JSON.stringify(x)===baseMap[k]) return; // lokálně smazané
+    out.push(x);                                                         // nové odjinud (nebo upravené odjinud)
+  });
+  local.forEach(function(x){
+    var k=syncKey(x);
+    if(seen[k]) return;
+    if(base && (k in baseMap) && !changedLocally(k)) return;             // smazané odjinud, tady beze změny
+    out.push(x);                                                         // nové tady
+  });
+  return out;
+}
+
+// Načte soubor, sloučí s lokálem, a pokud se Disk liší (nebo forceWrite), zapíše výsledek.
+// Volání pro jeden soubor jdou za sebou, aby se dvě rychlá uložení nepřebila.
+var syncQueue={};
+function driveSyncArray(fname,getLocal,forceWrite){
+  var run=function(){ return (async function(){
+    var local=getLocal();
+    var r=await driveReadJSON(fname);
+    var remote=(r.exists&&Array.isArray(r.data))?r.data:null;
+    if(!remote){
+      if(forceWrite){ await driveWriteJSON(fname,local); setSyncBase(fname,local); }
+      return local;
+    }
+    var merged=mergeArrays(local,getSyncBase(fname),remote);
+    if(JSON.stringify(merged)!==JSON.stringify(remote)) await driveWriteJSON(fname,merged);
+    setSyncBase(fname,merged);
+    return merged;
+  })(); };
+  var p=(syncQueue[fname]||Promise.resolve()).then(run,run);
+  syncQueue[fname]=p.catch(function(){});
+  return p;
+}
+
+// Výdaje (vlastní soubor)
 async function ghLoad(){
   if(!isConnected()) return false;
   try{
-    var r=await driveReadJSON(GH_FILE);
-    if(r.exists && Array.isArray(r.data)){ exps=r.data; localStorage.setItem('lkv3',JSON.stringify(exps)); }
+    exps=await driveSyncArray(GH_FILE,function(){return exps;},false);
+    saveAll();
     updateSyncIcon('ok'); return true;
   }catch(e){ console.error('driveLoad vydaje:',e); updateSyncIcon('error'); return false; }
 }
 async function ghSave(){
   if(isConnected()){
-    try{ await driveWriteJSON(GH_FILE, exps); saveAll(); updateSyncIcon('ok'); }
+    saveAll();
+    try{ exps=await driveSyncArray(GH_FILE,function(){return exps;},true); saveAll(); updateSyncIcon('ok'); }
     catch(e){ console.error('driveSave vydaje:',e); saveAll(); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); }
   } else {
     saveAll(); updateSyncIcon('local');
@@ -384,24 +442,26 @@ async function ghSave(){
 // Trvalé platby (vlastní soubor)
 async function ghSaveTrvale(){
   if(!isConnected()){ localStorage.setItem('lk_trvale',JSON.stringify(trvale)); return; }
-  try{ await driveWriteJSON(GH_FILE_T, trvale); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
+  localStorage.setItem('lk_trvale',JSON.stringify(trvale));
+  try{ trvale=await driveSyncArray(GH_FILE_T,function(){return trvale;},true); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
   catch(e){ console.error('driveSaveTrvale:',e); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
 }
 async function ghLoadTrvale(){
   if(!isConnected()) return;
-  try{ var r=await driveReadJSON(GH_FILE_T); if(r.exists && Array.isArray(r.data)){ trvale=r.data; localStorage.setItem('lk_trvale',JSON.stringify(trvale)); } }
+  try{ trvale=await driveSyncArray(GH_FILE_T,function(){return trvale;},false); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
   catch(e){ console.error('driveLoadTrvale:',e); }
 }
 
 // Příjmy (vlastní soubor) — čte i finance_tracker.html při sestavování období
 async function ghSavePrijmy(){
   if(!isConnected()){ localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); return; }
-  try{ await driveWriteJSON(GH_FILE_PR, prijmy); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
+  localStorage.setItem('lk_prijmy',JSON.stringify(prijmy));
+  try{ prijmy=await driveSyncArray(GH_FILE_PR,function(){return prijmy;},true); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
   catch(e){ console.error('driveSavePrijmy:',e); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
 }
 async function ghLoadPrijmy(){
   if(!isConnected()) return;
-  try{ var r=await driveReadJSON(GH_FILE_PR); if(r.exists && Array.isArray(r.data)){ prijmy=r.data; localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); } }
+  try{ prijmy=await driveSyncArray(GH_FILE_PR,function(){return prijmy;},false); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
   catch(e){ console.error('driveLoadPrijmy:',e); }
 }
 
@@ -2441,6 +2501,20 @@ function clearAll(){
   if(!confirm('Smazat vše?'))return;
   exps=[];ghSave();renderHome();showToast('Smazáno');
 }
+
+// Po návratu do appky (přepnutí karty, odemčení telefonu) stáhni čerstvá data,
+// ať karta otevřená delší dobu neukazuje zastaralý stav
+var lastFocusSync=Date.now();
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState!=='visible'||!isConnected()||!gisReady())return;
+  if(Date.now()-lastFocusSync<60000)return;
+  lastFocusSync=Date.now();
+  Promise.all([ghLoad(),ghLoadTrvale(),ghLoadPrijmy()]).then(function(){
+    var onHome=document.getElementById('home-page').style.display!=='none';
+    var typing=document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if(onHome&&!typing)renderHome();
+  });
+});
 
 function startupSync(tries){
   if(isConnected() && GOOGLE_CLIENT_ID){
