@@ -1446,6 +1446,92 @@ function katShift(delta){
 }
 var katSkipMim=false;
 function katToggleMim(){ katSkipMim=!katSkipMim; renderHome(); }
+function katPick(mk){ katMonth=mk; renderHome(); }
+
+// Trvalé platby mají kategorii jako text — napárování na kategorie výdajů
+var TRV_KAT_MAP={'Bydlení':'bydleni','Doprava':'doprava','Rodina':'deti','Pojištění':'pojisteni','Spoření':'sporeni','Předplatné':'predplatne','Ostatní':'ostatni'};
+var KAT_COL={trv:'#eb6834',bez:'#2a78d6',mim:'#4a3aa7'};
+
+// Výdaje měsíce rozdělené na trvalé / běžné / mimořádné + rozpad po kategoriích (trvalé jako podkategorie „🔁 Trvalé platby")
+function katMonthData(m, skipMim){
+  var r={trv:0,bez:0,mim:0,byCat:{}};
+  function add(k,sub,item){
+    if(!r.byCat[k])r.byCat[k]={total:0,subs:{}};
+    r.byCat[k].total+=item.amount;
+    if(!r.byCat[k].subs[sub])r.byCat[k].subs[sub]={total:0,items:[]};
+    r.byCat[k].subs[sub].total+=item.amount;
+    r.byCat[k].subs[sub].items.push(item);
+  }
+  exps.forEach(function(e){
+    if((e.date||'').slice(0,7)!==m)return;
+    var a=e.amount||0;
+    if(e.mimoradny)r.mim+=a; else r.bez+=a;
+    if(e.mimoradny&&skipMim)return;
+    add(e.catKey,e.subcat||'(bez podkategorie)',e);
+  });
+  trvale.forEach(function(t){
+    if(!trvalaActiveInMonth(t,m))return;
+    var a=t.castka||0;
+    r.trv+=a;
+    add(TRV_KAT_MAP[t.kat]||'ostatni','🔁 Trvalé platby',{amount:a,note:t.nazev,trvala:true,date:m+'-01'});
+  });
+  return r;
+}
+
+// Průměr předchozích až n měsíců (bez mimořádných), jen měsíce v rozsahu dat
+function katAvg(m,n,minKey){
+  var months=[];
+  for(var i=1;i<=n;i++){var k=shiftMonthKey(m,-i);if(k<minKey)break;months.push(k);}
+  if(!months.length)return null;
+  var tot=0,byCat={};
+  months.forEach(function(k){
+    var d=katMonthData(k,true);
+    tot+=d.trv+d.bez;
+    Object.keys(d.byCat).forEach(function(c){byCat[c]=(byCat[c]||0)+d.byCat[c].total;});
+  });
+  Object.keys(byCat).forEach(function(c){byCat[c]/=months.length;});
+  return {n:months.length,total:tot/months.length,byCat:byCat};
+}
+
+function katDiffHtml(cur,avg){
+  if(!avg)return'';
+  var d=(cur-avg)/avg*100;
+  if(Math.abs(d)<5)return'<span style="color:#8e8e93">≈ průměr</span>';
+  var up=d>0;
+  return'<span style="color:'+(up?'#d70015':'#248a3d')+'">'+(up?'▲':'▼')+'</span> '+(up?'+':'−')+Math.abs(Math.round(d))+' %';
+}
+
+// Sloupcový graf posledních 12 měsíců (trvalé / běžné / mimořádné), klepnutím se vybere měsíc
+function katChart(b){
+  var months=[];
+  for(var i=11;i>=0;i--){var k=shiftMonthKey(b.max,-i);if(k>=b.min)months.push(k);}
+  var data=months.map(function(k){var d=katMonthData(k,false);return{k:k,trv:d.trv,bez:d.bez,mim:d.mim,sum:d.trv+d.bez+d.mim};});
+  var max=Math.max.apply(null,data.map(function(d){return d.sum;}).concat([1]));
+  var H=120;
+  var h='<div class="card" style="padding:14px 12px 10px">'
+    +'<div style="font-size:13px;font-weight:600;color:#1c1c1e;margin:0 2px 10px">Výdaje po měsících</div>'
+    +'<div style="display:flex;align-items:flex-end;gap:4px;height:'+(H+16)+'px">';
+  data.forEach(function(d){
+    var sel=d.k===katMonth;
+    var tip=monthLabel(d.k)+': '+fmt(d.sum)+' (trvalé '+fmt(d.trv)+', běžné '+fmt(d.bez)+(d.mim?', mimořádné '+fmt(d.mim):'')+')';
+    var segs=[['mim',d.mim],['bez',d.bez],['trv',d.trv]].filter(function(x){return x[1]>0;});
+    h+='<div onclick="katPick(\''+d.k+'\')" title="'+tip+'" style="flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;cursor:pointer;opacity:'+(sel?1:0.45)+'">'
+      +(sel?'<div style="font-size:10px;font-weight:600;color:#1c1c1e;text-align:center;white-space:nowrap;margin-bottom:3px">'+Math.round(d.sum/1000)+'k</div>':'');
+    segs.forEach(function(x,idx){
+      var px=Math.max(2,Math.round(x[1]/max*H));
+      h+='<div style="height:'+px+'px;background:'+KAT_COL[x[0]]+';'+(idx===0?'border-radius:4px 4px 0 0;':'')+(idx<segs.length-1?'margin-bottom:2px;':'')+'"></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div><div style="display:flex;gap:4px;margin-top:5px">';
+  data.forEach(function(d){
+    var y=+d.k.slice(0,4), mo=+d.k.slice(5,7)-1;
+    var lbl=new Date(y,mo,1).toLocaleDateString('cs-CZ',{month:'short'}).replace('.','');
+    h+='<div style="flex:1;min-width:0;text-align:center;font-size:10px;color:'+(d.k===katMonth?'#1c1c1e':'#8e8e93')+';font-weight:'+(d.k===katMonth?600:400)+';overflow:hidden">'+lbl+'</div>';
+  });
+  h+='</div></div>';
+  return h;
+}
 
 function renderKat(){
   if(!exps.length)return'<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Žádná data</div></div>';
@@ -1455,24 +1541,18 @@ function renderKat(){
   if(!katMonth) katMonth=(curKey>=b.min&&curKey<=b.max)?curKey:b.max;
   if(katMonth<b.min)katMonth=b.min;
   if(katMonth>b.max)katMonth=b.max;
-  var monthAll=exps.filter(function(e){return (e.date||'').slice(0,7)===katMonth});
-  var hasMim=monthAll.some(function(e){return e.mimoradny;});
-  var thisM=katSkipMim?monthAll.filter(function(e){return !e.mimoradny;}):monthAll;
-  var byCat={};
-  thisM.forEach(function(e){
-    if(!byCat[e.catKey])byCat[e.catKey]={total:0,subs:{}};
-    byCat[e.catKey].total+=e.amount||0;
-    var sub=e.subcat||'(bez podkategorie)';
-    if(!byCat[e.catKey].subs[sub])byCat[e.catKey].subs[sub]={total:0,items:[]};
-    byCat[e.catKey].subs[sub].total+=e.amount||0;
-    byCat[e.catKey].subs[sub].items.push(e);
-  });
+  var md=katMonthData(katMonth,katSkipMim);
+  var hasMim=md.mim>0;
+  var byCat=md.byCat;
+  var avg=katAvg(katMonth,6,b.min);
+  // Kategorie bez mimořádných — pro srovnání s průměrem
+  var mdNoMim=katSkipMim?md:katMonthData(katMonth,true);
   var total=Object.values(byCat).reduce(function(s,v){return s+v.total},0);
   var entries=Object.entries(byCat).sort(function(a,b){return b[1].total-a[1].total});
   var canPrev=katMonth>b.min, canNext=katMonth<b.max;
   var h='<div style="display:flex;align-items:center;justify-content:space-between;margin:4px 2px 14px">'
     +'<span onclick="'+(canPrev?'katShift(-1)':'')+'" style="font-size:24px;line-height:1;color:'+(canPrev?'#7c3aed':'#d1d1d6')+';cursor:'+(canPrev?'pointer':'default')+';width:36px;text-align:center;-webkit-user-select:none;user-select:none">‹</span>'
-    +'<div style="text-align:center"><div style="font-size:15px;font-weight:600;color:#1c1c1e;text-transform:capitalize">'+monthLabel(katMonth)+'</div><div style="font-size:13px;color:#8e8e93">'+fmt(total)+'</div></div>'
+    +'<div style="text-align:center"><div style="font-size:15px;font-weight:600;color:#1c1c1e;text-transform:capitalize">'+monthLabel(katMonth)+'</div></div>'
     +'<span onclick="'+(canNext?'katShift(1)':'')+'" style="font-size:24px;line-height:1;color:'+(canNext?'#7c3aed':'#d1d1d6')+';cursor:'+(canNext?'pointer':'default')+';width:36px;text-align:center;-webkit-user-select:none;user-select:none">›</span>'
     +'</div>';
   if(hasMim){
@@ -1480,6 +1560,28 @@ function renderKat(){
       +'<span onclick="katToggleMim()" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;padding:6px 12px;border-radius:999px;cursor:pointer;-webkit-user-select:none;user-select:none;border:0.5px solid '+(katSkipMim?'#7c3aed':'rgba(0,0,0,0.12)')+';background:'+(katSkipMim?'#f5f0ff':'#fff')+';color:'+(katSkipMim?'#7c3aed':'#6c6c70')+'">⭐ '+(katSkipMim?'Mimořádné skryté':'Skrýt mimořádné')+'</span>'
       +'</div>';
   }
+  // Souhrn měsíce: celkem, srovnání s průměrem, složení trvalé / běžné / mimořádné
+  var all=md.trv+md.bez+md.mim;
+  h+='<div class="card" style="padding:14px 16px">'
+    +'<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">'
+    +'<div><div style="font-size:12px;color:#8e8e93">Celkem za měsíc</div><div style="font-size:26px;font-weight:700;color:#1c1c1e;letter-spacing:-0.5px">'+fmt(all)+'</div></div>'
+    +(avg?'<div style="text-align:right;font-size:12px;color:#6c6c70">'+katDiffHtml(md.trv+md.bez,avg.total)+'<div style="color:#8e8e93;margin-top:2px">ø '+avg.n+' m.: '+fmt(avg.total)+'</div></div>':'')
+    +'</div>';
+  if(all>0){
+    h+='<div style="display:flex;gap:2px;height:10px;margin:12px 0 10px">';
+    [['trv',md.trv],['bez',md.bez],['mim',md.mim]].forEach(function(x){
+      if(x[1]>0)h+='<div style="flex:'+x[1]+';background:'+KAT_COL[x[0]]+';border-radius:3px"></div>';
+    });
+    h+='</div><div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:#3c3c43">';
+    [['trv','Trvalé',md.trv],['bez','Běžné',md.bez],['mim','⭐ Mimořádné',md.mim]].forEach(function(x){
+      if(x[0]==='mim'&&!x[2])return;
+      h+='<span style="display:inline-flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:'+KAT_COL[x[0]]+'"></span>'+x[1]+' <b style="font-weight:600;color:#1c1c1e">'+fmt(x[2])+'</b></span>';
+    });
+    h+='</div>';
+  }
+  if(avg)h+='<div style="font-size:11px;color:#aeaeb2;margin-top:8px">Srovnání s průměrem je bez mimořádných výdajů.</div>';
+  h+='</div>';
+  h+=katChart(b);
   if(!entries.length) h+='<div class="empty"><div class="empty-icon">🗓</div><div class="empty-sub">Žádné výdaje v tomto měsíci</div></div>';
   entries.forEach(function(pair){
     var k=pair[0],v=pair[1];
@@ -1496,6 +1598,7 @@ function renderKat(){
       +'</div>'
       +'<div style="text-align:right;flex-shrink:0">'
       +'<div class="exp-amt">'+fmt(v.total)+'</div>'
+      +(avg&&(avg.byCat[k]||0)>0?'<div style="font-size:11px;color:#6c6c70;white-space:nowrap">'+katDiffHtml(mdNoMim.byCat[k]?mdNoMim.byCat[k].total:0,avg.byCat[k])+'</div>':'')
       +'<div style="font-size:12px;color:#8e8e93">'+pct+' % <span id="chev-'+catId+'" style="display:inline-block;transition:transform 0.2s">▼</span></div>'
       +'</div>'
       +'</div>'
@@ -1515,7 +1618,7 @@ function renderKat(){
       [].concat(sd.items).sort(function(a,b){return b.date.localeCompare(a.date)}).forEach(function(e){
         var dt2=new Date(e.date+'T12:00:00');
         var dayLbl=dt2.toLocaleDateString('cs-CZ',{day:'numeric',month:'short'});
-        var lbl=e.note?('📝 '+e.note+' <span style="color:#aeaeb2">· '+dayLbl+'</span>'):('<span style="color:#aeaeb2">'+dayLbl+'</span>');
+        var lbl=e.trvala?('🔁 '+e.note+' <span style="color:#aeaeb2">· měsíčně</span>'):e.note?('📝 '+e.note+' <span style="color:#aeaeb2">· '+dayLbl+'</span>'):('<span style="color:#aeaeb2">'+dayLbl+'</span>');
         h+='<div class="exp-row" style="padding-left:60px;background:#fcfcfc">'
           +'<div class="exp-info"><div class="exp-sub" style="white-space:normal;color:#6c6c70">'+lbl+'</div></div>'
           +'<div style="font-size:12px;color:#8e8e93;flex-shrink:0">'+fmt(e.amount)+'</div>'
