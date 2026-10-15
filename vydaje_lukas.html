@@ -699,14 +699,26 @@ function isActive(t){
   return true;
 }
 
-function renderTrvale(){
-  var aktivni=trvale.filter(isActive);
-  var neaktivni=trvale.filter(function(t){return !isActive(t);});
-  var total=aktivni.reduce(function(s,t){return s+(t.castka||0)},0);
+// Zobrazení: skrýt rodinné trvalé platby (jen pohled, per zařízení)
+var trvaleHideRodinne=localStorage.getItem('vyd_trvale_hide_rodinne')==='1';
+function toggleTrvaleHideRodinne(){
+  trvaleHideRodinne=!trvaleHideRodinne;
+  localStorage.setItem('vyd_trvale_hide_rodinne',trvaleHideRodinne?'1':'0');
+  renderHome();
+}
 
+function renderTrvale(){
   if(!trvale.length) return '<div class="empty"><div class="empty-icon">📅</div><div class="empty-title">Žádné trvalé platby</div><div class="empty-sub">Klepni na + Přidat nahoře</div></div>';
 
-  var h='<div class="sec-hdr"><span>Aktivní platby</span><span style="color:#ff3b30">'+fmt(total)+' / měs.</span></div><div class="card">';
+  var viditelne=trvaleHideRodinne?trvale.filter(function(t){return !t.rodinne;}):trvale;
+  var aktivni=viditelne.filter(isActive);
+  var neaktivni=viditelne.filter(function(t){return !isActive(t);});
+  var total=aktivni.reduce(function(s,t){return s+(t.castka||0)},0);
+
+  var h='<div style="display:flex;justify-content:flex-end;padding:8px 16px 0">'
+    +'<span onclick="toggleTrvaleHideRodinne()" style="font-size:13px;cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid '+(trvaleHideRodinne?'#7c3aed;background:#7c3aed;color:#fff':'#ddd0ff;color:#7c3aed')+'">👪 '+(trvaleHideRodinne?'Rodinné skryté':'Skrýt rodinné')+'</span>'
+    +'</div>';
+  h+='<div class="sec-hdr"><span>Aktivní platby</span><span style="color:#ff3b30">'+fmt(total)+' / měs.</span></div><div class="card">';
   if(!aktivni.length)h+='<div style="padding:14px 16px;font-size:14px;color:#8e8e93">Žádné aktivní platby</div>';
   aktivni.forEach(function(t){
     var idx=trvale.indexOf(t);
@@ -2206,7 +2218,8 @@ function printDirectMonth(m){
     +sectionText('Jitce extra - odesláno na účet',dirM.navic,null,dirM.navicTotal,function(e){return e.amount;})
     +'CELKEM ZA TENTO MĚSÍC: '+fmt(grandTotal);
   var emailTo=getJitkaEmail();
-  var mailtoHref=emailTo?('mailto:'+emailTo+'?subject='+encodeURIComponent('Výdaje za děti — '+monthLbl)+'&body='+encodeURIComponent(emailBody)):'';
+  var emailSubject='Report výdajů za děti — '+monthLbl+' (stav k '+new Date().toLocaleDateString('cs-CZ')+')';
+  var mailtoHref=emailTo?('mailto:'+emailTo+'?subject='+encodeURIComponent(emailSubject)+'&body='+encodeURIComponent(emailBody)):'';
 
   var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'
     +'<title>Výdaje za děti — '+monthLbl+'</title>'
