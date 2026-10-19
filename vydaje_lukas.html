@@ -49,6 +49,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .cat-btn{background:#fff;border:2px solid #e0e0e0;border-radius:13px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
 .cat-btn.on{border-color:#007aff;background:#e8f0fe}
+.cat-more-btn{display:block;width:100%;min-height:44px;margin:-6px 0 16px;background:none;border:1px dashed #c7c7cc;border-radius:13px;font-size:14px;font-weight:500;font-family:inherit;color:#6c6c70;cursor:pointer}
 .cat-icon{font-size:26px}
 .cat-lbl{font-size:11px;color:#6c6c70;text-align:center;line-height:1.3}
 .cat-btn.on .cat-lbl{color:#007aff;font-weight:600}
@@ -1125,16 +1126,21 @@ function buildAddForm(){
     +'</label>'
     +'</div>'
     +'</div>'
-    +'<div class="sec-hdr">Kategorie</div>'
-    +'<div class="cat-grid">';
-  for(var i=0;i<CATS.length;i++){
-    var c=CATS[i];
-    html+='<button class="cat-btn" id="cb-'+c.k+'" onclick="pickCat(\''+c.k+'\')">'
+    +'<div class="sec-hdr">Kategorie</div>';
+  // Nejčastěji používané kategorie jsou vidět hned, ostatní pod „Další kategorie"
+  var split=splitCatsByUsage();
+  function catBtn(c){
+    return '<button class="cat-btn" id="cb-'+c.k+'" onclick="pickCat(\''+c.k+'\')">'
       +'<span class="cat-icon">'+c.i+'</span>'
       +'<span class="cat-lbl">'+c.l+'</span>'
       +'</button>';
   }
-  html+='</div>'
+  html+='<div class="cat-grid">'+split.top.map(catBtn).join('')+'</div>';
+  if(split.rest.length){
+    html+='<button type="button" class="cat-more-btn" id="cat-more-btn" onclick="toggleCatMore()">Další kategorie ('+split.rest.length+') ▾</button>'
+      +'<div class="cat-grid" id="cat-more" style="display:none">'+split.rest.map(catBtn).join('')+'</div>';
+  }
+  html+=''
     +'<div id="sub-section"></div>'
     +'<div class="sec-hdr">Poznámka</div>'
     +'<textarea id="note" class="note-inp" placeholder="Volitelná poznámka…"></textarea>'
@@ -1195,8 +1201,37 @@ function saveCustomSubs(catKey, subs) {
   localStorage.setItem('custom_subs_'+catKey, JSON.stringify(subs));
 }
 
+// Seřazení kategorií podle toho, jak často se zadávají (posledních 90 dní, pak celkově)
+var CAT_TOP_N=6;
+function splitCatsByUsage(){
+  var d=new Date(); d.setDate(d.getDate()-90);
+  var since=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  var recent={}, all={};
+  exps.forEach(function(e){
+    all[e.catKey]=(all[e.catKey]||0)+1;
+    if((e.date||'')>=since) recent[e.catKey]=(recent[e.catKey]||0)+1;
+  });
+  var used=CATS.filter(function(c){return all[c.k];});
+  if(!used.length) return {top:CATS.slice(),rest:[]};
+  used.sort(function(a,b){return (recent[b.k]||0)-(recent[a.k]||0) || all[b.k]-all[a.k];});
+  var pick=used.slice(0,CAT_TOP_N);
+  // V horní řadě drž pevné pořadí podle CATS, ať tlačítka neskáčou při každé změně četnosti
+  var top=CATS.filter(function(c){return pick.indexOf(c)!==-1;});
+  var rest=CATS.filter(function(c){return top.indexOf(c)===-1;});
+  return {top:top,rest:rest};
+}
+function toggleCatMore(force){
+  var box=document.getElementById('cat-more'), btn=document.getElementById('cat-more-btn');
+  if(!box||!btn)return;
+  var open=force!==undefined?force:box.style.display==='none';
+  box.style.display=open?'grid':'none';
+  btn.textContent=btn.textContent.replace(/[▾▴]$/,open?'▴':'▾');
+}
+
 function pickCat(k){
   selCat=k;selSub='';
+  var more=document.getElementById('cat-more');
+  if(more && more.querySelector('#cb-'+k)) toggleCatMore(true);
   for(var i=0;i<CATS.length;i++){
     var el=document.getElementById('cb-'+CATS[i].k);
     if(el)el.className='cat-btn'+(CATS[i].k===k?' on':'');
