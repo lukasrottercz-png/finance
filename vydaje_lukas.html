@@ -37,6 +37,12 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .home-page.off{display:none}
 .back-btn{background:none;border:none;color:#007aff;font-size:17px;cursor:pointer;padding:4px 0}
 .amount-box{background:#fff;border-radius:13px;padding:24px 16px;text-align:center;margin-bottom:16px;border:1px solid #e0e0e0}
+.dt-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+.dt-chip{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid #e0e0e0;background:#f9f9fb;font-size:14px;font-weight:500;font-family:inherit;color:#3c3c43;cursor:pointer}
+.dt-chip.on{background:#f5f0ff;border-color:#7c3aed;color:#7c3aed}
+.dt-pick{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid #e0e0e0;background:#f9f9fb;font-size:14px;font-weight:500;color:#3c3c43;cursor:pointer;overflow:hidden}
+.dt-pick.on{background:#f5f0ff;border-color:#7c3aed;color:#7c3aed}
+.dt-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;cursor:pointer;-webkit-appearance:none;appearance:none}
 .amt-inp{font-size:52px;font-weight:200;border:none;background:none;color:#1c1c1e;text-align:center;width:100%;outline:none}
 .amt-inp::placeholder{color:#c7c7cc}
 .date-inp{border:none;background:none;color:#6c6c70;font-size:14px;text-align:center;margin-top:8px;display:block;width:100%}
@@ -362,18 +368,76 @@ async function driveWriteJSON(fname,obj){
 
 function saveAll(){try{localStorage.setItem('lkv3',JSON.stringify(exps))}catch(e){}}
 
-// Výdaje (vlastní soubor) — načtení nahradí lokál, uložení zapíše na Disk
+// ── Slučování s Diskem ───────────────────────────────────────────────
+// Dřív uložení přepsalo celý soubor obsahem tohoto prohlížeče. Karta otevřená
+// od rána tak smazala výdaje, které mezitím přibyly z jiného zařízení.
+// Teď se při každém uložení i načtení provede 3cestné sloučení:
+//   base   = poslední verze, kterou tento prohlížeč z Disku viděl (sync_base_<soubor>)
+//   local  = co je teď v tomto prohlížeči
+//   remote = co je teď na Disku
+// Na Disk se přenesou jen lokální změny proti base (nové, upravené, smazané),
+// všechno ostatní zůstane tak, jak je na Disku.
+function syncKey(x){ return (x&&x.id!=null)?'id:'+x.id:'j:'+JSON.stringify(x); }
+function getSyncBase(fname){
+  try{ var b=JSON.parse(localStorage.getItem('sync_base_'+fname)||'null'); return Array.isArray(b)?b:null; }catch(e){ return null; }
+}
+function setSyncBase(fname,arr){ try{ localStorage.setItem('sync_base_'+fname,JSON.stringify(arr)); }catch(e){} }
+
+function mergeArrays(local,base,remote){
+  var baseMap={}; if(base) base.forEach(function(x){ baseMap[syncKey(x)]=JSON.stringify(x); });
+  var localMap={}; local.forEach(function(x){ localMap[syncKey(x)]=x; });
+  function changedLocally(k){ return base && (!(k in baseMap) || JSON.stringify(localMap[k])!==baseMap[k]); }
+  var out=[], seen={};
+  remote.forEach(function(x){
+    var k=syncKey(x); seen[k]=1;
+    if(k in localMap){ out.push(changedLocally(k)?localMap[k]:x); return; }
+    if(base && (k in baseMap) && JSON.stringify(x)===baseMap[k]) return; // lokálně smazané
+    out.push(x);                                                         // nové odjinud (nebo upravené odjinud)
+  });
+  local.forEach(function(x){
+    var k=syncKey(x);
+    if(seen[k]) return;
+    if(base && (k in baseMap) && !changedLocally(k)) return;             // smazané odjinud, tady beze změny
+    out.push(x);                                                         // nové tady
+  });
+  return out;
+}
+
+// Načte soubor, sloučí s lokálem, a pokud se Disk liší (nebo forceWrite), zapíše výsledek.
+// Volání pro jeden soubor jdou za sebou, aby se dvě rychlá uložení nepřebila.
+var syncQueue={};
+function driveSyncArray(fname,getLocal,forceWrite){
+  var run=function(){ return (async function(){
+    var local=getLocal();
+    var r=await driveReadJSON(fname);
+    var remote=(r.exists&&Array.isArray(r.data))?r.data:null;
+    if(!remote){
+      if(forceWrite){ await driveWriteJSON(fname,local); setSyncBase(fname,local); }
+      return local;
+    }
+    var merged=mergeArrays(local,getSyncBase(fname),remote);
+    if(JSON.stringify(merged)!==JSON.stringify(remote)) await driveWriteJSON(fname,merged);
+    setSyncBase(fname,merged);
+    return merged;
+  })(); };
+  var p=(syncQueue[fname]||Promise.resolve()).then(run,run);
+  syncQueue[fname]=p.catch(function(){});
+  return p;
+}
+
+// Výdaje (vlastní soubor)
 async function ghLoad(){
   if(!isConnected()) return false;
   try{
-    var r=await driveReadJSON(GH_FILE);
-    if(r.exists && Array.isArray(r.data)){ exps=r.data; localStorage.setItem('lkv3',JSON.stringify(exps)); }
+    exps=await driveSyncArray(GH_FILE,function(){return exps;},false);
+    saveAll();
     updateSyncIcon('ok'); return true;
   }catch(e){ console.error('driveLoad vydaje:',e); updateSyncIcon('error'); return false; }
 }
 async function ghSave(){
   if(isConnected()){
-    try{ await driveWriteJSON(GH_FILE, exps); saveAll(); updateSyncIcon('ok'); }
+    saveAll();
+    try{ exps=await driveSyncArray(GH_FILE,function(){return exps;},true); saveAll(); updateSyncIcon('ok'); }
     catch(e){ console.error('driveSave vydaje:',e); saveAll(); updateSyncIcon('error'); showToast('Drive nedostupný — uloženo lokálně'); }
   } else {
     saveAll(); updateSyncIcon('local');
@@ -384,24 +448,26 @@ async function ghSave(){
 // Trvalé platby (vlastní soubor)
 async function ghSaveTrvale(){
   if(!isConnected()){ localStorage.setItem('lk_trvale',JSON.stringify(trvale)); return; }
-  try{ await driveWriteJSON(GH_FILE_T, trvale); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
+  localStorage.setItem('lk_trvale',JSON.stringify(trvale));
+  try{ trvale=await driveSyncArray(GH_FILE_T,function(){return trvale;},true); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
   catch(e){ console.error('driveSaveTrvale:',e); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
 }
 async function ghLoadTrvale(){
   if(!isConnected()) return;
-  try{ var r=await driveReadJSON(GH_FILE_T); if(r.exists && Array.isArray(r.data)){ trvale=r.data; localStorage.setItem('lk_trvale',JSON.stringify(trvale)); } }
+  try{ trvale=await driveSyncArray(GH_FILE_T,function(){return trvale;},false); localStorage.setItem('lk_trvale',JSON.stringify(trvale)); }
   catch(e){ console.error('driveLoadTrvale:',e); }
 }
 
 // Příjmy (vlastní soubor) — čte i finance_tracker.html při sestavování období
 async function ghSavePrijmy(){
   if(!isConnected()){ localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); return; }
-  try{ await driveWriteJSON(GH_FILE_PR, prijmy); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
+  localStorage.setItem('lk_prijmy',JSON.stringify(prijmy));
+  try{ prijmy=await driveSyncArray(GH_FILE_PR,function(){return prijmy;},true); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
   catch(e){ console.error('driveSavePrijmy:',e); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
 }
 async function ghLoadPrijmy(){
   if(!isConnected()) return;
-  try{ var r=await driveReadJSON(GH_FILE_PR); if(r.exists && Array.isArray(r.data)){ prijmy=r.data; localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); } }
+  try{ prijmy=await driveSyncArray(GH_FILE_PR,function(){return prijmy;},false); localStorage.setItem('lk_prijmy',JSON.stringify(prijmy)); }
   catch(e){ console.error('driveLoadPrijmy:',e); }
 }
 
@@ -649,7 +715,7 @@ function paceBarHtml(b){
     +'</div>';
 }
 function fmt(n){return Math.round(n).toLocaleString('cs-CZ')+' Kč'}
-function today(){var d=new Date();return d.toISOString().slice(0,10)}
+function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
 function catByKey(k){for(var i=0;i<CATS.length;i++){if(CATS[i].k===k)return CATS[i]}return null}
 function splitPctOf(e){return (typeof e.splitPct==='number'&&e.splitPct>=0&&e.splitPct<=100)?e.splitPct:50}
 function jShare(e){return (e.amount||0)*splitPctOf(e)/100}
@@ -1049,9 +1115,14 @@ function openAdd(){
 function buildAddForm(){
   var html='<div class="amount-box">'
     +'<input id="amt" class="amt-inp" type="number" inputmode="decimal" placeholder="0">'
-    +'<div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px">'
-    +'<span style="font-size:13px;color:#6c6c70">📅</span>'
-    +'<input id="dt" type="date" value="'+today()+'" style="font-size:15px;color:#1c1c1e;border:none;background:none;outline:none;font-family:inherit">'
+    // Výběr data: velká tlačítka Dnes / Včera / Předevčírem + celé tlačítko s datem otevře kalendář
+    +'<div class="dt-row">'
+    +'<button type="button" class="dt-chip" data-off="0" onclick="setDtOffset(0)">Dnes</button>'
+    +'<button type="button" class="dt-chip" data-off="1" onclick="setDtOffset(1)">Včera</button>'
+    +'<button type="button" class="dt-chip" data-off="2" onclick="setDtOffset(2)">Předevčírem</button>'
+    +'<label class="dt-pick" id="dt-pick">📅 <span id="dt-lbl"></span>'
+    +'<input id="dt" type="date" value="'+today()+'" onchange="updateDtUI()" onclick="try{this.showPicker()}catch(e){}">'
+    +'</label>'
     +'</div>'
     +'</div>'
     +'<div class="sec-hdr">Kategorie</div>'
@@ -1086,6 +1157,20 @@ function buildAddForm(){
     +'</div>'
     +'<button class="save-btn" onclick="doSave()">Uložit výdaj</button>';
   document.getElementById('add-content').innerHTML=html;
+  updateDtUI();
+}
+
+function dayOffsetKey(off){var d=new Date();d.setDate(d.getDate()-off);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function setDtOffset(off){var el=document.getElementById('dt');if(!el)return;el.value=dayOffsetKey(off);updateDtUI();}
+function updateDtUI(){
+  var el=document.getElementById('dt'), lbl=document.getElementById('dt-lbl'), pick=document.getElementById('dt-pick');
+  if(!el||!lbl)return;
+  var v=el.value||today(), quick=-1;
+  for(var i=0;i<3;i++){if(dayOffsetKey(i)===v)quick=i;}
+  document.querySelectorAll('.dt-chip').forEach(function(b){b.classList.toggle('on',+b.getAttribute('data-off')===quick);});
+  var d=new Date(v+'T12:00:00');
+  lbl.textContent=quick>=0?'Jiný den':d.toLocaleDateString('cs-CZ',{weekday:'short',day:'numeric',month:'numeric',year:(v.slice(0,4)==today().slice(0,4)?undefined:'numeric')});
+  if(pick)pick.classList.toggle('on',quick<0);
 }
 
 // Vlastní podkategorie — localStorage (cache) + odvozené z už zadaných výdajů (synced přes GitHub)
@@ -1263,7 +1348,7 @@ function openEditExp(id, asCopy) {
     var dt = document.getElementById('dt');
     var note = document.getElementById('note');
     if (amt) amt.value = e.amount;
-    if (dt) dt.value = asCopy ? today() : e.date;
+    if (dt) { dt.value = asCopy ? today() : e.date; updateDtUI(); }
     if (note) note.value = e.note || '';
     // Nastav shared toggle
     if(selShared){
@@ -2454,6 +2539,20 @@ function clearAll(){
   if(!confirm('Smazat vše?'))return;
   exps=[];ghSave();renderHome();showToast('Smazáno');
 }
+
+// Po návratu do appky (přepnutí karty, odemčení telefonu) stáhni čerstvá data,
+// ať karta otevřená delší dobu neukazuje zastaralý stav
+var lastFocusSync=Date.now();
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState!=='visible'||!isConnected()||!gisReady())return;
+  if(Date.now()-lastFocusSync<60000)return;
+  lastFocusSync=Date.now();
+  Promise.all([ghLoad(),ghLoadTrvale(),ghLoadPrijmy()]).then(function(){
+    var onHome=document.getElementById('home-page').style.display!=='none';
+    var typing=document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if(onHome&&!typing)renderHome();
+  });
+});
 
 function startupSync(tries){
   if(isConnected() && GOOGLE_CLIENT_ID){
