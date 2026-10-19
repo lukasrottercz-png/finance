@@ -49,6 +49,7 @@ body{font-family:-apple-system,sans-serif;background:#f2f2f7;color:#1c1c1e;min-h
 .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .cat-btn{background:#fff;border:2px solid #e0e0e0;border-radius:13px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
 .cat-btn.on{border-color:#007aff;background:#e8f0fe}
+.jitka-total{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid #f0f0f0;font-size:14px;font-weight:700;color:#6c6c70}
 .cat-more-btn{display:block;width:100%;min-height:44px;margin:-6px 0 16px;background:none;border:1px dashed #c7c7cc;border-radius:13px;font-size:14px;font-weight:500;font-family:inherit;color:#6c6c70;cursor:pointer}
 .cat-icon{font-size:26px}
 .cat-lbl{font-size:11px;color:#6c6c70;text-align:center;line-height:1.3}
@@ -1948,6 +1949,12 @@ function renderJitka(){
           +'<button onclick="event.stopPropagation();settleExp(\''+e.id+'\')" title="Zaplaceno" style="background:none;border:1px solid #34c759;border-radius:8px;cursor:pointer;font-size:13px;color:#34c759;padding:4px 8px;flex-shrink:0;margin-left:4px">✓</button>'
           +'</div>';
       });
+      // Součet nevyúčtovaných sdílených položek
+      var uSum=unpaidItems.reduce(function(s,e){return s+(e.amount||0)},0);
+      var uShare=unpaidItems.reduce(function(s,e){return s+jShare(e)},0);
+      h+='<div class="jitka-total"><span>Celkem '+unpaidItems.length+' pol.</span>'
+        +'<span style="text-align:right"><span style="color:#1c1c1e">'+fmt(uSum)+'</span>'
+        +'<span style="display:block;font-size:12px;color:#ff2d78">podíl Jitky '+fmt(uShare)+'</span></span></div>';
       h+='</div>';
     }
 
@@ -1970,6 +1977,9 @@ function renderJitka(){
           +'<button onclick="event.stopPropagation();settleExp(\''+e.id+'\')" title="Zaplaceno" style="background:none;border:1px solid #34c759;border-radius:8px;cursor:pointer;font-size:13px;color:#34c759;padding:4px 8px;flex-shrink:0;margin-left:4px">✓</button>'
           +'</div>';
       });
+      // Součet zaplaceného za Jitku
+      h+='<div class="jitka-total" style="border-top-color:#ffd0e0"><span>Celkem za Jitku '+zUnpaidItems.length+' pol.</span>'
+        +'<span style="color:#1c1c1e">'+fmt(zUnpaidTotal)+'</span></div>';
       h+='</div>';
     }
 
