@@ -2088,6 +2088,23 @@ function renderJitka(){
         +'</div>';
     }
 
+    // Celkový součet všech výdajů měsíce v tomto pohledu (sdílené v plné výši, za Jitku, děti, rodinné, posláno přímo)
+    var sumParts=[
+      ['Sdílené výdaje (celá částka)',items.reduce(function(s,e){return s+(e.amount||0)},0)],
+      ['Zaplaceno za Jitku',zTotal],
+      ['Výdaje za děti',famM.total],
+      ['Ostatní rodinné',famM.otherTotal],
+      ['Posláno Jitce přímo',dirM.total]
+    ].filter(function(x){return x[1]>0;});
+    if(sumParts.length){
+      var monthSum=sumParts.reduce(function(s,x){return s+x[1]},0);
+      h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;border:1.5px solid #1c1c1e">';
+      if(sumParts.length>1) sumParts.forEach(function(x){
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#6c6c70;padding:2px 0"><span>'+x[0]+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(x[1])+'</span></div>';
+      });
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;'+(sumParts.length>1?'margin-top:8px;padding-top:8px;border-top:1px solid #e0e0e0;':'')+'font-size:16px;font-weight:700"><span style="color:#1c1c1e">Celkem za '+monthLbl.split(' ')[0]+'</span><span style="color:#1c1c1e">'+fmt(monthSum)+'</span></div>'
+        +'</div>';
+    }
     h+='</div></div>'; // close sectionId + month wrapper
   });
 
