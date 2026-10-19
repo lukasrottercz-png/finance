@@ -716,7 +716,7 @@ function paceBarHtml(b){
     +(b.mimoradnyTotal>0?'<div style="margin-top:4px;font-size:12px;color:#8e8e93">vč. mimořádných výdajů reálně zbývá '+fmt(b.zbyvaMesicRealne)+'</div>':'')
     +'</div>';
 }
-function fmt(n){return Math.round(n).toLocaleString('cs-CZ')+' Kč'}
+function fmt(n){return Math.round(n).toLocaleString('cs-CZ')+'\u00a0Kč'} // nezalomitelná mezera, ať se „Kč“ neodtrhne od čísla
 function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
 function catByKey(k){for(var i=0;i<CATS.length;i++){if(CATS[i].k===k)return CATS[i]}return null}
 function splitPctOf(e){return (typeof e.splitPct==='number'&&e.splitPct>=0&&e.splitPct<=100)?e.splitPct:50}
@@ -2044,10 +2044,10 @@ function renderJitka(){
         +'<div style="font-size:14px;font-weight:600;color:#ff9500;margin-bottom:8px">👶 Výdaje za děti <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nevstupuje do vyrovnání)</span></div>';
       famM.items.forEach(function(e){
         var cat=catByKey(e.catKey);
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(e.amount)+'</span></div>';
       });
       famM.recurItems.forEach(function(t){
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500">'+fmt(t.castka)+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(t.castka)+'</span></div>';
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #ffe4c4;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem za děti</span><span style="color:#ff9500">'+fmt(famM.total)+'</span></div>'
         +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání se sdílenými výdaji.</div>'
@@ -2058,10 +2058,10 @@ function renderJitka(){
         +'<div style="font-size:14px;font-weight:600;color:#6c6c70;margin-bottom:8px">👪 Ostatní rodinné výdaje (nesu sám) <span style="font-weight:400;color:#8e8e93;font-size:11px">(informativní, nesouvisí s dětmi)</span></div>';
       famM.otherItems.forEach(function(e){
         var cat=catByKey(e.catKey);
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#444;padding:2px 0"><span>'+(cat?cat.l:e.catKey)+(e.subcat?' · '+e.subcat:'')+(e.note?' — '+e.note:'')+'</span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(e.amount)+'</span></div>';
       });
       famM.otherRecurItems.forEach(function(t){
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500">'+fmt(t.castka)+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#444;padding:2px 0"><span>🔁 '+t.nazev+' <span style="color:#8e8e93;font-size:11px">trvalé</span></span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(t.castka)+'</span></div>';
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #d8d8dc;font-size:15px;font-weight:700"><span style="color:#1c1c1e">Celkem ostatní rodinné</span><span style="color:#6c6c70">'+fmt(famM.otherTotal)+'</span></div>'
         +'<div style="font-size:11px;color:#8e8e93;margin-top:6px">Nevstupuje do vyrovnání se sdílenými výdaji.</div>'
@@ -2073,13 +2073,13 @@ function renderJitka(){
         +'<div style="font-size:14px;font-weight:600;color:#7c3aed;margin-bottom:8px">📤 Posláno Jitce přímo <span style="font-weight:400;color:#8e8e93;font-size:11px">(Jitka se finančně nepodílí)</span></div>';
       dirM.prisp.forEach(function(e){
         h+='<div style="padding:2px 0">'
-          +'<div style="display:flex;justify-content:space-between;font-size:13px;color:#444"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>'
+          +'<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#444"><span>👶 Příspěvek na děti'+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(e.amount)+'</span></div>'
           +(e.note?'<div style="font-size:12px;color:#8e8e93">'+e.note+'</div>':'')
           +'</div>';
       });
       dirM.navic.forEach(function(e){
         h+='<div style="padding:2px 0">'
-          +'<div style="display:flex;justify-content:space-between;font-size:13px;color:#444"><span>💸 Jitce extra'+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(e.amount)+'</span></div>'
+          +'<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#444"><span>💸 Jitce extra'+(e.subcat?' · '+e.subcat:'')+'</span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(e.amount)+'</span></div>'
           +(e.note?'<div style="font-size:12px;color:#8e8e93">'+e.note+'</div>':'')
           +'</div>';
       });
@@ -2100,7 +2100,7 @@ function renderJitka(){
       var monthSum=sumParts.reduce(function(s,x){return s+x[1]},0);
       h+='<div class="card" style="margin-bottom:8px;padding:12px 14px;border:1.5px solid #1c1c1e">';
       if(sumParts.length>1) sumParts.forEach(function(x){
-        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#6c6c70;padding:2px 0"><span>'+x[0]+'</span><span style="color:#1c1c1e;font-weight:500">'+fmt(x[1])+'</span></div>';
+        h+='<div style="display:flex;justify-content:space-between;font-size:13px;color:#6c6c70;padding:2px 0"><span>'+x[0]+'</span><span style="color:#1c1c1e;font-weight:500;white-space:nowrap;flex-shrink:0">'+fmt(x[1])+'</span></div>';
       });
       h+='<div style="display:flex;justify-content:space-between;align-items:center;'+(sumParts.length>1?'margin-top:8px;padding-top:8px;border-top:1px solid #e0e0e0;':'')+'font-size:16px;font-weight:700"><span style="color:#1c1c1e">Celkem za '+monthLbl.split(' ')[0]+'</span><span style="color:#1c1c1e">'+fmt(monthSum)+'</span></div>'
         +'</div>';
